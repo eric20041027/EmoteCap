@@ -30,3 +30,7 @@ server/data/
 [Uu]ser[Ss]ettings/
 *.csproj
 *.sln
+
+# MediaPipe runtime assets (fetched by web/scripts/fetch-mediapipe.mjs)
+web/public/mediapipe/
+web/public/models/

@@ -1,0 +1,27 @@
+/* three.js preview canvas. */
+
+.preview {
+  position: absolute;
+  inset: 0;
+}
+
+.preview canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+.preview canvas:active {
+  cursor: grabbing;
+}
+
+.preview__error {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+}

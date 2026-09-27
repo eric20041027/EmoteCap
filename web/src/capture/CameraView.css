@@ -1,0 +1,79 @@
+/* Webcam panel: mirrored feed, overlay covers, REC badge, framing hint. */
+
+.camera__media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.mirrored {
+  transform: scaleX(-1);
+}
+
+.camera__cover {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  background: radial-gradient(circle at 50% 40%, rgba(139, 123, 255, 0.1), rgba(5, 7, 11, 0.94) 70%);
+}
+
+.camera__cover--error {
+  background: radial-gradient(circle at 50% 40%, rgba(255, 92, 108, 0.14), rgba(5, 7, 11, 0.96) 70%);
+}
+
+.camera__error {
+  max-width: 440px;
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.camera__hint {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: rgba(255, 181, 71, 0.95);
+  color: #1d1406;
+  font-size: clamp(14px, 1.4vw, 19px);
+  font-weight: 700;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.rec-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(10, 12, 17, 0.78);
+  border: 1px solid rgba(255, 77, 94, 0.6);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.12);
+  border-top-color: var(--accent);
+  animation: spin 0.9s linear infinite;
+}

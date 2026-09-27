@@ -1,0 +1,51 @@
+/* Status chips in the top bar. */
+
+.status-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(21, 26, 36, 0.9);
+  border: 1px solid var(--panel-border);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.chip__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-faint);
+}
+
+.chip--ok {
+  color: var(--text);
+}
+
+.chip--ok .chip__dot {
+  background: var(--ok);
+  box-shadow: 0 0 8px var(--ok);
+}
+
+.chip--warn .chip__dot {
+  background: var(--warn);
+  box-shadow: 0 0 8px var(--warn);
+}
+
+.chip--bad {
+  color: #ffc2c8;
+}
+
+.chip--bad .chip__dot {
+  background: var(--bad);
+  box-shadow: 0 0 8px var(--bad);
+}
