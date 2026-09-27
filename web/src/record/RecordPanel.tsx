@@ -35,6 +35,7 @@ export function RecordPanel({ recorder, calibration, frameRef, canRecord, videoR
       {state.phase === 'recorded' ? (
         <ReviewPanel
           frames={state.frames}
+          note={state.note}
           video={video}
           frameRef={frameRef}
           exporter={exporter}

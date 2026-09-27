@@ -86,13 +86,15 @@ describe('recorderReducer', () => {
     expect(recorderReducer(withNotice, { type: 'arm' })).toEqual({ phase: 'countdown' });
   });
 
-  it('opens an imported take for review together with its source video', () => {
+  it('opens an imported take for review together with its source video and a note', () => {
     const video = new Blob(['video'], { type: 'video/mp4' });
     const frames = [frameAt(0), frameAt(0.5)];
-    expect(recorderReducer(INITIAL_RECORDER_STATE, { type: 'load', frames, video })).toEqual({
+    const note = { tone: 'ok' as const, text: 'Auto-calibrated from the T-pose at 1.2 s.' };
+    expect(recorderReducer(INITIAL_RECORDER_STATE, { type: 'load', frames, video, note })).toEqual({
       phase: 'recorded',
       frames,
       video,
+      note,
     });
   });
 

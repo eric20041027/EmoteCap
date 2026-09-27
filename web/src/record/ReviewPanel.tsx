@@ -8,6 +8,7 @@ import { takeDuration } from './take';
 import { TrimClipPanel, type TrimRange } from './TrimClipPanel';
 import type { Exporter } from './useExporter';
 import { usePlayback } from './usePlayback';
+import type { TakeNote } from './useRecorder';
 
 type ReviewMode = 'auto' | 'trim';
 
@@ -18,6 +19,8 @@ const MODES: [ReviewMode, string][] = [
 
 interface ReviewPanelProps {
   frames: readonly MotionFrame[];
+  /** Shown under the take's length, e.g. how an imported video was calibrated. */
+  note?: TakeNote;
   /** Raw camera video of this take, for Gemini. */
   video: TakeVideo;
   frameRef: RefObject<MotionFrame | null>;
@@ -26,7 +29,7 @@ interface ReviewPanelProps {
 }
 
 /** After a take: auto-slice it into clips with Gemini (default), or trim one clip by hand. */
-export function ReviewPanel({ frames, video, frameRef, exporter, onDiscard }: ReviewPanelProps) {
+export function ReviewPanel({ frames, note, video, frameRef, exporter, onDiscard }: ReviewPanelProps) {
   const duration = takeDuration(frames);
   const [mode, setMode] = useState<ReviewMode>('auto');
   const [range, setRange] = useState<TrimRange>({ start: 0, end: duration });
@@ -51,6 +54,7 @@ export function ReviewPanel({ frames, video, frameRef, exporter, onDiscard }: Re
             {formatSeconds(duration)} · {frames.length} frames
             {mode === 'trim' && ' · drag the handles to trim'}
           </p>
+          {note && <p className={`capture__note capture__note--${note.tone}`}>{note.text}</p>}
         </div>
         <div className="review__actions">
           <div className="mode-switch" role="group" aria-label="How to cut this take">

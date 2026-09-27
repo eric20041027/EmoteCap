@@ -5,6 +5,12 @@ import { useCountdown } from '../ui/useCountdown';
 export const COUNTDOWN_SECONDS = 3;
 export const EMPTY_TAKE_NOTICE = 'Nothing was captured. Make sure your whole body is in frame, then record again.';
 
+/** A short remark shown in Review, e.g. how an imported take was calibrated. */
+export interface TakeNote {
+  tone: 'ok' | 'warn';
+  text: string;
+}
+
 export type RecorderState =
   | { phase: 'idle'; notice?: string }
   | { phase: 'countdown' }
@@ -14,6 +20,7 @@ export type RecorderState =
       frames: readonly MotionFrame[];
       /** An imported take's source file: Gemini slices it instead of a camera recording. */
       video?: Blob;
+      note?: TakeNote;
     };
 
 export type RecorderAction =
@@ -22,7 +29,7 @@ export type RecorderAction =
   | { type: 'push'; frame: MotionFrame }
   | { type: 'stop' }
   | { type: 'discard' }
-  | { type: 'load'; frames: readonly MotionFrame[]; video: Blob };
+  | { type: 'load'; frames: readonly MotionFrame[]; video: Blob; note?: TakeNote };
 
 export const INITIAL_RECORDER_STATE: RecorderState = { phase: 'idle' };
 
@@ -50,7 +57,7 @@ export function recorderReducer(state: RecorderState, action: RecorderAction): R
       return { phase: 'idle' };
     case 'load':
       return state.phase === 'idle' && action.frames.length > 0
-        ? { phase: 'recorded', frames: action.frames, video: action.video }
+        ? { phase: 'recorded', frames: action.frames, video: action.video, note: action.note }
         : state;
   }
 }
@@ -65,7 +72,7 @@ export interface Recorder {
   /** Feed every solved frame; frames are kept only while recording. */
   push: (frame: MotionFrame) => void;
   /** Open an imported take (frames timed in video seconds) and its source video for review. */
-  load: (frames: readonly MotionFrame[], video: Blob) => void;
+  load: (frames: readonly MotionFrame[], video: Blob, note?: TakeNote) => void;
 }
 
 export function useRecorder(): Recorder {
@@ -94,7 +101,10 @@ export function useRecorder(): Recorder {
     if (phaseRef.current === 'recording') dispatch({ type: 'push', frame });
   }, []);
 
-  const load = useCallback((frames: readonly MotionFrame[], video: Blob) => dispatch({ type: 'load', frames, video }), []);
+  const load = useCallback(
+    (frames: readonly MotionFrame[], video: Blob, note?: TakeNote) => dispatch({ type: 'load', frames, video, note }),
+    [],
+  );
 
   return { state, countdown: remaining, start, stop, discard, push, load };
 }

@@ -2,7 +2,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObje
 import { drawPoseOverlay } from '../capture/drawPoseOverlay';
 import { CaptureError, closeLandmarkers, createLandmarkers } from '../capture/landmarkers';
 import { createPoseSolver, type MotionFrame, type SmoothingLevel } from '../motion/index';
-import { ImportError, convertVideo } from './convertVideo';
+import type { TakeNote } from '../record/useRecorder';
+import { ImportError, convertVideo, type ConvertedVideo } from './convertVideo';
 import { createFrameDetector } from './detectFrame';
 import { closeVideoFile, openVideoFile, seekTo } from './videoSource';
 
@@ -27,14 +28,23 @@ export interface VideoImportOptions {
   smoothing: SmoothingLevel;
   /** Every solved frame as soon as it is solved (3D preview, Live Link). */
   onFrame: (frame: MotionFrame) => void;
-  /** The finished take (frames timed in video seconds) and its source file. */
-  onDone: (frames: MotionFrame[], video: File) => void;
+  /** The finished take (frames timed in video seconds), its source file, and how it was calibrated. */
+  onDone: (frames: MotionFrame[], video: File, note: TakeNote) => void;
 }
 
 const IDLE: ImportState = { phase: 'idle' };
 const DEFAULT_ASPECT = 16 / 9;
 /** Progress re-renders the app; a few times a second is plenty. */
 const PROGRESS_PUBLISH_MS = 200;
+
+function calibrationNote(calibratedAt: number | null): TakeNote {
+  return calibratedAt === null
+    ? {
+        tone: 'warn',
+        text: 'No T-pose found, so posture is not calibrated and the head may tilt. Start the video with a one-second T-pose.',
+      }
+    : { tone: 'ok', text: `Auto-calibrated from the T-pose at ${calibratedAt.toFixed(1)} s.` };
+}
 
 function describeImportError(error: unknown): string {
   if (error instanceof ImportError || error instanceof CaptureError) return error.message;
@@ -70,7 +80,7 @@ export function useVideoImport(options: VideoImportOptions): VideoImport {
     const controller = new AbortController();
     const { signal } = controller;
 
-    const run = async (): Promise<MotionFrame[]> => {
+    const run = async (): Promise<ConvertedVideo> => {
       const duration = await openVideoFile(file, video, signal);
       setAspect(video.videoWidth / video.videoHeight);
       const landmarkers = await createLandmarkers('accurate');
@@ -84,7 +94,8 @@ export function useVideoImport(options: VideoImportOptions): VideoImport {
         return await convertVideo(duration, {
           seek: (t) => seekTo(video, t, signal),
           detect: (timestampMs) => detect(video, timestampMs),
-          solver: createPoseSolver({}, smoothing),
+          createSolver: () => createPoseSolver({}, smoothing),
+          aspect: frameSize.width / frameSize.height,
           signal,
           onProgress: ({ done, total, frame, detection }) => {
             drawPoseOverlay(optionsRef.current.overlayRef.current, frameSize, detection.image, detection.hands.image);
@@ -101,11 +112,11 @@ export function useVideoImport(options: VideoImportOptions): VideoImport {
     };
 
     run().then(
-      (frames) => {
+      ({ frames, calibratedAt }) => {
         if (signal.aborted) return;
         setFile(null);
         setState(IDLE);
-        optionsRef.current.onDone(frames, file);
+        optionsRef.current.onDone(frames, file, calibrationNote(calibratedAt));
       },
       (error: unknown) => {
         if (signal.aborted) return;
