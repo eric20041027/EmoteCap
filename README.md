@@ -17,6 +17,7 @@ Indie and student game devs animate characters with whatever premade clips they 
 - **Record → trim → FBX** — a one-click export runs Blender headless and writes a Humanoid-ready FBX (Mixamo bone names, T-pose rest) plus a sidecar with the clip name and loop flag.
 - **Zero-setup Unity import** — the EmoteCap Unity package's `AssetPostprocessor` imports every clip as an in-place Humanoid animation, so it retargets to any humanoid (verified on Mixamo's Y Bot).
 - **Live Link** — stream your pose over WebSocket to a Unity character while you act.
+- **Import any video** — turn an existing clip (mp4, mov or webm, up to 3 minutes) into a take: every frame is analysed with the most accurate models, the 3D preview follows along, and the result goes through the same Gemini slicing and FBX export as a live recording.
 - **Gemini one-take slicing** — record several moves in one continuous take; Gemini watches the video and splits it into named, loop-tagged clips (`Wave_Right`, `Sword_Slash`, …), with cut points snapped to your pauses. Rename, retime, and export them all in one click. Without a key, the take is split at pauses locally.
 
 ## How it works
