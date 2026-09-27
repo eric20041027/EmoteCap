@@ -2,9 +2,9 @@
  * Public motion-core API used by the web app. Import only from here.
  */
 import type { MotionFrame, Vec3 } from './contract';
-import { createGroundingState, solveHipsHeight } from './grounding';
 import { LANDMARK_COUNT, toCanonical, type PoseLandmark } from './landmarks';
 import { LandmarkFilter, type OneEuroParams } from './oneEuro';
+import { groundedHipsHeight } from './skeleton';
 import { calibrateRest, createSolverState, flattenRotations, solveRotations } from './solver';
 
 export * from './contract';
@@ -22,11 +22,10 @@ export interface PoseSolver {
   reset(): void;
 }
 
-/** Stateful wrapper: One Euro filter -> rotation solver -> grounding. */
+/** Stateful wrapper: One Euro filter -> rotation solver -> skeleton grounding (lowest sole on the floor). */
 export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}): PoseSolver {
   let filter = new LandmarkFilter(filterParams);
   let rotationState = createSolverState();
-  let groundingState = createGroundingState();
   let lastPoints: Vec3[] | null = null;
 
   return {
@@ -36,11 +35,9 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}): Pos
       const points = filtered.map(toCanonical);
       const visibility = filtered.map((lm) => lm.visibility ?? 1);
       const rotation = solveRotations(points, visibility, rotationState);
-      const grounding = solveHipsHeight(points, visibility, groundingState);
       rotationState = rotation.state;
-      groundingState = grounding.state;
       lastPoints = points;
-      return { t, h: [0, grounding.hipsY, 0], r: flattenRotations(rotation.rotations) };
+      return { t, h: [0, groundedHipsHeight(rotation.rotations), 0], r: flattenRotations(rotation.rotations) };
     },
     calibrate(worldLandmarks) {
       const points = lastPoints ?? (worldLandmarks.length === LANDMARK_COUNT ? worldLandmarks.map(toCanonical) : null);
@@ -49,7 +46,6 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}): Pos
     reset() {
       filter = new LandmarkFilter(filterParams);
       rotationState = createSolverState();
-      groundingState = createGroundingState();
       lastPoints = null;
     },
   };
