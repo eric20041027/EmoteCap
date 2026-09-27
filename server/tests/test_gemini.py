@@ -50,6 +50,7 @@ class FakeGenai:
 
     response: types.GenerateContentResponse = field(default_factory=lambda: answer(json.dumps([WAVE])))
     error: Exception | None = None
+    errors_by_model: dict[str, Exception] = field(default_factory=dict)
     file_states: list[types.FileState] = field(default_factory=lambda: [types.FileState.ACTIVE])
     api_keys: list[str] = field(default_factory=list)
     generate_calls: list[GenerateCall] = field(default_factory=list)
@@ -81,8 +82,9 @@ class FakeGenai:
         self, *, model: str, contents: list[types.Content], config: types.GenerateContentConfig
     ) -> types.GenerateContentResponse:
         self.generate_calls.append(GenerateCall(model, contents, config))
-        if self.error is not None:
-            raise self.error
+        error = self.errors_by_model.get(model, self.error)
+        if error is not None:
+            raise error
         return self.response
 
     def upload(self, *, file: Any, config: types.UploadFileConfig) -> types.File:
@@ -216,6 +218,41 @@ def test_sdk_api_error_becomes_gemini_error_with_code_and_message(fake: FakeGena
 
     with pytest.raises(GeminiError, match=r"^Gemini request failed: 503 UNAVAILABLE: The model is overloaded\.$"):
         request(video)
+
+
+OVERLOADED = genai_errors.ServerError(
+    503, {"error": {"code": 503, "message": "This model is currently experiencing high demand.", "status": "UNAVAILABLE"}}
+)
+
+
+def test_overloaded_model_falls_back_to_the_next_model(fake: FakeGenai, video: Path) -> None:
+    fake.errors_by_model[MODEL] = OVERLOADED
+
+    assert request(video) == [WAVE]
+    assert [call.model for call in fake.generate_calls] == [MODEL, gemini.FALLBACK_MODELS[0]]
+
+
+def test_other_errors_do_not_fall_back(fake: FakeGenai, video: Path) -> None:
+    fake.errors_by_model[MODEL] = genai_errors.ClientError(
+        400, {"error": {"code": 400, "message": "Bad video.", "status": "INVALID_ARGUMENT"}}
+    )
+
+    with pytest.raises(GeminiError, match="400 INVALID_ARGUMENT"):
+        request(video)
+    assert [call.model for call in fake.generate_calls] == [MODEL]
+
+
+def test_fallback_skips_the_configured_model_and_uploads_a_large_video_once(
+    fake: FakeGenai, video: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(gemini, "INLINE_MAX_BYTES", 1)
+    first, second = gemini.FALLBACK_MODELS[0], gemini.FALLBACK_MODELS[1]
+    fake.errors_by_model[first] = OVERLOADED
+
+    assert request_segments(video, "video/webm", DURATION, api_key=API_KEY, model=first) == [WAVE]
+    assert [call.model for call in fake.generate_calls] == [first, second]
+    assert len(fake.uploads) == 1
+    assert fake.deletes == [FILE_NAME]
 
 
 def test_error_messages_never_contain_the_api_key(fake: FakeGenai, video: Path) -> None:

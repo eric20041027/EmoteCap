@@ -24,6 +24,8 @@ from .segments import clean_segments
 logger = logging.getLogger(__name__)
 
 GEMINI_TIMEOUT_S = 30.0  # total budget per take: upload + processing + answer
+# Tried in order when the configured model is overloaded (503 UNAVAILABLE), within the same budget.
+FALLBACK_MODELS = ("gemini-3.6-flash", "gemini-3.5-flash")
 VIDEO_FPS = 5  # frames Gemini samples per second of video (its default is 1)
 # Inline requests are capped at 20 MB, and the video travels base64-encoded (+33 %) with the prompt,
 # so only videos up to 15 MB go inline; bigger ones go through the Files API.
@@ -189,9 +191,11 @@ def request_segments(
         with make_client(api_key) as client:
             if inline_bytes is not None:
                 blob = types.Blob(data=inline_bytes, mime_type=mime_type)
-                response = _ask(client, _video_part(inline_data=blob), duration, model, deadline)
+                response, model = _ask_first_available(
+                    client, _video_part(inline_data=blob), duration, model, deadline
+                )
             else:
-                response = _ask_with_upload(client, video, mime_type, duration, model, deadline)
+                response, model = _ask_with_upload(client, video, mime_type, duration, model, deadline)
         raw = _decode(response)
     except GeminiError:
         raise
@@ -228,9 +232,29 @@ def _ask(
     )
 
 
+def _is_overloaded(exc: Exception) -> bool:
+    return isinstance(exc, genai_errors.APIError) and (exc.code == 503 or exc.status == "UNAVAILABLE")
+
+
+def _ask_first_available(
+    client: genai.Client, video_part: types.Part, duration: float, model: str, deadline: _Deadline
+) -> tuple[types.GenerateContentResponse, str]:
+    """Ask `model`, then each fallback in turn while the models answer "overloaded"; returns the
+    answer and the model that gave it. Any other error is raised at once."""
+    candidates = [model, *(fallback for fallback in FALLBACK_MODELS if fallback != model)]
+    for index, candidate in enumerate(candidates):
+        try:
+            return _ask(client, video_part, duration, candidate, deadline), candidate
+        except genai_errors.APIError as exc:
+            if not _is_overloaded(exc) or index == len(candidates) - 1:
+                raise
+            logger.warning("Gemini %s is overloaded; trying %s", candidate, candidates[index + 1])
+    raise AssertionError("unreachable: the loop returns or raises")
+
+
 def _ask_with_upload(
     client: genai.Client, video: Path, mime_type: str, duration: float, model: str, deadline: _Deadline
-) -> types.GenerateContentResponse:
+) -> tuple[types.GenerateContentResponse, str]:
     uploaded = client.files.upload(
         file=video,
         config=types.UploadFileConfig(
@@ -240,7 +264,7 @@ def _ask_with_upload(
     try:
         active = _wait_until_active(client, uploaded, deadline)
         file_data = types.FileData(file_uri=active.uri, mime_type=mime_type)
-        return _ask(client, _video_part(file_data=file_data), duration, model, deadline)
+        return _ask_first_available(client, _video_part(file_data=file_data), duration, model, deadline)
     finally:
         _delete_quietly(client, uploaded)
 
