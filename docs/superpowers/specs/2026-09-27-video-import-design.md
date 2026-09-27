@@ -31,6 +31,9 @@ Measured in Chromium on a 27 s, 1706×1280 VP8 take: ~54 ms per `currentTime` se
 
 - A fresh `createPoseSolver()` per import: no live T-pose calibration (the person in the video is someone else); the current
   smoothing level applies.
+- Auto-calibration (added after the first version): pass 1 reads every frame and marks T-pose frames from the 2D image
+  landmarks (straight, level arms held for 8 frames); pass 2 re-solves the whole take with a fresh solver calibrated from the
+  first such frame. Review shows where the take was calibrated, or warns when no T-pose was found.
 - Frame `t` = video time in seconds (not re-based), so Gemini's timestamps line up with the motion.
 - If the first frames have no person, the first solved frame is copied to `t = 0`.
 
