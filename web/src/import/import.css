@@ -1,0 +1,23 @@
+/* Video import: progress in the dock, badge on the video view. */
+
+.import-progress {
+  flex: 1;
+  min-width: 220px;
+  display: grid;
+  gap: 8px;
+}
+
+.import-progress__bar {
+  width: 100%;
+  height: 8px;
+  accent-color: var(--accent);
+}
+
+.import-badge {
+  max-width: calc(100% - 28px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-color: rgba(139, 123, 255, 0.6);
+  letter-spacing: 0.02em;
+}

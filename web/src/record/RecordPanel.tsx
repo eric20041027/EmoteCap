@@ -1,7 +1,9 @@
 import type { RefObject } from 'react';
 import type { Calibration } from '../capture/useCalibration';
+import { ImportProgress } from '../import/ImportProgress';
+import type { VideoImport } from '../import/useVideoImport';
 import type { MotionFrame } from '../motion/index';
-import { useTakeVideo } from '../take/useTakeVideo';
+import { useTakeVideo, type TakeVideo } from '../take/useTakeVideo';
 import { CaptureControls } from './CaptureControls';
 import { ExportedFiles } from './ExportedFiles';
 import { ReviewPanel } from './ReviewPanel';
@@ -16,13 +18,17 @@ interface RecordPanelProps {
   canRecord: boolean;
   /** The camera <video>; its raw (un-mirrored) stream is recorded with each take for Gemini. */
   videoRef: RefObject<HTMLVideoElement | null>;
+  importer: VideoImport;
 }
 
-/** Bottom dock: capture controls before a take, auto-slice or trim/playback/export after it. */
-export function RecordPanel({ recorder, calibration, frameRef, canRecord, videoRef }: RecordPanelProps) {
+/** Bottom dock: capture controls (or import progress) before a take, auto-slice or trim/playback/export after it. */
+export function RecordPanel({ recorder, calibration, frameRef, canRecord, videoRef, importer }: RecordPanelProps) {
   const exporter = useExporter();
   const { state } = recorder;
-  const video = useTakeVideo(videoRef, state.phase);
+  const cameraVideo = useTakeVideo(videoRef, state.phase);
+  // An imported take brings its own video file for Gemini.
+  const video: TakeVideo = state.phase === 'recorded' && state.video ? { status: 'ready', blob: state.video } : cameraVideo;
+  const importState = importer.state;
 
   return (
     <section className="dock" aria-label="Recording">
@@ -34,6 +40,8 @@ export function RecordPanel({ recorder, calibration, frameRef, canRecord, videoR
           exporter={exporter}
           onDiscard={recorder.discard}
         />
+      ) : importState.phase !== 'idle' ? (
+        <ImportProgress state={importState} onCancel={importer.cancel} />
       ) : (
         <CaptureControls
           state={state}
@@ -44,6 +52,8 @@ export function RecordPanel({ recorder, calibration, frameRef, canRecord, videoR
           onStop={recorder.stop}
           onCancel={recorder.discard}
           onCalibrate={calibration.start}
+          onImport={importer.start}
+          importError={importState.error}
         />
       )}
       <ExportedFiles files={exporter.files} />

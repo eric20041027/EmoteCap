@@ -1,4 +1,5 @@
 import type { CalibrationMessage } from '../capture/useCalibration';
+import { ImportButton } from '../import/ImportButton';
 import { formatClock } from '../ui/format';
 import { takeDuration } from './take';
 import type { RecorderState } from './useRecorder';
@@ -12,9 +13,13 @@ interface CaptureControlsProps {
   onStop: () => void;
   onCancel: () => void;
   onCalibrate: () => void;
+  /** Turn a video file into a take instead of recording one. */
+  onImport: (file: File) => void;
+  /** Why the last import failed, if it did. */
+  importError?: string;
 }
 
-/** Record / Stop / Cancel plus T-pose calibration, before a take exists. */
+/** Record / Stop / Cancel, T-pose calibration and video import, before a take exists. */
 export function CaptureControls(props: CaptureControlsProps) {
   const { state, canRecord, isCalibrating, calibrationMessage } = props;
 
@@ -65,6 +70,7 @@ export function CaptureControls(props: CaptureControlsProps) {
       >
         {isCalibrating ? 'Hold the T-pose…' : 'Calibrate T-pose'}
       </button>
+      <ImportButton disabled={isCalibrating} onFile={props.onImport} />
       <div className="capture__text">
         <p className="capture__tip">
           Stand 2–3 m back so your whole body is visible. Recording starts after a 3-second countdown.
@@ -73,6 +79,7 @@ export function CaptureControls(props: CaptureControlsProps) {
           <p className={`capture__note capture__note--${calibrationMessage.tone}`}>{calibrationMessage.text}</p>
         )}
         {state.notice && <p className="capture__note capture__note--warn">{state.notice}</p>}
+        {props.importError && <p className="capture__note capture__note--warn">{props.importError}</p>}
       </div>
     </div>
   );

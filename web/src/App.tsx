@@ -5,6 +5,8 @@ import type { CropMode } from './capture/cropFrame';
 import { CameraView } from './capture/CameraView';
 import { needsStepBack } from './capture/captureChecks';
 import { drawPoseOverlay } from './capture/drawPoseOverlay';
+import { ImportView } from './import/ImportView';
+import { useVideoImport } from './import/useVideoImport';
 import { useCalibration } from './capture/useCalibration';
 import { useCameraDevices } from './capture/useCameraDevices';
 import { SkeletonSelect } from './settings/SkeletonSelect';
@@ -49,6 +51,21 @@ export default function App() {
   const [stepBack, setStepBack] = useState(true);
   const { state } = recorder;
   const isReviewing = state.phase === 'recorded';
+  const importVideoRef = useRef<HTMLVideoElement>(null);
+  const importOverlayRef = useRef<HTMLCanvasElement>(null);
+  const importer = useVideoImport({
+    videoRef: importVideoRef,
+    overlayRef: importOverlayRef,
+    trackHands: skeleton === 'full',
+    smoothing,
+    onFrame: (frame) => {
+      frameRef.current = frame;
+      if (liveLink.enabled) liveLink.send(frame);
+    },
+    onDone: recorder.load,
+  });
+  const importState = importer.state;
+  const isImporting = importState.phase !== 'idle';
 
   // Runs once per camera frame, outside React rendering.
   const handlePose = ({ landmarks, worldLandmarks, hands, frameSize, timestampMs }: PoseResult) => {
@@ -63,7 +80,8 @@ export default function App() {
     recorder.push(frame);
   };
 
-  const pose = usePose(videoRef, handlePose, quality, cameras.deviceId, skeleton === 'full', crop);
+  // Importing pauses camera tracking so the GPU goes to the video, and so the two never fight over the preview.
+  const pose = usePose(videoRef, handlePose, quality, cameras.deviceId, skeleton === 'full', crop, isImporting);
   const { refresh: refreshCameras } = cameras;
   useEffect(() => {
     if (pose.status === 'ready') void refreshCameras(); // device labels appear once permission is granted
@@ -98,17 +116,28 @@ export default function App() {
               <CameraSelect devices={cameras.devices} deviceId={cameras.deviceId} onChange={cameras.setDeviceId} />
             </span>
           </div>
-          <CameraView
-            videoRef={videoRef}
-            overlayRef={overlayRef}
-            status={pose.status}
-            message={pose.message}
-            onRetry={pose.retry}
-            showStepBackHint={stepBack}
-            recordingSeconds={recordingSeconds}
-            aspect={pose.frameAspect}
-            cropped={pose.cropped}
-          />
+          {/* Hidden, not unmounted, while importing: the camera stream stays attached to its <video>. */}
+          <div hidden={isImporting}>
+            <CameraView
+              videoRef={videoRef}
+              overlayRef={overlayRef}
+              status={pose.status}
+              message={pose.message}
+              onRetry={pose.retry}
+              showStepBackHint={stepBack}
+              recordingSeconds={recordingSeconds}
+              aspect={pose.frameAspect}
+              cropped={pose.cropped}
+            />
+          </div>
+          {importState.phase !== 'idle' && (
+            <ImportView
+              videoRef={importVideoRef}
+              overlayRef={importOverlayRef}
+              aspect={importer.aspect}
+              fileName={importState.fileName}
+            />
+          )}
         </section>
 
         <section className="panel" aria-label="3D preview">
@@ -139,6 +168,7 @@ export default function App() {
         frameRef={frameRef}
         canRecord={pose.status === 'ready'}
         videoRef={videoRef}
+        importer={importer}
       />
 
       {recorder.countdown !== null && <CountdownOverlay value={recorder.countdown} caption="Get into position" />}
