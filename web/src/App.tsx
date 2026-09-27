@@ -34,12 +34,12 @@ export default function App() {
   const isReviewing = state.phase === 'recorded';
 
   // Runs once per camera frame, outside React rendering.
-  const handlePose = ({ landmarks, worldLandmarks, timestampMs }: PoseResult) => {
-    drawPoseOverlay(overlayRef.current, videoRef.current, landmarks);
+  const handlePose = ({ landmarks, worldLandmarks, hands, timestampMs }: PoseResult) => {
+    drawPoseOverlay(overlayRef.current, videoRef.current, landmarks, hands.image);
     latestWorldRef.current = worldLandmarks ?? null;
     setHasPose(worldLandmarks !== undefined);
     setStepBack(needsStepBack(landmarks));
-    const frame = solver.solve(worldLandmarks, timestampMs / 1000);
+    const frame = solver.solve(worldLandmarks, timestampMs / 1000, hands.world);
     if (!frame) return;
     if (liveLink.enabled) liveLink.send(frame);
     if (!isReviewing) frameRef.current = frame;

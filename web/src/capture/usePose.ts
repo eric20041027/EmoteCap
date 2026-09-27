@@ -1,12 +1,21 @@
-import { FilesetResolver, PoseLandmarker, type Landmark, type NormalizedLandmark } from '@mediapipe/tasks-vision';
+import {
+  FilesetResolver,
+  PoseLandmarker,
+  type HandLandmarker,
+  type Landmark,
+  type NormalizedLandmark,
+} from '@mediapipe/tasks-vision';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { INSECURE_CONTEXT_MESSAGE, describeCameraError, describeModelError } from './captureChecks';
+import { NO_HANDS, assignHands, createHandLandmarker, type TrackedHands } from './hands';
 
 export interface PoseResult {
   /** Normalized image landmarks (0..1) of the first pose, for the overlay. */
   landmarks: NormalizedLandmark[] | undefined;
   /** World landmarks (meters, hip-centred) of the first pose, for the solver. */
   worldLandmarks: Landmark[] | undefined;
+  /** Hands matched to the actor's left/right (empty when hand tracking is off or nothing is detected). */
+  hands: TrackedHands;
   timestampMs: number;
 }
 
@@ -42,7 +51,13 @@ async function openCamera(): Promise<MediaStream> {
   }
 }
 
-async function createLandmarker(): Promise<PoseLandmarker> {
+interface Landmarkers {
+  pose: PoseLandmarker;
+  /** Optional: body tracking keeps working if the hand model fails to load. */
+  hands: HandLandmarker | undefined;
+}
+
+async function createLandmarkers(): Promise<Landmarkers> {
   try {
     const fileset = await FilesetResolver.forVisionTasks(WASM_PATH);
     const options = (delegate: 'GPU' | 'CPU') => ({
@@ -50,12 +65,20 @@ async function createLandmarker(): Promise<PoseLandmarker> {
       runningMode: 'VIDEO' as const,
       numPoses: 1,
     });
+    let pose: PoseLandmarker;
     try {
-      return await PoseLandmarker.createFromOptions(fileset, options('GPU'));
+      pose = await PoseLandmarker.createFromOptions(fileset, options('GPU'));
     } catch (gpuError) {
       console.warn('PoseLandmarker GPU delegate failed, retrying on CPU:', gpuError);
-      return await PoseLandmarker.createFromOptions(fileset, options('CPU'));
+      pose = await PoseLandmarker.createFromOptions(fileset, options('CPU'));
     }
+    let hands: HandLandmarker | undefined;
+    try {
+      hands = await createHandLandmarker(fileset);
+    } catch (handError) {
+      console.warn('Hand tracking unavailable; continuing with body only:', handError);
+    }
+    return { pose, hands };
   } catch (error) {
     throw new CaptureError(describeModelError(error));
   }
@@ -92,15 +115,16 @@ export function usePose(
     if (!video) return;
     let disposed = false;
     let stream: MediaStream | undefined;
-    let landmarker: PoseLandmarker | undefined;
+    let landmarkers: Landmarkers | undefined;
     let rafId = 0;
 
     const release = () => {
       cancelAnimationFrame(rafId);
       stopStream(stream);
-      landmarker?.close();
+      landmarkers?.pose.close();
+      landmarkers?.hands?.close();
       stream = undefined;
-      landmarker = undefined;
+      landmarkers = undefined;
       video.srcObject = null;
     };
 
@@ -112,7 +136,8 @@ export function usePose(
       setStatus({ status: 'error', message });
     };
 
-    const runLoop = (active: PoseLandmarker) => {
+    const runLoop = (active: Landmarkers) => {
+      let handTracker = active.hands;
       let lastVideoTime = -1;
       let lastDetectMs = 0;
       let lastPublishMs = 0;
@@ -126,10 +151,20 @@ export function usePose(
         const timestampMs = performance.now();
         let result;
         try {
-          result = active.detectForVideo(video, timestampMs);
+          result = active.pose.detectForVideo(video, timestampMs);
         } catch (error) {
           fail(error);
           return;
+        }
+        let hands = NO_HANDS;
+        if (handTracker) {
+          try {
+            hands = assignHands(handTracker.detectForVideo(video, timestampMs), result.landmarks[0]);
+          } catch (error) {
+            console.warn('Hand tracking stopped (body tracking continues):', error);
+            handTracker.close();
+            handTracker = undefined;
+          }
         }
         if (lastDetectMs > 0) {
           const instant = 1000 / Math.max(timestampMs - lastDetectMs, 1);
@@ -144,6 +179,7 @@ export function usePose(
           onResultRef.current({
             landmarks: result.landmarks[0],
             worldLandmarks: result.worldLandmarks[0],
+            hands,
             timestampMs,
           });
         } catch (error) {
@@ -157,9 +193,9 @@ export function usePose(
 
     const start = async () => {
       setStatus({ status: 'loading', message: LOADING_MESSAGE });
-      const [camera, model] = await Promise.allSettled([openCamera(), createLandmarker()]);
+      const [camera, model] = await Promise.allSettled([openCamera(), createLandmarkers()]);
       if (camera.status === 'fulfilled') stream = camera.value;
-      if (model.status === 'fulfilled') landmarker = model.value;
+      if (model.status === 'fulfilled') landmarkers = model.value;
       if (disposed) {
         release();
         return;
@@ -170,9 +206,9 @@ export function usePose(
       video.muted = true;
       video.playsInline = true;
       await video.play();
-      if (disposed || !landmarker) return;
+      if (disposed || !landmarkers) return;
       setStatus({ status: 'ready', message: '' });
-      runLoop(landmarker);
+      runLoop(landmarkers);
     };
 
     start().catch(fail);

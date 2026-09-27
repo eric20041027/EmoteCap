@@ -1,4 +1,5 @@
-import { DrawingUtils, PoseLandmarker, type LandmarkData, type NormalizedLandmark } from '@mediapipe/tasks-vision';
+import { DrawingUtils, HandLandmarker, PoseLandmarker, type LandmarkData, type NormalizedLandmark } from '@mediapipe/tasks-vision';
+import type { TrackedHands } from './hands';
 
 // Same side colours as the 3D mannequin, so "raise your right hand" reads orange in both views.
 const LEFT_COLOR = 'rgba(79, 141, 255, 0.95)';
@@ -41,11 +42,12 @@ function landmarkOutline(data: LandmarkData): string {
   return isVisible(data.from) ? OUTLINE : HIDDEN;
 }
 
-/** Draw the pose skeleton over the (unmirrored) video frame; the canvas is mirrored with CSS like the video. */
+/** Draw the pose (and hand) skeletons over the (unmirrored) video frame; the canvas is mirrored with CSS like the video. */
 export function drawPoseOverlay(
   canvas: HTMLCanvasElement | null,
   video: HTMLVideoElement | null,
   landmarks: NormalizedLandmark[] | undefined,
+  hands: TrackedHands['image'] = {},
 ): void {
   const ctx = canvas?.getContext('2d');
   if (!canvas || !ctx) return;
@@ -54,13 +56,19 @@ export function drawPoseOverlay(
     canvas.height = video.videoHeight;
   }
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  if (!landmarks) return;
 
   let utils = utilsByContext.get(ctx);
   if (!utils) {
     utils = new DrawingUtils(ctx);
     utilsByContext.set(ctx, utils);
   }
-  utils.drawConnectors(landmarks, PoseLandmarker.POSE_CONNECTIONS, { color: connectionColor, lineWidth: 4 });
-  utils.drawLandmarks(landmarks, { color: landmarkOutline, fillColor: landmarkFill, lineWidth: 2, radius: 5 });
+  if (landmarks) {
+    utils.drawConnectors(landmarks, PoseLandmarker.POSE_CONNECTIONS, { color: connectionColor, lineWidth: 4 });
+    utils.drawLandmarks(landmarks, { color: landmarkOutline, fillColor: landmarkFill, lineWidth: 2, radius: 5 });
+  }
+  for (const [hand, color] of [[hands.Left, LEFT_COLOR], [hands.Right, RIGHT_COLOR]] as const) {
+    if (!hand) continue;
+    utils.drawConnectors(hand, HandLandmarker.HAND_CONNECTIONS, { color, lineWidth: 2 });
+    utils.drawLandmarks(hand, { color: OUTLINE, fillColor: color, lineWidth: 1, radius: 2.5 });
+  }
 }
