@@ -6,6 +6,7 @@ import { HAND_LANDMARK_COUNT, SIDES, type Side } from './hands';
 import { createJumpState, solveJumpLift } from './jump';
 import { LANDMARK_COUNT, toCanonical, type PoseLandmark } from './landmarks';
 import { LandmarkFilter, type OneEuroParams } from './oneEuro';
+import { plantFeet } from './plant';
 import { groundedHipsHeight } from './skeleton';
 import { calibrateRest, createSolverState, flattenRotations, relaxFingers, solveRotations, type HandPoints } from './solver';
 
@@ -33,7 +34,7 @@ export interface PoseSolver {
   reset(): void;
 }
 
-/** Stateful wrapper: One Euro filter -> rotation solver -> skeleton grounding (lowest sole on the floor) + jump lift. */
+/** Stateful wrapper: One Euro filter -> rotation solver -> foot planting -> skeleton grounding + jump lift. */
 export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}): PoseSolver {
   let filter = new LandmarkFilter(filterParams);
   let handFilters = { Left: new LandmarkFilter(filterParams), Right: new LandmarkFilter(filterParams) };
@@ -64,8 +65,9 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}): Pos
       lastHands = handPoints;
       const jump = solveJumpLift(image, points, visibility, t, jumpState);
       jumpState = jump.state;
-      const hipsY = groundedHipsHeight(rotation.rotations) + jump.lift;
-      return { t, h: [0, hipsY, 0], r: flattenRotations(rotation.rotations) };
+      const planted = plantFeet(rotation.rotations);
+      const hipsY = groundedHipsHeight(planted) + jump.lift;
+      return { t, h: [0, hipsY, 0], r: flattenRotations(planted) };
     },
     calibrate(worldLandmarks, hands) {
       const points = lastPoints ?? (worldLandmarks.length === LANDMARK_COUNT ? worldLandmarks.map(toCanonical) : null);

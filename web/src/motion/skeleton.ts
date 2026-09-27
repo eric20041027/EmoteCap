@@ -28,7 +28,8 @@ export function forwardKinematics(rotations: Rotations): Record<string, Vec3> {
   return joints;
 }
 
-function solePoints(rotations: Rotations, joints: Record<string, Vec3>, side: 'Left' | 'Right'): Vec3[] {
+/** Heel, ball and toe tip of one foot, relative to the Hips head (canonical meters). */
+export function solePoints(rotations: Rotations, joints: Record<string, Vec3>, side: 'Left' | 'Right'): Vec3[] {
   const foot = rotations[`${side}Foot`];
   const toe = byName.get(`${side}ToeBase`)!;
   const ankle = joints[`${side}Foot`];

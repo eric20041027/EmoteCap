@@ -39,3 +39,25 @@ describe('makeClip', () => {
     expect(() => makeClip([frameAt(0)], { start: 2, end: 3, name: 'Empty', loop: false })).toThrow(/No frames/);
   });
 });
+
+describe('makeClip smoothing', () => {
+  const noisy = (i: number) => frameAt(i / 30, quatFromAxisAngle([0, 0, 1], (45 + (i % 2 ? 6 : -6)) * DEG) as [number, number, number, number]);
+
+  it('smooths frame-to-frame jitter without shifting the pose', () => {
+    const frames = Array.from({ length: 30 }, (_, i) => noisy(i));
+    const raw = makeClip(frames, { start: 0, end: 1, name: 'Raw', loop: false, smooth: false });
+    const smoothed = makeClip(frames, { start: 0, end: 1, name: 'Smooth', loop: false });
+    const target = quatFromAxisAngle([0, 0, 1], 45 * DEG);
+    const error = (clip: typeof raw) => {
+      const mids = clip.frames.slice(5, 25);
+      return mids.reduce((sum, f) => sum + (1 - Math.abs(quatDot(f.r.slice(36, 40) as [number, number, number, number], target))), 0) / mids.length;
+    };
+    expect(error(smoothed)).toBeLessThan(error(raw) * 0.3);
+  });
+
+  it('leaves a steady pose exactly as it is', () => {
+    const steady = quatFromAxisAngle([0, 0, 1], 30 * DEG) as [number, number, number, number];
+    const clip = makeClip(Array.from({ length: 10 }, (_, i) => frameAt(i / 30, steady)), { start: 0, end: 1, name: 'Steady', loop: false });
+    for (const frame of clip.frames) expect(Math.abs(quatDot(frame.r.slice(36, 40) as [number, number, number, number], steady))).toBeCloseTo(1, 6);
+  });
+});
