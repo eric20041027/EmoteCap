@@ -73,22 +73,77 @@ flowchart LR
 
 ## Quick start
 
-Requirements: Node 20+, [uv](https://docs.astral.sh/uv/), Blender 4.4+ (tested on 5.1), Unity 2021.3+ (tested on 6000.5).
+The browser app and the server are all you need to capture, preview, record and slice. Blender adds FBX export, Unity adds Live Link and the clips in your game.
+
+### 1. Install the tools
+
+| Tool | Version | Needed for |
+|---|---|---|
+| [Node.js](https://nodejs.org/) | 22 or newer (tested on 26) | the web app |
+| [uv](https://docs.astral.sh/uv/getting-started/installation/) | any recent (it installs Python 3.12 for you) | the server |
+| [Blender](https://www.blender.org/download/) | 4.4 or newer (tested on 5.1) | FBX export (optional) |
+| [Unity](https://unity.com/download) | Unity 6 recommended (tested on 6000.5; the package targets 2021.3+) | Live Link and clips in Unity (optional) |
+| Chrome or Safari, and a webcam | Safari also lists an iPhone through Continuity Camera | capture |
+
+### 2. Get the code and configure it
 
 ```bash
-cp .env.example .env          # set UNITY_EXPORT_DIR to <UnityProject>/Assets/EmoteCap; GEMINI_API_KEY is optional
-(cd server && uv sync && uv run uvicorn emotecap_server.main:app --port 8787)
-(cd web && npm install && npm run dev)   # open http://localhost:5173 (Safari also lists an iPhone via Continuity Camera)
+git clone https://github.com/eric20041027/EmoteCap.git
+cd EmoteCap
+cp .env.example .env
 ```
 
-In Unity: Package Manager → **+** → **Add package from git URL…** → `https://github.com/eric20041027/EmoteCap.git?path=/unity/com.emotecap.mocap`
+Open `.env` and set:
 
-1. Press the orange **Calibrate T-pose** button on the camera view and stand inside the outline.
-2. Exported clips land in `Assets/EmoteCap/` and import as Humanoid automatically. Drag one onto any humanoid's Animator and tick **Foot IK**.
-3. For Live Link, add the **EmoteCap Live Link** component to a T-pose humanoid with no Animator Controller, press Play, and switch on **Live Link** in the web app.
-4. **Fast** mode (Pose Full, hands every other frame) keeps Live Link smooth; switch to **Accurate** (Pose Heavy, hands every frame) for important takes.
-5. **Import video** turns an existing clip into a take; start the video with a one-second T-pose so it calibrates itself.
-6. Clip menu, physics colliders, prop reset and Live Link settings: see the [Unity package README](unity/com.emotecap.mocap/README.md).
+- `BLENDER_PATH`: your Blender executable (the default is the macOS path; examples for Windows and Linux are in the file).
+- `GEMINI_API_KEY` (optional): a key from [Google AI Studio](https://aistudio.google.com/apikey).
+- `UNITY_EXPORT_DIR` (optional): `<YourUnityProject>/Assets/EmoteCap`, so exported clips land in Unity by themselves.
+
+> [!NOTE]
+> **No Gemini API key? Everything still works.** Auto-slice still finds the moves in your take by splitting it at the pauses in your motion, but the clips are named `Clip_01`, `Clip_02`, … instead of Gemini's names and descriptions (`Wave_Right`, `Punching_Combo`, …). You can rename them before exporting.
+
+### 3. Run it (two terminals)
+
+```bash
+# Terminal 1: the server, on http://localhost:8787
+cd server
+uv sync
+uv run uvicorn emotecap_server.main:app --port 8787
+```
+
+```bash
+# Terminal 2: the web app, on http://localhost:5173
+cd web
+npm install
+npm run dev
+```
+
+The first `npm run dev` downloads the MediaPipe models (about 48 MB). Open **http://localhost:5173**, allow camera access, and check that the status bar says **Export server online**.
+
+### 4. Capture your first clips (browser only)
+
+1. Stand 2–3 m from the camera so your whole body is in frame.
+2. Press the orange **⚠ Calibrate T-pose** button on the camera view and hold a T-pose inside the outline until the countdown ends.
+3. Press **Record**, act a few moves with a short pause between them, then press **Stop**.
+4. Press **✦ Auto-slice with Gemini**, adjust the clips if you like, then **Export all**. The FBX files are listed for download (and copied into Unity when `UNITY_EXPORT_DIR` is set).
+
+Already have a video? **Import video** turns it into a take instead; start the video with a one-second T-pose so it calibrates itself.
+
+### 5. Use it in Unity (optional)
+
+1. Package Manager → **+** → **Add package from git URL…** → `https://github.com/eric20041027/EmoteCap.git?path=/unity/com.emotecap.mocap`
+2. Bring in a Humanoid character, for example **Y Bot** from [Mixamo](https://www.mixamo.com/) (download as *FBX for Unity*, in T-pose), and set **Rig → Animation Type** to **Humanoid**.
+3. **Clips:** exported FBX files in `Assets/EmoteCap/` import as Humanoid clips. Add **EmoteCap Clip Player** to the character to play them from an on-screen menu, or drag a clip into your own Animator Controller and tick **Foot IK**.
+4. **Live Link:** add **EmoteCap Live Link** to a character with an Avatar and *no* Animator Controller, press Play, then switch on **Live Link** in the web app.
+5. Physics props, prop reset and Live Link settings: see the [Unity package README](unity/com.emotecap.mocap/README.md).
+
+### Troubleshooting
+
+- **"Export server offline"** in the web app: the server in Terminal 1 is not running on port 8787.
+- **Export fails**: `BLENDER_PATH` in `.env` does not point to a Blender executable. Restart the server after editing `.env`.
+- **Head or body looks tilted**: calibrate again (after reloading the page, moving the camera or switching cameras).
+- **Choppy Live Link**: keep **Fast** mode on; use **Accurate** for recordings and imported videos.
+- **iPhone missing from the camera list**: use Safari, keep the iPhone locked, mounted and near the Mac.
 
 ## Tech stack
 
