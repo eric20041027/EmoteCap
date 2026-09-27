@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from onetake_server.contract import BONES, Clip
+from emotecap_server.contract import BONES, Clip
 
 FIXTURES = Path(__file__).resolve().parents[2] / "contracts" / "fixtures"
 

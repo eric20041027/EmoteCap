@@ -1,13 +1,13 @@
-# OneTake — 設計文件
+# EmoteCap — 設計文件
 
 > **Act once. Animate anything.**
 > HackNite 2026（2026-09-26 20:00 → 09-27 08:00 EDT）
 > 目標：Overall Winner，同時投 Best Use of Gemini API
-> 狀態：設計已確認（21:05）；21:15 調整開發順序：**先做動捕 → Unity，Gemini 延後**。「OneTake」是工作名稱，提交前可以改。
+> 狀態：設計已確認（21:05）；21:15 調整開發順序：**先做動捕 → Unity，Gemini 延後**。專案名稱 **EmoteCap**（21:40 定案）。
 
 ## 1. 一句話
 
-用電腦鏡頭錄一次、連續做好幾個動作。OneTake 用 Gemini 看影片，自動切成命名好的動畫片段，解算成人形骨架動作，再匯出 Unity 能直接用的 Humanoid FBX。錄的時候還能透過 Live Link 讓 Unity 角色即時同步。
+用電腦鏡頭錄一次、連續做好幾個動作。EmoteCap 用 Gemini 看影片，自動切成命名好的動畫片段，解算成人形骨架動作，再匯出 Unity 能直接用的 Humanoid FBX。錄的時候還能透過 Live Link 讓 Unity 角色即時同步。
 
 **痛點**：Unity 開發者的角色動作只能從 Mixamo 現成的動作庫挑，想要的動作常常沒有；專業動捕設備又太貴。
 
@@ -28,7 +28,7 @@
 - 錄一段 take（每幀 MotionFrame）
 - 手動裁切：設定開始和結束點、取名、勾選是否循環。**一次錄製 = 一個片段**
 - 匯出 Humanoid FBX（Blender headless，Mixamo 骨架命名、T-pose rest）
-- 匯出的檔案直接寫進 Unity 專案的 `Assets/OneTake/`（見 7.1），Importer 自動設成 Humanoid + Loop，套到 Mixamo 角色上就能播
+- 匯出的檔案直接寫進 Unity 專案的 `Assets/EmoteCap/`（見 7.1），Importer 自動設成 Humanoid + Loop，套到 Mixamo 角色上就能播
 
 ### 階段 2：Unity Live Link（02:30 前）
 
@@ -72,8 +72,8 @@
 鏡頭 → [web] MediaPipe PoseLandmarker(33 點) → motion-core 解算 → three.js 人偶預覽
                                                    ├─【階段 2】Live Link ─ws→ [server] relay ─ws→ [Unity] 角色即時同步
                                                    └─ 錄製 take：每幀 MotionFrame（階段 3 加錄 webm）
-【階段 1】[web] 手動裁切 → Clip ─POST /api/export→ [server] Blender headless → FBX + .onetake.json
-                                                   → 寫進 Unity 專案 Assets/OneTake/ → Importer 自動設 Humanoid + Loop
+【階段 1】[web] 手動裁切 → Clip ─POST /api/export→ [server] Blender headless → FBX + .emotecap.json
+                                                   → 寫進 Unity 專案 Assets/EmoteCap/ → Importer 自動設 Humanoid + Loop
 【階段 3】[web] 上傳影片 ─POST /api/takes→ [server] Gemini → Segment[] → [web] 修準切點 → 多個 Clip 一次匯出
 ```
 
@@ -85,7 +85,7 @@
 | motion-core | `web/src/motion/` | 純 TS 函式 + vitest | Claude（主機） |
 | Server | `server/` | Python 3.12 + FastAPI + uv、`google-genai`（階段 3） | AI / 後端 |
 | Blender 匯出 | `server/blender/export_fbx.py` | Blender 5.1 headless（bpy） | AI / 後端 |
-| Unity 套件 | `unity/com.onetake.mocap/` | UPM 套件、C#、`System.Net.WebSockets.ClientWebSocket` | Unity（smallfire） |
+| Unity 套件 | `unity/com.emotecap.mocap/` | UPM 套件、C#、`System.Net.WebSockets.ClientWebSocket` | Unity（smallfire） |
 
 ## 5. 資料契約 v1（改之前先在群組講）
 
@@ -214,8 +214,8 @@ three.js 依照 5.3 的 canonical 骨架，每根骨頭用一個膠囊體畫出�
 - 照 5.3 建 canonical 骨架：Mixamo 命名、T-pose，包含不驅動的 Shoulder 和 ToeBase。
 - 逐幀照 `BONES` 順序（父骨頭先）設定 pose bone：世界旋轉 = `r[b] × rest`，Hips 位置 = `h`。
 - 每個 Clip 匯出一個 FBX：只包含骨架、`bake_anim=True`、`add_leaf_bones=False`、Y 朝上。**C1 驗收：Unity 匯入後比例正確（身高約 1.75m）。**
-- 每個 FBX 旁邊寫一個 `<name>.onetake.json`（`{ name, loop, fps }`），給 Unity Importer 讀。
-- 輸出位置：`server/data/exports/`。如果 `.env` 有設 `UNITY_EXPORT_DIR`（例如 `/path/to/UnityProject/Assets/OneTake`），就同時複製一份過去，Unity 切回前景時會自動匯入。
+- 每個 FBX 旁邊寫一個 `<name>.emotecap.json`（`{ name, loop, fps }`），給 Unity Importer 讀。
+- 輸出位置：`server/data/exports/`。如果 `.env` 有設 `UNITY_EXPORT_DIR`（例如 `/path/to/UnityProject/Assets/EmoteCap`），就同時複製一份過去，Unity 切回前景時會自動匯入。
 
 ### 7.2 WS relay（階段 2）
 
@@ -235,20 +235,20 @@ three.js 依照 5.3 的 canonical 骨架，每根骨頭用一個膠囊體畫出�
 - CORS 只開放 `http://localhost:5173`。
 - `GEMINI_API_KEY` 從 `.env` 讀。沒有 key 時 server 照常啟動（階段 1、2 不需要），只有 `/api/takes` 回 503，`/api/health` 回報 `gemini: false`。
 
-## 8. Unity 套件（`unity/com.onetake.mocap/`）
+## 8. Unity 套件（`unity/com.emotecap.mocap/`）
 
-- 安裝：Package Manager → Add package from git URL → `https://github.com/<owner>/<repo>.git?path=/unity/com.onetake.mocap`（repo 建好後換成實際網址）
-- `Editor/OneTakeImporter.cs`（AssetPostprocessor，階段 1）
-  - 只處理 `Assets/OneTake/` 底下的 FBX
+- 安裝：Package Manager → Add package from git URL → `https://github.com/<owner>/<repo>.git?path=/unity/com.emotecap.mocap`（repo 建好後換成實際網址）
+- `Editor/EmoteCapImporter.cs`（AssetPostprocessor，階段 1）
+  - 只處理 `Assets/EmoteCap/` 底下的 FBX
   - `animationType = Human`、`avatarSetup = CreateFromThisModel`
-  - 讀同名的 `.onetake.json`，設定 clip 名稱、`loopTime`、`loopPose`
-- `Runtime/OneTakeLiveLink.cs`（階段 2）
+  - 讀同名的 `.emotecap.json`，設定 clip 名稱、`loopTime`、`loopPose`
+- `Runtime/EmoteCapLiveLink.cs`（階段 2）
   - 連到 `ws://<host>:8787/ws/live?role=sink`，host 可在 Inspector 設定，隊友的機器也能連
   - Start 時記錄每根骨頭的 rest 世界旋轉。角色必須是 T-pose 的 bind pose（Mixamo 角色符合），而且不能掛 Animator Controller
   - 在 LateUpdate 套用最新一幀：`bone.rotation = ToUnity(r[b]) * restWorld[b]`，父骨頭先套；Hips 高度 = `rigHipsRestY × h.y / H0`
   - 斷線後每 2 秒自動重連；沒有收到資料時角色停在最後的姿勢
   - 在背景執行緒收資料，主執行緒只讀最新一幀
-- 品質階段：`Editor/OneTakeSync.cs` 收到 `clip_ready` 就把 FBX 下載到 `Assets/OneTake/`，再 `AssetDatabase.Refresh()`
+- 品質階段：`Editor/EmoteCapSync.cs` 收到 `clip_ready` 就把 FBX 下載到 `Assets/EmoteCap/`，再 `AssetDatabase.Refresh()`
 - 使用提醒：Animator state 要勾 **Foot IK**
 - Mixamo 模型不要 commit 進公開 repo（授權問題），demo 場景用本機的模型
 

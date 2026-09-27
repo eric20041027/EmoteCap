@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from onetake_server.main import app
+from emotecap_server.main import app
 
 
 def test_health_reports_ok_with_capability_flags():

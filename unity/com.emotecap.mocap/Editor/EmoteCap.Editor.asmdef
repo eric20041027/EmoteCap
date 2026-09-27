@@ -1,0 +1,7 @@
+{
+  "name": "EmoteCap.Editor",
+  "rootNamespace": "EmoteCap.Editor",
+  "references": ["EmoteCap.Runtime"],
+  "includePlatforms": ["Editor"],
+  "autoReferenced": true
+}

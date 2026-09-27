@@ -1,4 +1,4 @@
-# OneTake motion contract v1
+# EmoteCap motion contract v1
 
 Source of truth for data exchanged between `web/`, `server/`, and `unity/`.
 Machine-readable part: [`bones.json`](bones.json). Change either file only after telling the whole team.
@@ -66,12 +66,12 @@ Time range inside a take; the web app cuts Clips from it.
 |---|---|---|---|---|
 | 1 | GET | `/api/health` | – | `{ "ok": true, "blender": bool, "gemini": bool }` |
 | 1 | POST | `/api/export` | `{ "clips": Clip[] }` | `{ "files": [{ "name": str, "url": "/files/<name>.fbx" }] }` |
-| 1 | GET | `/files/<name>.fbx` | – | FBX file (a `<name>.onetake.json` sidecar sits next to it) |
+| 1 | GET | `/files/<name>.fbx` | – | FBX file (a `<name>.emotecap.json` sidecar sits next to it) |
 | 3 | POST | `/api/takes` | multipart `video` (webm ≤ 100 MB, ≤ 3 min), `duration` | `{ "takeId": str, "segments": Segment[] }` |
 
 Errors: `422` invalid body, `500` Blender failure (`detail` holds the last 20 lines of Blender stderr), `503` Gemini not configured.
 
-## Sidecar `<name>.onetake.json`
+## Sidecar `<name>.emotecap.json`
 
 ```json
 { "name": "Wave_Right", "loop": false, "fps": 30 }

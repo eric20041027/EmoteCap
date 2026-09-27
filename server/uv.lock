@@ -168,7 +168,7 @@ wheels = [
 ]
 
 [[package]]
-name = "onetake-server"
+name = "emotecap-server"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

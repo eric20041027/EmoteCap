@@ -1,10 +1,10 @@
-# OneTake — project instructions
+# EmoteCap — project instructions
 
 Hackathon project (HackNite 2026, submit by 07:30 EDT 2026-09-27). Ship working software fast; `main` must always run.
 
 ## Read first
 
-1. Spec: `docs/superpowers/specs/2026-09-26-onetake-design.md`
+1. Spec: `docs/superpowers/specs/2026-09-26-emotecap-design.md`
 2. Data contract between lanes (source of truth): `contracts/motion-v1.md` + `contracts/bones.json`
 3. Your lane's plan: `docs/superpowers/plans/`
 
@@ -25,7 +25,7 @@ Changing anything in `contracts/` requires telling the whole team first. Only th
 |---|---|
 | Web dev server | `cd web && npm install && npm run dev` → http://localhost:5173 |
 | Web tests | `cd web && npm test` |
-| Server | `cd server && uv sync && uv run uvicorn onetake_server.main:app --reload --port 8787` |
+| Server | `cd server && uv sync && uv run uvicorn emotecap_server.main:app --reload --port 8787` |
 | Server tests | `cd server && uv run pytest` |
 | Regenerate fixtures | `python3 contracts/fixtures/make_fixtures.py` |
 

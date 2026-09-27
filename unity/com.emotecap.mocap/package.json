@@ -1,0 +1,8 @@
+{
+  "name": "com.emotecap.mocap",
+  "version": "0.1.0",
+  "displayName": "EmoteCap Mocap",
+  "description": "Webcam motion capture for Unity: automatic Humanoid import of EmoteCap FBX clips and a Live Link receiver.",
+  "unity": "2021.3",
+  "author": { "name": "EmoteCap team" }
+}

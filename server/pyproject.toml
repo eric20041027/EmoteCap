@@ -1,7 +1,7 @@
 [project]
-name = "onetake-server"
+name = "emotecap-server"
 version = "0.1.0"
-description = "OneTake server: Blender FBX export, Live Link relay, Gemini slicing"
+description = "EmoteCap server: Blender FBX export, Live Link relay, Gemini slicing"
 requires-python = ">=3.12"
 dependencies = [
   "fastapi>=0.115",

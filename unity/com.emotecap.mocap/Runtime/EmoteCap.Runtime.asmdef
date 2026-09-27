@@ -1,0 +1,6 @@
+{
+  "name": "EmoteCap.Runtime",
+  "rootNamespace": "EmoteCap",
+  "references": [],
+  "autoReferenced": true
+}

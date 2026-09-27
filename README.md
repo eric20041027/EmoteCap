@@ -1,4 +1,4 @@
-# OneTake
+# EmoteCap
 
 > **Act once. Animate anything.**
 
@@ -21,14 +21,14 @@ webcam → MediaPipe Pose (browser) → quaternion solver → 3D preview
 | `contracts/` | Shared data contract (bones, coordinate systems, MotionFrame) and fixture clips |
 | `web/` | Browser app: webcam, MediaPipe pose, motion solver, 3D preview, recorder |
 | `server/` | FastAPI: Blender FBX export, Live Link relay, Gemini auto-slicing |
-| `unity/com.onetake.mocap/` | Unity package: automatic Humanoid import, Live Link receiver |
+| `unity/com.emotecap.mocap/` | Unity package: automatic Humanoid import, Live Link receiver |
 
 ## Quick start
 
 ```bash
 cp .env.example .env
-(cd server && uv sync && uv run uvicorn onetake_server.main:app --port 8787)
+(cd server && uv sync && uv run uvicorn emotecap_server.main:app --port 8787)
 (cd web && npm install && npm run dev)   # open http://localhost:5173
 ```
 
-Unity: Package Manager → **Add package from disk…** → `unity/com.onetake.mocap/package.json`.
+Unity: Package Manager → **Add package from disk…** → `unity/com.emotecap.mocap/package.json`.

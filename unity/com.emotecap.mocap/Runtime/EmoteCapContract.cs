@@ -1,11 +1,11 @@
 using UnityEngine;
 
-namespace OneTake
+namespace EmoteCap
 {
     /// <summary>
     /// Mirror of contracts/bones.json (driven bones, v1). Keep the order identical to "driven".
     /// </summary>
-    public static class OneTakeContract
+    public static class EmoteCapContract
     {
         public const int Version = 1;
         public const float HipsRestHeight = 0.95f;

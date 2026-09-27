@@ -1,7 +1,0 @@
-{
-  "name": "OneTake.Editor",
-  "rootNamespace": "OneTake.Editor",
-  "references": ["OneTake.Runtime"],
-  "includePlatforms": ["Editor"],
-  "autoReferenced": true
-}
