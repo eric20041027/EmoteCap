@@ -19,6 +19,9 @@ namespace EmoteCap
         [SerializeField] string host = "localhost";
         [SerializeField] int port = 8787;
         [SerializeField] bool applyHipsHeight = true;
+        [Tooltip("Seconds to ease toward each new frame; smooths 30 fps tracking on a 60+ fps display. 0 = off.")]
+        [Range(0f, 0.2f)]
+        [SerializeField] float smoothTime = 0.05f;
         [Tooltip("Keep the lowest sole on the floor: never below it, and pulled down when floating less than Airborne Threshold.")]
         [SerializeField] bool groundFeet = true;
         [Tooltip("Soles higher than this above the floor are treated as a jump and left in the air (meters).")]
@@ -32,6 +35,11 @@ namespace EmoteCap
 
         Transform[] bones;
         Quaternion[] restWorld;
+        Quaternion[] targetWorld;
+        Quaternion[] shownWorld;
+        float targetHipsHeight;
+        float shownHipsHeight;
+        bool hasTarget;
         readonly Transform[] soleJoints = new Transform[4];
         readonly float[] soleHeights = new float[4];
         Quaternion rootRest;
@@ -58,6 +66,9 @@ namespace EmoteCap
             restWorld = bones.Select(bone => bone != null ? bone.rotation : Quaternion.identity).ToArray();
             rootRest = transform.rotation;
             restHipsHeight = bones[0].position.y - transform.position.y;
+            targetWorld = (Quaternion[])restWorld.Clone();
+            shownWorld = (Quaternion[])restWorld.Clone();
+            targetHipsHeight = shownHipsHeight = restHipsHeight;
             RecordSoleHeights(animator);
 
             cancellation = new CancellationTokenSource();
@@ -72,27 +83,51 @@ namespace EmoteCap
         void LateUpdate()
         {
             var frame = latest;
-            if (frame == null || frame == applied) return;
-            applied = frame;
+            if (frame != null && frame != applied)
+            {
+                applied = frame;
+                SetTargets(frame);
+            }
+            if (!hasTarget) return;
 
+            // Ease toward the latest frame every rendered frame instead of snapping 30 times a second.
+            var blend = smoothTime > 0f ? 1f - Mathf.Exp(-Time.deltaTime / smoothTime) : 1f;
+            for (var i = 0; i < bones.Length; i++)
+            {
+                if (bones[i] == null) continue;
+                shownWorld[i] = Quaternion.Slerp(shownWorld[i], targetWorld[i], blend);
+                bones[i].rotation = shownWorld[i];
+            }
+
+            if (applyHipsHeight)
+            {
+                shownHipsHeight = Mathf.Lerp(shownHipsHeight, targetHipsHeight, blend);
+                var hips = bones[0];
+                var position = hips.position;
+                position.y = transform.position.y + shownHipsHeight;
+                hips.position = position;
+            }
+
+            if (groundFeet) GroundLowestSole();
+        }
+
+        void SetTargets(LiveMessage frame)
+        {
             for (var i = 0; i < bones.Length; i++)
             {
                 if (bones[i] == null) continue;
                 var delta = EmoteCapContract.ToUnity(frame.r[i * 4], frame.r[i * 4 + 1], frame.r[i * 4 + 2], frame.r[i * 4 + 3]);
                 // The delta is expressed in the character's own frame; rotate it into world space.
-                var worldDelta = rootRest * delta * Quaternion.Inverse(rootRest);
-                bones[i].rotation = worldDelta * restWorld[i];
+                targetWorld[i] = rootRest * delta * Quaternion.Inverse(rootRest) * restWorld[i];
             }
-
-            if (applyHipsHeight && frame.h != null && frame.h.Length == 3)
+            if (frame.h != null && frame.h.Length == 3)
             {
-                var hips = bones[0];
-                var position = hips.position;
-                position.y = transform.position.y + restHipsHeight * (frame.h[1] / EmoteCapContract.HipsRestHeight);
-                hips.position = position;
+                targetHipsHeight = restHipsHeight * (frame.h[1] / EmoteCapContract.HipsRestHeight);
             }
-
-            if (groundFeet) GroundLowestSole();
+            if (hasTarget) return;
+            System.Array.Copy(targetWorld, shownWorld, targetWorld.Length);
+            shownHipsHeight = targetHipsHeight;
+            hasTarget = true;
         }
 
         /// <summary>Bind-pose height of each ankle and toe joint above the floor (the character's own sole thickness).</summary>
