@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { formatSeconds } from '../ui/format';
+import { formatSeconds, timelinePercent as percent } from '../ui/format';
 
 export const MIN_CLIP_SECONDS = 0.1;
 const STEP_SECONDS = 0.01;
@@ -11,10 +11,6 @@ interface TrimTimelineProps {
   playhead: number | null;
   onStartChange: (start: number) => void;
   onEndChange: (end: number) => void;
-}
-
-function percent(t: number, duration: number): string {
-  return `${duration > 0 ? (t / duration) * 100 : 0}%`;
 }
 
 /** Dual-thumb range over the take: [start, end] is the clip that gets exported. */

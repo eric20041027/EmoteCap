@@ -71,13 +71,18 @@ async function readBody(response: Response): Promise<unknown> {
 }
 
 /** POST one clip to the server; resolves with the exported files or throws ExportFailure. */
-export async function postExport(clip: Clip, fetchFn: FetchFn = fetch): Promise<ExportedFile[]> {
+export function postExport(clip: Clip, fetchFn: FetchFn = fetch): Promise<ExportedFile[]> {
+  return postClips([clip], fetchFn);
+}
+
+/** POST several clips in one request (one Blender run); resolves with the exported files or throws ExportFailure. */
+export async function postClips(clips: readonly Clip[], fetchFn: FetchFn = fetch): Promise<ExportedFile[]> {
   let response: Response;
   try {
     response = await fetchFn(EXPORT_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clips: [clip] }),
+      body: JSON.stringify({ clips }),
     });
   } catch (error) {
     throw new ExportFailure(`Cannot reach the export server. ${SERVER_HINT}`, String(error));

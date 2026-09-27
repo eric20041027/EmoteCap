@@ -4,7 +4,7 @@ import { CameraView } from './capture/CameraView';
 import { needsStepBack } from './capture/captureChecks';
 import { drawPoseOverlay } from './capture/drawPoseOverlay';
 import { useCalibration } from './capture/useCalibration';
-import { usePose, type PoseResult } from './capture/usePose';
+import { usePose, type CaptureQuality, type PoseResult } from './capture/usePose';
 import { ChipToggle, LiveLinkToggle } from './live/LiveLinkToggle';
 import { useLiveLink } from './live/useLiveLink';
 import { createPoseSolver, tposeFrame, type MotionFrame, type PoseLandmark } from './motion/index';
@@ -28,6 +28,7 @@ export default function App() {
   const server = useServerHealth();
   const liveLink = useLiveLink();
   const [mirrorPreview, setMirrorPreview] = useState(true);
+  const [quality, setQuality] = useState<CaptureQuality>('fast');
   const [hasPose, setHasPose] = useState(false);
   const [stepBack, setStepBack] = useState(true);
   const { state } = recorder;
@@ -46,13 +47,19 @@ export default function App() {
     recorder.push(frame);
   };
 
-  const pose = usePose(videoRef, handlePose);
+  const pose = usePose(videoRef, handlePose, quality);
   const recordingSeconds = state.phase === 'recording' ? takeDuration(state.frames) : null;
 
   return (
     <div className="app">
       <AppHeader>
         <StatusBar cameraStatus={pose.status} fps={pose.fps} hasPose={hasPose} server={server} />
+        <ChipToggle
+          label={quality === 'accurate' ? 'Accurate' : 'Fast'}
+          pressed={quality === 'accurate'}
+          onToggle={() => setQuality((q) => (q === 'accurate' ? 'fast' : 'accurate'))}
+          title="Fast: Pose Full + hands every other frame (smooth Live Link). Accurate: Pose Heavy + hands every frame (best for recording). Switching restarts the camera."
+        />
       </AppHeader>
 
       <main className="stage">
@@ -99,6 +106,7 @@ export default function App() {
         calibration={calibration}
         frameRef={frameRef}
         canRecord={pose.status === 'ready'}
+        videoRef={videoRef}
       />
 
       {recorder.countdown !== null && <CountdownOverlay value={recorder.countdown} caption="Get into position" />}

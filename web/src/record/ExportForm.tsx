@@ -1,3 +1,4 @@
+import { ExportErrorAlert } from './ExportErrorAlert';
 import type { Exporter } from './useExporter';
 
 interface ExportFormProps {
@@ -36,12 +37,7 @@ export function ExportForm({ exporter, onExport }: ExportFormProps) {
       <button type="submit" className="btn btn--primary btn--large" disabled={!nameIsValid || busy}>
         {busy ? 'Exporting…' : 'Export FBX'}
       </button>
-      {error && (
-        <div className="alert alert--error" role="alert">
-          <strong>{error.message}</strong>
-          {error.details && <pre className="alert__details">{error.details}</pre>}
-        </div>
-      )}
+      <ExportErrorAlert error={error} />
     </form>
   );
 }

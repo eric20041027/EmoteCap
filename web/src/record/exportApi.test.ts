@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { tposeFrame, type Clip } from '../motion/index';
-import { ExportFailure, describeErrorDetail, parseExportResponse, postExport } from './exportApi';
+import { ExportFailure, describeErrorDetail, parseExportResponse, postClips, postExport } from './exportApi';
 
 const CLIP: Clip = { name: 'Clip_01', loop: false, fps: 30, frames: [tposeFrame(0)] };
 
@@ -72,6 +72,18 @@ describe('postExport', () => {
     const error = (await postExport(CLIP, fetchFn).catch((e: unknown) => e)) as ExportFailure;
     expect(error.message).toBe('Export failed (HTTP 502)');
     expect(error.details).toBe('Bad Gateway');
+  });
+
+  it('POSTs several clips in one request (Export all)', async () => {
+    const second: Clip = { ...CLIP, name: 'Clip_02' };
+    const files = [
+      { name: 'Clip_01', url: '/files/Clip_01.fbx' },
+      { name: 'Clip_02', url: '/files/Clip_02.fbx' },
+    ];
+    const fetchFn = vi.fn(async () => jsonResponse(200, { files }));
+    await expect(postClips([CLIP, second], fetchFn)).resolves.toEqual(files);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(fetchFn).toHaveBeenCalledWith('/api/export', expect.objectContaining({ body: JSON.stringify({ clips: [CLIP, second] }) }));
   });
 
   it('explains when the server is unreachable', async () => {

@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
-import { CLIP_NAME_PATTERN, makeClip, type MotionFrame } from '../motion/index';
-import { ExportFailure, postExport, type ExportedFile } from './exportApi';
+import { CLIP_NAME_PATTERN, makeClip, type Clip, type MotionFrame } from '../motion/index';
+import { ExportFailure, postClips, type ExportedFile } from './exportApi';
 import { DEFAULT_CLIP_NAME, nextClipName } from './take';
 
 export interface Exporter {
@@ -14,6 +14,8 @@ export interface Exporter {
   /** Everything exported this session, newest first. */
   files: ExportedFile[];
   exportRange: (frames: readonly MotionFrame[], start: number, end: number) => Promise<void>;
+  /** Export several clips in one request (auto-sliced take); resolves true on success. */
+  exportClips: (buildClips: () => Clip[]) => Promise<boolean>;
 }
 
 function toFailure(error: unknown): ExportFailure {
@@ -29,23 +31,29 @@ export function useExporter(): Exporter {
   const [error, setError] = useState<ExportFailure | null>(null);
   const [files, setFiles] = useState<ExportedFile[]>([]);
 
+  // Building the clips happens inside the try so a makeClip error is shown like a server error.
+  const exportClips = useCallback(async (buildClips: () => Clip[]): Promise<boolean> => {
+    setBusy(true);
+    setError(null);
+    try {
+      const exported = await postClips(buildClips());
+      setFiles((previous) => [...exported, ...previous]);
+      return true;
+    } catch (err) {
+      console.error('Export failed:', err);
+      setError(toFailure(err));
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
   const exportRange = useCallback(
     async (frames: readonly MotionFrame[], start: number, end: number) => {
-      setBusy(true);
-      setError(null);
-      try {
-        const clip = makeClip([...frames], { start, end, name, loop });
-        const exported = await postExport(clip);
-        setFiles((previous) => [...exported, ...previous]);
-        setName(nextClipName(name));
-      } catch (err) {
-        console.error('Export failed:', err);
-        setError(toFailure(err));
-      } finally {
-        setBusy(false);
-      }
+      const exported = await exportClips(() => [makeClip(frames, { start, end, name, loop })]);
+      if (exported) setName(nextClipName(name));
     },
-    [name, loop],
+    [exportClips, name, loop],
   );
 
   return {
@@ -58,5 +66,6 @@ export function useExporter(): Exporter {
     error,
     files,
     exportRange,
+    exportClips,
   };
 }

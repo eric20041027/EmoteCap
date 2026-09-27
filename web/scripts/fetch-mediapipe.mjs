@@ -14,9 +14,14 @@ const WASM_SRC = join(WEB_ROOT, 'node_modules', '@mediapipe', 'tasks-vision', 'w
 const WASM_DEST = join(WEB_ROOT, 'public', 'mediapipe', 'wasm');
 const MODELS = [
   {
-    label: 'Pose model (~30 MB)',
+    label: 'Accurate pose model (~30 MB)',
     url: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/latest/pose_landmarker_heavy.task',
     dest: join(WEB_ROOT, 'public', 'models', 'pose_landmarker_heavy.task'),
+  },
+  {
+    label: 'Fast pose model (~9 MB)',
+    url: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task',
+    dest: join(WEB_ROOT, 'public', 'models', 'pose_landmarker_full.task'),
   },
   {
     label: 'Hand model (~8 MB)',

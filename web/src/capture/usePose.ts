@@ -30,7 +30,15 @@ export interface PoseTracker {
 }
 
 const WASM_PATH = '/mediapipe/wasm';
-const MODEL_PATH = '/models/pose_landmarker_heavy.task';
+/** fast: Pose Full + hands every other frame (smooth Live Link). accurate: Pose Heavy + hands every frame. */
+export type CaptureQuality = 'fast' | 'accurate';
+const POSE_MODEL_PATH: Record<CaptureQuality, string> = {
+  fast: '/models/pose_landmarker_full.task',
+  accurate: '/models/pose_landmarker_heavy.task',
+};
+const HAND_EVERY_N_FRAMES: Record<CaptureQuality, number> = { fast: 2, accurate: 1 };
+/** Reuse the last hand result on skipped frames for at most this long. */
+const HAND_REUSE_MS = 150;
 const LOADING_MESSAGE = 'Starting the camera and loading the pose model…';
 const FPS_SMOOTHING = 0.1;
 const FPS_PUBLISH_MS = 500;
@@ -57,11 +65,11 @@ interface Landmarkers {
   hands: HandLandmarker | undefined;
 }
 
-async function createLandmarkers(): Promise<Landmarkers> {
+async function createLandmarkers(quality: CaptureQuality): Promise<Landmarkers> {
   try {
     const fileset = await FilesetResolver.forVisionTasks(WASM_PATH);
     const options = (delegate: 'GPU' | 'CPU') => ({
-      baseOptions: { modelAssetPath: MODEL_PATH, delegate },
+      baseOptions: { modelAssetPath: POSE_MODEL_PATH[quality], delegate },
       runningMode: 'VIDEO' as const,
       numPoses: 1,
     });
@@ -95,6 +103,7 @@ function stopStream(stream: MediaStream | undefined): void {
 export function usePose(
   videoRef: RefObject<HTMLVideoElement | null>,
   onResult: (result: PoseResult) => void,
+  quality: CaptureQuality = 'fast',
 ): PoseTracker {
   const [status, setStatus] = useState<{ status: PoseStatus; message: string }>({
     status: 'loading',
@@ -138,6 +147,9 @@ export function usePose(
 
     const runLoop = (active: Landmarkers) => {
       let handTracker = active.hands;
+      let frameIndex = 0;
+      let lastHands = NO_HANDS;
+      let lastHandsMs = 0;
       let lastVideoTime = -1;
       let lastDetectMs = 0;
       let lastPublishMs = 0;
@@ -156,16 +168,19 @@ export function usePose(
           fail(error);
           return;
         }
-        let hands = NO_HANDS;
-        if (handTracker) {
+        let hands = timestampMs - lastHandsMs < HAND_REUSE_MS ? lastHands : NO_HANDS;
+        if (handTracker && frameIndex % HAND_EVERY_N_FRAMES[quality] === 0) {
           try {
             hands = assignHands(handTracker.detectForVideo(video, timestampMs), result.landmarks[0]);
+            lastHands = hands;
+            lastHandsMs = timestampMs;
           } catch (error) {
             console.warn('Hand tracking stopped (body tracking continues):', error);
             handTracker.close();
             handTracker = undefined;
           }
         }
+        frameIndex += 1;
         if (lastDetectMs > 0) {
           const instant = 1000 / Math.max(timestampMs - lastDetectMs, 1);
           fpsEma = fpsEma === 0 ? instant : fpsEma + FPS_SMOOTHING * (instant - fpsEma);
@@ -193,7 +208,7 @@ export function usePose(
 
     const start = async () => {
       setStatus({ status: 'loading', message: LOADING_MESSAGE });
-      const [camera, model] = await Promise.allSettled([openCamera(), createLandmarkers()]);
+      const [camera, model] = await Promise.allSettled([openCamera(), createLandmarkers(quality)]);
       if (camera.status === 'fulfilled') stream = camera.value;
       if (model.status === 'fulfilled') landmarkers = model.value;
       if (disposed) {
@@ -217,7 +232,7 @@ export function usePose(
       disposed = true;
       release();
     };
-  }, [videoRef, attempt]);
+  }, [videoRef, attempt, quality]);
 
   return { ...status, fps, retry };
 }

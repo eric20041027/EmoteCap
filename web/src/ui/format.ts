@@ -10,3 +10,8 @@ export function formatClock(seconds: number): string {
   const rest = safe - minutes * 60;
   return `${minutes}:${rest.toFixed(1).padStart(4, '0')}`;
 }
+
+/** Position of time t on a timeline of `duration` seconds, as a CSS percentage. */
+export function timelinePercent(t: number, duration: number): string {
+  return `${duration > 0 ? (t / duration) * 100 : 0}%`;
+}
