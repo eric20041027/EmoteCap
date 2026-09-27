@@ -14,9 +14,11 @@ Stream your pose live, act a whole take in one go, and let **Gemini** cut it int
 [![React + TypeScript](https://img.shields.io/badge/React_%2B_TypeScript-web_app-3178C6?logo=typescript&logoColor=white)](web/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-server-009688?logo=fastapi&logoColor=white)](server/)
 
-<img src="docs/media/hero.gif" alt="The actor on the webcam (left) waves an arm and the Unity character (right) mirrors him live, knocking a table and a tower of cubes over" width="900">
+<a href="https://youtu.be/ETPATTBDosc"><img src="https://img.shields.io/badge/Watch_the_demo-1%3A41-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Watch the demo on YouTube (1:41)"></a>
 
-<sub>Live Link: the webcam actor (left) drives a physics-enabled Unity character (right) in real time.</sub>
+<a href="https://youtu.be/ETPATTBDosc"><img src="docs/media/hero.gif" alt="The actor on the webcam (left) waves an arm and the Unity character (right) mirrors him live, knocking a table and a tower of cubes over" width="900"></a>
+
+<sub>Live Link: the webcam actor (left) drives a physics-enabled Unity character (right) in real time. Click for the full demo.</sub>
 
 </div>
 

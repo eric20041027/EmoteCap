@@ -6,7 +6,7 @@
 |---|---|
 | Link to project | https://github.com/eric20041027/EmoteCap |
 | Project name | EmoteCap |
-| Demo URL | YouTube (unlisted) link to the demo video |
+| Demo URL | https://youtu.be/ETPATTBDosc |
 | Technologies | Google Gemini API, MediaPipe, three.js, React, Vite, TypeScript, Python, FastAPI, Blender, Unity, C#, WebSockets |
 
 ## Description (plain text: paste into the form as is)
@@ -31,7 +31,7 @@ Built with: Gemini API (video understanding, plus text-to-speech for the demo na
 
 ## Demo video (final edit, 1:41)
 
-File: `demo/EmoteCap_demo_final.mp4` (kept out of git; upload it to YouTube as Unlisted and paste the link into the form).
+File: `demo/EmoteCap_demo_final.mp4` (kept out of git), published at https://youtu.be/ETPATTBDosc.
 1080p30, captions burned in, narration by Gemini TTS (`gemini-3.1-flash-tts-preview`, voice Puck), loudness −16 LUFS.
 
 | Time | Shot | Footage | Narration |
