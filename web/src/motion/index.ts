@@ -7,6 +7,7 @@ import { createJumpState, solveJumpLift } from './jump';
 import { LANDMARK_COUNT, toCanonical, type PoseLandmark } from './landmarks';
 import { LandmarkFilter, type OneEuroParams } from './oneEuro';
 import { plantFeet } from './plant';
+import { BoneRotationFilters, type SmoothingLevel } from './rotationFilter';
 import { groundedHipsHeight } from './skeleton';
 import { calibrateRest, createSolverState, flattenRotations, relaxFingers, solveRotations, type HandPoints } from './solver';
 
@@ -19,6 +20,7 @@ export type { Side } from './hands';
 /** MediaPipe Hand Landmarker world landmarks (21 per hand) keyed by the actor's own side. */
 export type HandLandmarks = Partial<Record<Side, PoseLandmark[]>>;
 export type { OneEuroParams } from './oneEuro';
+export type { SmoothingLevel } from './rotationFilter';
 
 export interface PoseSolver {
   /**
@@ -30,15 +32,21 @@ export interface PoseSolver {
   calibrate(worldLandmarks: PoseLandmark[], hands?: HandLandmarks): void;
   /** Straighten untracked fingers along their hands (body-only skeleton). */
   relaxFingers(): void;
+  /** Rotation smoothing: low = most responsive, high = steadiest. Applies from the next frame. */
+  setSmoothing(level: SmoothingLevel): void;
   /** Forget filter and continuity state (call when a new session starts). */
   reset(): void;
 }
 
-/** Stateful wrapper: One Euro filter -> rotation solver -> foot planting -> skeleton grounding + jump lift. */
-export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}): PoseSolver {
+/**
+ * Stateful wrapper: landmark filter -> rotation solver -> rotation filter -> foot planting -> grounding + jump lift.
+ */
+export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}, smoothing: SmoothingLevel = 'medium'): PoseSolver {
   let filter = new LandmarkFilter(filterParams);
   let handFilters = { Left: new LandmarkFilter(filterParams), Right: new LandmarkFilter(filterParams) };
   let rotationState = createSolverState();
+  let rotationFilters = new BoneRotationFilters(smoothing);
+  let smoothingLevel = smoothing;
   let jumpState = createJumpState();
   let lastPoints: Vec3[] | null = null;
   let lastHands: HandPoints = {};
@@ -65,7 +73,7 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}): Pos
       lastHands = handPoints;
       const jump = solveJumpLift(image, points, visibility, t, jumpState);
       jumpState = jump.state;
-      const planted = plantFeet(rotation.rotations);
+      const planted = plantFeet(rotationFilters.filter(rotation.rotations, t));
       const hipsY = groundedHipsHeight(planted) + jump.lift;
       return { t, h: [0, hipsY, 0], r: flattenRotations(planted) };
     },
@@ -79,6 +87,10 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}): Pos
       const handPoints = { ...rawHands, ...lastHands }; // prefer the filtered hands from the last solve
       if (points) rotationState = calibrateRest(points, rotationState, handPoints);
     },
+    setSmoothing(level) {
+      smoothingLevel = level;
+      rotationFilters = new BoneRotationFilters(level);
+    },
     relaxFingers() {
       rotationState = relaxFingers(rotationState);
       lastHands = {};
@@ -87,6 +99,7 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}): Pos
       filter = new LandmarkFilter(filterParams);
       handFilters = { Left: new LandmarkFilter(filterParams), Right: new LandmarkFilter(filterParams) };
       rotationState = createSolverState();
+      rotationFilters = new BoneRotationFilters(smoothingLevel);
       jumpState = createJumpState();
       lastPoints = null;
       lastHands = {};

@@ -8,6 +8,8 @@ import { drawPoseOverlay } from './capture/drawPoseOverlay';
 import { useCalibration } from './capture/useCalibration';
 import { useCameraDevices } from './capture/useCameraDevices';
 import { SkeletonSelect } from './settings/SkeletonSelect';
+import { SmoothingSelect } from './settings/SmoothingSelect';
+import { setSmoothing, useSmoothing } from './settings/smoothing';
 import { setSkeleton, useSkeleton, type SkeletonMode } from './settings/skeleton';
 import { usePose, type CaptureQuality, type PoseResult } from './capture/usePose';
 import { ChipToggle, LiveLinkToggle } from './live/LiveLinkToggle';
@@ -37,6 +39,8 @@ export default function App() {
   const cameras = useCameraDevices();
   const [crop, setCrop] = useState<CropMode>('none');
   const skeleton = useSkeleton();
+  const smoothing = useSmoothing();
+  useEffect(() => solver.setSmoothing(smoothing), [solver, smoothing]);
   const chooseSkeleton = (mode: SkeletonMode) => {
     setSkeleton(mode);
     if (mode === 'body') solver.relaxFingers();
@@ -71,6 +75,7 @@ export default function App() {
       <AppHeader>
         <StatusBar cameraStatus={pose.status} fps={pose.fps} hasPose={hasPose} server={server} />
         <SkeletonSelect value={skeleton} onChange={chooseSkeleton} />
+        <SmoothingSelect value={smoothing} onChange={setSmoothing} />
         <ChipToggle
           label={quality === 'accurate' ? 'Accurate' : 'Fast'}
           pressed={quality === 'accurate'}
