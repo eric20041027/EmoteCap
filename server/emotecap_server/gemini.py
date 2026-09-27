@@ -59,8 +59,11 @@ Skip everything that is not a performance:
 performance, such as a relaxed breathing idle for several seconds.
 
 How to cut:
-- One segment per distinct action. A move repeated back to back (three jumps in a row) is one \
-segment. The same action performed again later, after other actions, is a new segment.
+- One segment per distinct action. Never return the same action twice: if the actor repeats a move \
+several times, back to back or with rests in between, return ONE segment. For a one-shot action \
+(wave, peace sign, punch, jump) choose the single clearest, most complete repetition; for a looping \
+action (idle, dance, walking in place) cover all repetitions together. Only a clearly different \
+variation gets its own segment, with a name that says how it differs (Wave_Right_Big).
 - Use the granularity a game animator wants: a whole dance routine is one clip, not one clip per \
 step; a flowing punch-punch-kick combo is one clip (Combo_Punch_Kick).
 - Segments are in chronological order and do not overlap. If a short action happens in the middle \
