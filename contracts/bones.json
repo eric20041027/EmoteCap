@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "hipsRestHeight": 0.95,
+  "driven": [
+    "Hips", "Spine", "Chest", "UpperChest", "Neck", "Head",
+    "LeftUpperArm", "LeftLowerArm", "LeftHand",
+    "RightUpperArm", "RightLowerArm", "RightHand",
+    "LeftUpperLeg", "LeftLowerLeg", "LeftFoot",
+    "RightUpperLeg", "RightLowerLeg", "RightFoot"
+  ],
+  "skeleton": [
+    { "name": "Hips",          "parent": null,           "fbx": "mixamorig:Hips",          "head": [0, 0.95, 0],       "tail": [0, 1.05, 0] },
+    { "name": "Spine",         "parent": "Hips",         "fbx": "mixamorig:Spine",         "head": [0, 1.05, 0],       "tail": [0, 1.17, 0] },
+    { "name": "Chest",         "parent": "Spine",        "fbx": "mixamorig:Spine1",        "head": [0, 1.17, 0],       "tail": [0, 1.29, 0] },
+    { "name": "UpperChest",    "parent": "Chest",        "fbx": "mixamorig:Spine2",        "head": [0, 1.29, 0],       "tail": [0, 1.45, 0] },
+    { "name": "Neck",          "parent": "UpperChest",   "fbx": "mixamorig:Neck",          "head": [0, 1.45, 0],       "tail": [0, 1.55, 0] },
+    { "name": "Head",          "parent": "Neck",         "fbx": "mixamorig:Head",          "head": [0, 1.55, 0],       "tail": [0, 1.75, 0] },
+    { "name": "LeftShoulder",  "parent": "UpperChest",   "fbx": "mixamorig:LeftShoulder",  "head": [0.05, 1.40, 0],    "tail": [0.18, 1.40, 0] },
+    { "name": "LeftUpperArm",  "parent": "LeftShoulder", "fbx": "mixamorig:LeftArm",       "head": [0.18, 1.40, 0],    "tail": [0.46, 1.40, 0] },
+    { "name": "LeftLowerArm",  "parent": "LeftUpperArm", "fbx": "mixamorig:LeftForeArm",   "head": [0.46, 1.40, 0],    "tail": [0.72, 1.40, 0] },
+    { "name": "LeftHand",      "parent": "LeftLowerArm", "fbx": "mixamorig:LeftHand",      "head": [0.72, 1.40, 0],    "tail": [0.90, 1.40, 0] },
+    { "name": "RightShoulder", "parent": "UpperChest",   "fbx": "mixamorig:RightShoulder", "head": [-0.05, 1.40, 0],   "tail": [-0.18, 1.40, 0] },
+    { "name": "RightUpperArm", "parent": "RightShoulder","fbx": "mixamorig:RightArm",      "head": [-0.18, 1.40, 0],   "tail": [-0.46, 1.40, 0] },
+    { "name": "RightLowerArm", "parent": "RightUpperArm","fbx": "mixamorig:RightForeArm",  "head": [-0.46, 1.40, 0],   "tail": [-0.72, 1.40, 0] },
+    { "name": "RightHand",     "parent": "RightLowerArm","fbx": "mixamorig:RightHand",     "head": [-0.72, 1.40, 0],   "tail": [-0.90, 1.40, 0] },
+    { "name": "LeftUpperLeg",  "parent": "Hips",         "fbx": "mixamorig:LeftUpLeg",     "head": [0.09, 0.93, 0],    "tail": [0.09, 0.50, 0] },
+    { "name": "LeftLowerLeg",  "parent": "LeftUpperLeg", "fbx": "mixamorig:LeftLeg",       "head": [0.09, 0.50, 0],    "tail": [0.09, 0.08, 0] },
+    { "name": "LeftFoot",      "parent": "LeftLowerLeg", "fbx": "mixamorig:LeftFoot",      "head": [0.09, 0.08, 0],    "tail": [0.09, 0.00, 0.14] },
+    { "name": "LeftToeBase",   "parent": "LeftFoot",     "fbx": "mixamorig:LeftToeBase",   "head": [0.09, 0.00, 0.14], "tail": [0.09, 0.00, 0.20] },
+    { "name": "RightUpperLeg", "parent": "Hips",         "fbx": "mixamorig:RightUpLeg",    "head": [-0.09, 0.93, 0],   "tail": [-0.09, 0.50, 0] },
+    { "name": "RightLowerLeg", "parent": "RightUpperLeg","fbx": "mixamorig:RightLeg",      "head": [-0.09, 0.50, 0],   "tail": [-0.09, 0.08, 0] },
+    { "name": "RightFoot",     "parent": "RightLowerLeg","fbx": "mixamorig:RightFoot",     "head": [-0.09, 0.08, 0],   "tail": [-0.09, 0.00, 0.14] },
+    { "name": "RightToeBase",  "parent": "RightFoot",    "fbx": "mixamorig:RightToeBase",  "head": [-0.09, 0.00, 0.14],"tail": [-0.09, 0.00, 0.20] }
+  ]
+}
