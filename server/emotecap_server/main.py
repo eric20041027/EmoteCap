@@ -2,13 +2,14 @@
 import logging
 import shutil
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from . import exporter
 from .config import load_settings
 from .contract import ExportRequest, ExportResponse
+from .relay import LiveRelay
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 settings = load_settings()
 exports_dir = settings.data_dir / "exports"
 exports_dir.mkdir(parents=True, exist_ok=True)  # StaticFiles refuses a missing directory
+relay = LiveRelay()
 
 app = FastAPI(title="EmoteCap")
 app.add_middleware(
@@ -46,6 +48,12 @@ def export(request: ExportRequest) -> ExportResponse:
             status_code=500, detail={"message": exc.message, "stderr": exc.stderr_tail}
         ) from exc
     return ExportResponse(files=files)
+
+
+@app.websocket("/ws/live")
+async def live_link(websocket: WebSocket, role: str | None = None) -> None:
+    """Phase 2 Live Link: ?role=source (browser) or ?role=sink (Unity)."""
+    await relay.serve(websocket, role)
 
 
 app.mount("/files", StaticFiles(directory=exports_dir), name="files")
