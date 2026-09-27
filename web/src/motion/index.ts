@@ -1,21 +1,16 @@
 /**
  * Public motion-core API used by the web app. Import only from here.
- *
- * Interim implementation: the solver returns the T-pose and makeClip does no resampling.
- * The motion-core plan (docs/superpowers/plans/*-p1-motion-core.md) replaces both
- * without changing these signatures, so the web lane can build against them now.
  */
-import { CLIP_NAME_PATTERN, DEFAULT_FPS, tposeFrame, type Clip, type MotionFrame } from './contract';
+import type { MotionFrame, Vec3 } from './contract';
+import { createGroundingState, solveHipsHeight } from './grounding';
+import { LANDMARK_COUNT, toCanonical, type PoseLandmark } from './landmarks';
+import { LandmarkFilter, type OneEuroParams } from './oneEuro';
+import { calibrateRest, createSolverState, flattenRotations, solveRotations } from './solver';
 
 export * from './contract';
-
-/** One MediaPipe world landmark (meters, origin at the hip midpoint). */
-export interface PoseLandmark {
-  x: number;
-  y: number;
-  z: number;
-  visibility?: number;
-}
+export { makeClip, type ClipOptions } from './clip';
+export type { PoseLandmark } from './landmarks';
+export type { OneEuroParams } from './oneEuro';
 
 export interface PoseSolver {
   /** Solve one frame from the 33 MediaPipe world landmarks. Returns null when no pose is available. */
@@ -26,31 +21,35 @@ export interface PoseSolver {
   reset(): void;
 }
 
-export function createPoseSolver(): PoseSolver {
+/** Stateful wrapper: One Euro filter -> rotation solver -> grounding. */
+export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}): PoseSolver {
+  let filter = new LandmarkFilter(filterParams);
+  let rotationState = createSolverState();
+  let groundingState = createGroundingState();
+  let lastPoints: Vec3[] | null = null;
+
   return {
-    solve: (worldLandmarks, t) => (worldLandmarks && worldLandmarks.length === 33 ? tposeFrame(t) : null),
-    calibrate: () => undefined,
-    reset: () => undefined,
+    solve(worldLandmarks, t) {
+      if (!worldLandmarks || worldLandmarks.length !== LANDMARK_COUNT) return null;
+      const filtered = filter.filter(worldLandmarks, t);
+      const points = filtered.map(toCanonical);
+      const visibility = filtered.map((lm) => lm.visibility ?? 1);
+      const rotation = solveRotations(points, visibility, rotationState);
+      const grounding = solveHipsHeight(points, visibility, groundingState);
+      rotationState = rotation.state;
+      groundingState = grounding.state;
+      lastPoints = points;
+      return { t, h: [0, grounding.hipsY, 0], r: flattenRotations(rotation.rotations) };
+    },
+    calibrate(worldLandmarks) {
+      const points = lastPoints ?? (worldLandmarks.length === LANDMARK_COUNT ? worldLandmarks.map(toCanonical) : null);
+      if (points) rotationState = calibrateRest(points, rotationState);
+    },
+    reset() {
+      filter = new LandmarkFilter(filterParams);
+      rotationState = createSolverState();
+      groundingState = createGroundingState();
+      lastPoints = null;
+    },
   };
-}
-
-export interface ClipOptions {
-  /** Seconds, inclusive, relative to the recording. */
-  start: number;
-  end: number;
-  name: string;
-  loop: boolean;
-  fps?: number;
-}
-
-/** Cut [start, end] out of recorded frames and rebase time to 0. Throws on an invalid name or empty range. */
-export function makeClip(frames: MotionFrame[], options: ClipOptions): Clip {
-  if (!CLIP_NAME_PATTERN.test(options.name)) {
-    throw new Error(`Invalid clip name "${options.name}": use 1-24 letters, digits, or underscores`);
-  }
-  const picked = frames
-    .filter((f) => f.t >= options.start && f.t <= options.end)
-    .map((f) => ({ ...f, t: f.t - options.start }));
-  if (picked.length === 0) throw new Error('No frames in the selected range');
-  return { name: options.name, loop: options.loop, fps: options.fps ?? DEFAULT_FPS, frames: picked };
 }
