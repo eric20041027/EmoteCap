@@ -1,0 +1,17 @@
+/* Chip-styled toggle buttons (reuses .chip from ui/StatusBar.css). */
+
+.chip-button {
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+
+.chip-button:hover {
+  border-color: var(--text-faint);
+  color: var(--text);
+}
+
+.chip-button:focus-visible {
+  outline: 2px solid var(--ok);
+  outline-offset: 2px;
+}

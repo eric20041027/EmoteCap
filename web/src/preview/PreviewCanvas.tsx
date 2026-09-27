@@ -6,9 +6,11 @@ import { createPreviewScene, type PreviewScene } from './previewScene';
 interface PreviewCanvasProps {
   /** Latest frame to show; read every animation frame, so writing it never re-renders React. */
   frameRef: RefObject<MotionFrame | null>;
+  /** Flip horizontally so the preview behaves like a mirror, matching the mirrored camera view. */
+  mirrored?: boolean;
 }
 
-export function PreviewCanvas({ frameRef }: PreviewCanvasProps) {
+export function PreviewCanvas({ frameRef, mirrored = false }: PreviewCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,7 +50,7 @@ export function PreviewCanvas({ frameRef }: PreviewCanvasProps) {
   }, [frameRef]);
 
   return (
-    <div ref={containerRef} className="preview">
+    <div ref={containerRef} className={mirrored ? 'preview preview--mirrored' : 'preview'}>
       {error && <p className="preview__error">{error}</p>}
     </div>
   );

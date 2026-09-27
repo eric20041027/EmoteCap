@@ -5,6 +5,8 @@ import { needsStepBack } from './capture/captureChecks';
 import { drawPoseOverlay } from './capture/drawPoseOverlay';
 import { useCalibration } from './capture/useCalibration';
 import { usePose, type PoseResult } from './capture/usePose';
+import { ChipToggle, LiveLinkToggle } from './live/LiveLinkToggle';
+import { useLiveLink } from './live/useLiveLink';
 import { createPoseSolver, tposeFrame, type MotionFrame, type PoseLandmark } from './motion/index';
 import { PreviewCanvas } from './preview/PreviewCanvas';
 import { RecordPanel } from './record/RecordPanel';
@@ -24,6 +26,8 @@ export default function App() {
   const recorder = useRecorder();
   const calibration = useCalibration(solver, latestWorldRef);
   const server = useServerHealth();
+  const liveLink = useLiveLink();
+  const [mirrorPreview, setMirrorPreview] = useState(true);
   const [hasPose, setHasPose] = useState(false);
   const [stepBack, setStepBack] = useState(true);
   const { state } = recorder;
@@ -37,6 +41,7 @@ export default function App() {
     setStepBack(needsStepBack(landmarks));
     const frame = solver.solve(worldLandmarks, timestampMs / 1000);
     if (!frame) return;
+    if (liveLink.enabled) liveLink.send(frame);
     if (!isReviewing) frameRef.current = frame;
     recorder.push(frame);
   };
@@ -73,11 +78,17 @@ export default function App() {
             <span className="legend">
               <span className="legend__item legend__item--left">Left</span>
               <span className="legend__item legend__item--right">Right</span>
-              <span className="panel__meta">Drag to orbit</span>
+              <ChipToggle
+                label="Mirror"
+                pressed={mirrorPreview}
+                onToggle={() => setMirrorPreview((value) => !value)}
+                title="Flip the preview like a mirror so it matches the camera view"
+              />
+              <LiveLinkToggle enabled={liveLink.enabled} status={liveLink.status} onToggle={liveLink.toggle} />
             </span>
           </div>
           <div className="preview-frame">
-            <PreviewCanvas frameRef={frameRef} />
+            <PreviewCanvas frameRef={frameRef} mirrored={mirrorPreview} />
             {isReviewing && <span className="preview-badge">Reviewing take</span>}
           </div>
         </section>

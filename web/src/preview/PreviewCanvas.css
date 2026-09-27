@@ -16,6 +16,10 @@
   cursor: grabbing;
 }
 
+.preview--mirrored canvas {
+  transform: scaleX(-1);
+}
+
 .preview__error {
   position: absolute;
   inset: 0;
