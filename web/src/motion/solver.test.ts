@@ -11,7 +11,7 @@ import {
   rotatePoints,
   tpose,
 } from './poses.testutil';
-import { calibrateRest, createSolverState, solveRotations, type Rotations } from './solver';
+import { RELAXED_FINGERS, calibrateRest, createSolverState, solveRotations, type Rotations } from './solver';
 
 const X: Vec3 = [1, 0, 0];
 const Y: Vec3 = [0, 1, 0];
@@ -27,9 +27,13 @@ function solve(points: Vec3[]) {
 }
 
 describe('solveRotations', () => {
-  it('returns identity for every bone in the T-pose', () => {
-    const rotations = solve(tpose());
-    for (const bone of DRIVEN_BONES) expectRotation(rotations, bone, [0, 0, 0, 1]);
+  /** Body bones at identity; untracked fingers in the resting curl (their hands are at identity). */
+  const expectRestPose = (rotations: Rotations) => {
+    for (const bone of DRIVEN_BONES) expectRotation(rotations, bone, RELAXED_FINGERS[bone] ?? [0, 0, 0, 1]);
+  };
+
+  it('returns identity for every body bone in the T-pose, with untracked fingers resting', () => {
+    expectRestPose(solve(tpose()));
   });
 
   it('raising the left arm 90 degrees rotates the left arm chain about +Z', () => {
@@ -114,6 +118,6 @@ describe('solveRotations', () => {
     const odd = rotatePoints(p, LEFT_ARM_BELOW_SHOULDER, p[LM.leftShoulder], quatFromAxisAngle(Z, -20 * DEG));
     const state = calibrateRest(odd, createSolverState());
     const { rotations } = solveRotations(odd, ALL_VISIBLE, state);
-    for (const bone of DRIVEN_BONES) expectRotation(rotations, bone, [0, 0, 0, 1]);
+    expectRestPose(rotations);
   });
 });

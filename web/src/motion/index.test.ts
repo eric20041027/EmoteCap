@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createPoseSolver, DRIVEN_BONES } from './index';
+import { BODY_BONE_COUNT, createPoseSolver, DRIVEN_BONES } from './index';
 import { LM } from './landmarks';
 import { quatFromAxisAngle } from './math';
 import { DEG, RIGHT_ARM_BELOW_SHOULDER, rotatePoints, toMediaPipe, tpose } from './poses.testutil';
@@ -10,12 +10,13 @@ describe('createPoseSolver', () => {
     expect(createPoseSolver().solve([], 0)).toBeNull();
   });
 
-  it('turns MediaPipe T-pose landmarks into an identity frame at rest height', () => {
+  it('turns MediaPipe T-pose landmarks into an identity body frame at rest height', () => {
     const frame = createPoseSolver().solve(toMediaPipe(tpose()), 1.5)!;
     expect(frame.t).toBe(1.5);
     expect(frame.h[1]).toBeCloseTo(0.95, 2);
     expect(frame.r).toHaveLength(DRIVEN_BONES.length * 4);
-    for (let i = 0; i < DRIVEN_BONES.length; i++) expect(Math.abs(frame.r[i * 4 + 3])).toBeCloseTo(1, 3);
+    // Body bones only: fingers without hand tracking rest in a loose curl.
+    for (let i = 0; i < BODY_BONE_COUNT; i++) expect(Math.abs(frame.r[i * 4 + 3])).toBeCloseTo(1, 3);
   });
 
   it('raises the right arm when the actor raises their right arm', () => {

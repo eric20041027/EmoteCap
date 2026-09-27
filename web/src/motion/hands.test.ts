@@ -1,9 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import type { DrivenBone, Quat, Vec3 } from './contract';
 import { HAND_LM, tposeHandCanonical } from './hands';
-import { normalize, quatDot, quatFromAxisAngle, quatMultiply as quatMultiplyPublic, sub } from './math';
+import { normalize, quatDot, quatFromAxisAngle, quatMultiply as quatMultiplyPublic, rotateVec as rotate, sub } from './math';
 import { DEG, rotatePoints, tpose } from './poses.testutil';
-import { createSolverState, relaxFingers, solveRotations, type Rotations } from './solver';
+import {
+  HAND_HOLD_S,
+  RELAXED_FINGERS,
+  createSolverState,
+  handRelaxAmount,
+  relaxFingers,
+  relaxHandToward,
+  solveRotations,
+  type Rotations,
+} from './solver';
 
 const ALL_VISIBLE = new Array(33).fill(1);
 const IDENTITY: Quat = [0, 0, 0, 1];
@@ -87,13 +96,54 @@ describe('finger poses while a hand is not tracked', () => {
     expectRotation(second.rotations, 'LeftIndexProximal', expected);
   });
 
-  it('relaxes fingers straight along the hand after relaxFingers', () => {
+  const curledIndexState = () => {
     const hand = tposeHandCanonical('Left');
     const curl = quatFromAxisAngle(normalize(sub(hand[HAND_LM.indexMcp], hand[HAND_LM.pinkyMcp])), -60 * DEG);
     const curled = rotatePoints(hand, [HAND_LM.indexPip, HAND_LM.indexDip, HAND_LM.indexTip], hand[HAND_LM.indexMcp], curl);
-    const first = solveRotations(tpose(), ALL_VISIBLE, createSolverState(), { Left: curled });
-    const relaxed = solveRotations(armDown(), ALL_VISIBLE, relaxFingers(first.state), {});
-    expectRotation(relaxed.rotations, 'LeftIndexProximal', relaxed.rotations.LeftHand);
+    return { curl, state: solveRotations(tpose(), ALL_VISIBLE, createSolverState(), { Left: curled }).state };
+  };
+  const relaxedOn = (rotations: Rotations, bone: DrivenBone, handBone: DrivenBone) =>
+    quatMultiplyPublic(rotations[handBone], RELAXED_FINGERS[bone] ?? IDENTITY);
+
+  it('relaxes fingers into a loose resting curl after relaxFingers', () => {
+    const relaxed = solveRotations(armDown(), ALL_VISIBLE, relaxFingers(curledIndexState().state), {});
+    expectRotation(relaxed.rotations, 'LeftIndexProximal', relaxedOn(relaxed.rotations, 'LeftIndexProximal', 'LeftHand'));
     expectRotation(relaxed.rotations, 'LeftThumbDistal', relaxed.rotations.LeftHand);
+  });
+
+  it('curls resting fingers toward the palm on both hands', () => {
+    const { rotations } = solveRotations(tpose(), ALL_VISIBLE, createSolverState(), {});
+    for (const side of ['Left', 'Right'] as const) {
+      const tip = quatMultiplyPublic(rotations[`${side}Hand`], RELAXED_FINGERS[`${side}MiddleDistal`] ?? IDENTITY);
+      // In the T-pose the palm faces down: a resting fingertip segment points partly down (-Y).
+      const x = side === 'Left' ? 1 : -1;
+      const dir = rotate(tip, [x, 0, 0]);
+      expect(dir[1], side).toBeLessThan(-0.3);
+    }
+  });
+
+  it('eases a held finger pose toward the resting hand, one side at a time', () => {
+    const { curl, state } = curledIndexState();
+    const held = solveRotations(tpose(), ALL_VISIBLE, relaxHandToward(state, 'Left', 0), {});
+    expectRotation(held.rotations, 'LeftIndexProximal', curl);
+    const rested = solveRotations(tpose(), ALL_VISIBLE, relaxHandToward(state, 'Left', 1), {});
+    expectRotation(rested.rotations, 'LeftIndexProximal', relaxedOn(rested.rotations, 'LeftIndexProximal', 'LeftHand'));
+    const otherSide = solveRotations(tpose(), ALL_VISIBLE, relaxHandToward(state, 'Right', 1), {});
+    expectRotation(otherSide.rotations, 'LeftIndexProximal', curl);
+  });
+});
+
+describe('handRelaxAmount', () => {
+  it('holds a hand that just dropped out', () => {
+    expect(handRelaxAmount(HAND_HOLD_S / 2, 1 / 30)).toBe(0);
+  });
+
+  it('eases a hand that has been gone longer than the hold, faster for longer frames', () => {
+    const short = handRelaxAmount(HAND_HOLD_S + 0.1, 1 / 30);
+    const long = handRelaxAmount(HAND_HOLD_S + 0.1, 1 / 10);
+    expect(short).toBeGreaterThan(0);
+    expect(long).toBeGreaterThan(short);
+    expect(long).toBeLessThan(1);
+    expect(handRelaxAmount(Number.POSITIVE_INFINITY, 1 / 30)).toBeGreaterThan(0);
   });
 });

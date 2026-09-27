@@ -216,7 +216,51 @@ export function calibrateRest(points: Vec3[], state: SolverState, hands: HandPoi
   return { rest, palmRest, previous: null, normals: {}, fingerRelative: {} };
 }
 
-/** Straighten untracked fingers along their hand (body-only skeleton, or to reset a stale finger pose). */
+/** Per-joint curl of a resting, untracked hand: loose and natural rather than a flat board. */
+const RELAXED_JOINT_CURL = 15 * (Math.PI / 180);
+
+/**
+ * Each finger's delta relative to its hand for a relaxed resting hand. In the T-pose the palm faces down and the
+ * fingers point along ±X, so curling toward the palm turns about +Z (negative on the left, positive on the right),
+ * one more joint's worth per segment. The thumb stays straight.
+ */
+export const RELAXED_FINGERS: Readonly<Partial<Record<DrivenBone, Quat>>> = Object.fromEntries(
+  SIDES.flatMap((side) =>
+    FINGERS.filter((finger) => finger !== 'Thumb').flatMap((finger) =>
+      SEGMENTS.map((_, segment) => [
+        fingerBone(side, finger, segment),
+        quatFromAxisAngle([0, 0, 1], (side === 'Left' ? -1 : 1) * RELAXED_JOINT_CURL * (segment + 1)),
+      ]),
+    ),
+  ),
+);
+
+/** A hand missing for up to this long keeps its last finger pose (tracking often skips a frame or two). */
+export const HAND_HOLD_S = 0.4;
+/** After that, the fingers ease toward the resting hand with this time constant. */
+const HAND_RELAX_S = 0.25;
+
+/** How far (0..1) to ease a hand toward rest this frame, given how long it has been missing and the frame step. */
+export function handRelaxAmount(secondsMissing: number, dt: number): number {
+  if (secondsMissing <= HAND_HOLD_S || dt <= 0) return 0;
+  return 1 - Math.exp(-dt / HAND_RELAX_S);
+}
+
+/** Move one side's held finger pose `amount` (0..1) of the way to the resting hand. */
+export function relaxHandToward(state: SolverState, side: Side, amount: number): SolverState {
+  if (amount <= 0) return state;
+  const fingerRelative = { ...state.fingerRelative };
+  for (const finger of FINGERS) {
+    for (let segment = 0; segment < SEGMENTS.length; segment++) {
+      const bone = fingerBone(side, finger, segment);
+      const held = state.fingerRelative[bone];
+      if (held) fingerRelative[bone] = quatSlerp(held, RELAXED_FINGERS[bone] ?? IDENTITY, amount);
+    }
+  }
+  return { ...state, fingerRelative };
+}
+
+/** Put untracked fingers in the resting pose (body-only skeleton, or to drop a stale finger pose). */
 export function relaxFingers(state: SolverState): SolverState {
   return { ...state, fingerRelative: {} };
 }
@@ -269,7 +313,7 @@ export function solveRotations(
           fingerRelative[bone] = quatMultiply(quatConjugate(hand), tracked);
         } else {
           // Not tracked this frame: keep the last pose relative to the hand so the finger moves with it.
-          fingers[bone] = quatMultiply(hand, state.fingerRelative[bone] ?? IDENTITY);
+          fingers[bone] = quatMultiply(hand, state.fingerRelative[bone] ?? RELAXED_FINGERS[bone] ?? IDENTITY);
         }
       }
     }

@@ -15,7 +15,8 @@ export function createFrameDetector(landmarkers: Landmarkers, trackHands: boolea
     let hands = NO_HANDS;
     if (handTracker) {
       try {
-        hands = assignHands(handTracker.detectForVideo(video, timestampMs), pose.landmarks[0]);
+        const frame = { width: video.videoWidth, height: video.videoHeight };
+        hands = assignHands(handTracker.detectForVideo(video, timestampMs), pose.landmarks[0], frame);
       } catch (error) {
         console.warn('Hand tracking stopped for this import (body tracking continues):', error);
         handTracker = undefined;

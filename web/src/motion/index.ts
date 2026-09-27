@@ -9,7 +9,16 @@ import { LandmarkFilter, type OneEuroParams } from './oneEuro';
 import { plantFeet } from './plant';
 import { BoneRotationFilters, type SmoothingLevel } from './rotationFilter';
 import { groundedHipsHeight } from './skeleton';
-import { calibrateRest, createSolverState, flattenRotations, relaxFingers, solveRotations, type HandPoints } from './solver';
+import {
+  calibrateRest,
+  createSolverState,
+  flattenRotations,
+  handRelaxAmount,
+  relaxFingers,
+  relaxHandToward,
+  solveRotations,
+  type HandPoints,
+} from './solver';
 
 export * from './contract';
 export { makeClip, type ClipOptions } from './clip';
@@ -50,6 +59,22 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}, smoo
   let jumpState = createJumpState();
   let lastPoints: Vec3[] | null = null;
   let lastHands: HandPoints = {};
+  let lastSolveTime: number | null = null;
+  let handLastSeen: Partial<Record<Side, number>> = {};
+
+  /** A hand that stays out of view stops freezing its last finger pose and eases into a resting hand. */
+  const relaxMissingHands = (handPoints: HandPoints, t: number) => {
+    const dt = lastSolveTime === null ? 0 : t - lastSolveTime;
+    lastSolveTime = t;
+    for (const side of SIDES) {
+      if (handPoints[side]) {
+        handLastSeen[side] = t;
+        continue;
+      }
+      const missing = t - (handLastSeen[side] ?? Number.NEGATIVE_INFINITY);
+      rotationState = relaxHandToward(rotationState, side, handRelaxAmount(missing, dt));
+    }
+  };
 
   const toHandPoints = (hands: HandLandmarks, t: number): HandPoints => {
     const out: HandPoints = {};
@@ -67,6 +92,7 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}, smoo
       const points = filtered.map(toCanonical);
       const visibility = filtered.map((lm) => lm.visibility ?? 1);
       const handPoints = toHandPoints(hands, t);
+      relaxMissingHands(handPoints, t);
       const rotation = solveRotations(points, visibility, rotationState, handPoints);
       rotationState = rotation.state;
       lastPoints = points;
@@ -103,6 +129,8 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}, smoo
       jumpState = createJumpState();
       lastPoints = null;
       lastHands = {};
+      lastSolveTime = null;
+      handLastSeen = {};
     },
   };
 }

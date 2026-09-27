@@ -180,7 +180,7 @@ export function usePose(
         let hands = wantHands && timestampMs - lastHandsMs < HAND_REUSE_MS ? lastHands : NO_HANDS;
         if (handTracker && wantHands && frameIndex % HAND_EVERY_N_FRAMES[quality] === 0) {
           try {
-            hands = assignHands(handTracker.detectForVideo(source.image, timestampMs), result.landmarks[0]);
+            hands = assignHands(handTracker.detectForVideo(source.image, timestampMs), result.landmarks[0], source);
             lastHands = hands;
             lastHandsMs = timestampMs;
           } catch (error) {
