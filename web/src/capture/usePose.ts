@@ -53,11 +53,20 @@ class CaptureError extends Error {}
  */
 async function openCamera(deviceId: string): Promise<MediaStream> {
   if (!navigator.mediaDevices?.getUserMedia) throw new CaptureError(INSECURE_CONTEXT_MESSAGE);
-  const video: MediaTrackConstraints = deviceId
-    ? { deviceId: { exact: deviceId }, height: { ideal: 1280 } }
-    : { width: 1280, height: 720, facingMode: 'user' };
+  const fallback: MediaTrackConstraints = { width: 1280, height: 720, facingMode: 'user' };
+  const video: MediaTrackConstraints = deviceId ? { deviceId: { exact: deviceId }, height: { ideal: 1280 } } : fallback;
   try {
     return await navigator.mediaDevices.getUserMedia({ video, audio: false });
+  } catch (error) {
+    const name = error instanceof DOMException ? error.name : '';
+    if (!deviceId || (name !== 'OverconstrainedError' && name !== 'NotFoundError' && name !== 'NotReadableError')) {
+      throw new CaptureError(describeCameraError(error));
+    }
+    // The chosen camera vanished or is busy (e.g. the iPhone went to sleep): use the default camera instead.
+    console.warn(`Camera ${deviceId} unavailable (${name}); falling back to the default camera.`);
+  }
+  try {
+    return await navigator.mediaDevices.getUserMedia({ video: fallback, audio: false });
   } catch (error) {
     throw new CaptureError(describeCameraError(error));
   }
