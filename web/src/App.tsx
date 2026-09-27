@@ -1,9 +1,11 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import './App.css';
+import { CameraSelect } from './capture/CameraSelect';
 import { CameraView } from './capture/CameraView';
 import { needsStepBack } from './capture/captureChecks';
 import { drawPoseOverlay } from './capture/drawPoseOverlay';
 import { useCalibration } from './capture/useCalibration';
+import { useCameraDevices } from './capture/useCameraDevices';
 import { usePose, type CaptureQuality, type PoseResult } from './capture/usePose';
 import { ChipToggle, LiveLinkToggle } from './live/LiveLinkToggle';
 import { useLiveLink } from './live/useLiveLink';
@@ -29,6 +31,7 @@ export default function App() {
   const liveLink = useLiveLink();
   const [mirrorPreview, setMirrorPreview] = useState(true);
   const [quality, setQuality] = useState<CaptureQuality>('fast');
+  const cameras = useCameraDevices();
   const [hasPose, setHasPose] = useState(false);
   const [stepBack, setStepBack] = useState(true);
   const { state } = recorder;
@@ -47,7 +50,11 @@ export default function App() {
     recorder.push(frame);
   };
 
-  const pose = usePose(videoRef, handlePose, quality);
+  const pose = usePose(videoRef, handlePose, quality, cameras.deviceId);
+  const { refresh: refreshCameras } = cameras;
+  useEffect(() => {
+    if (pose.status === 'ready') void refreshCameras(); // device labels appear once permission is granted
+  }, [pose.status, refreshCameras]);
   const recordingSeconds = state.phase === 'recording' ? takeDuration(state.frames) : null;
 
   return (
@@ -66,7 +73,7 @@ export default function App() {
         <section className="panel" aria-label="Camera">
           <div className="panel__head">
             <h2 className="panel__title">Camera</h2>
-            <span className="panel__meta">Mirrored · MediaPipe Pose</span>
+            <CameraSelect devices={cameras.devices} deviceId={cameras.deviceId} onChange={cameras.setDeviceId} />
           </div>
           <CameraView
             videoRef={videoRef}

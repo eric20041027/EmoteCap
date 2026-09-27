@@ -77,3 +77,21 @@
   border-top-color: var(--accent);
   animation: spin 0.9s linear infinite;
 }
+
+/* Camera picker in the panel header. */
+.camera-select select {
+  max-width: 220px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  background: rgba(21, 26, 36, 0.9);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.camera-select select:focus-visible {
+  outline: 2px solid var(--ok);
+  outline-offset: 2px;
+}

@@ -47,13 +47,17 @@ const HAVE_CURRENT_DATA = 2;
 /** Error whose message is already user-facing. */
 class CaptureError extends Error {}
 
-async function openCamera(): Promise<MediaStream> {
+/**
+ * Default: the built-in camera at 720p. A chosen device (e.g. an upright iPhone via Continuity Camera) only
+ * gets a height hint, so a portrait source can deliver a portrait 720x1280 frame instead of a landscape crop.
+ */
+async function openCamera(deviceId: string): Promise<MediaStream> {
   if (!navigator.mediaDevices?.getUserMedia) throw new CaptureError(INSECURE_CONTEXT_MESSAGE);
+  const video: MediaTrackConstraints = deviceId
+    ? { deviceId: { exact: deviceId }, height: { ideal: 1280 } }
+    : { width: 1280, height: 720, facingMode: 'user' };
   try {
-    return await navigator.mediaDevices.getUserMedia({
-      video: { width: 1280, height: 720, facingMode: 'user' },
-      audio: false,
-    });
+    return await navigator.mediaDevices.getUserMedia({ video, audio: false });
   } catch (error) {
     throw new CaptureError(describeCameraError(error));
   }
@@ -104,6 +108,8 @@ export function usePose(
   videoRef: RefObject<HTMLVideoElement | null>,
   onResult: (result: PoseResult) => void,
   quality: CaptureQuality = 'fast',
+  /** Camera to open; '' = browser default. */
+  deviceId = '',
 ): PoseTracker {
   const [status, setStatus] = useState<{ status: PoseStatus; message: string }>({
     status: 'loading',
@@ -208,7 +214,7 @@ export function usePose(
 
     const start = async () => {
       setStatus({ status: 'loading', message: LOADING_MESSAGE });
-      const [camera, model] = await Promise.allSettled([openCamera(), createLandmarkers(quality)]);
+      const [camera, model] = await Promise.allSettled([openCamera(deviceId), createLandmarkers(quality)]);
       if (camera.status === 'fulfilled') stream = camera.value;
       if (model.status === 'fulfilled') landmarkers = model.value;
       if (disposed) {
@@ -232,7 +238,7 @@ export function usePose(
       disposed = true;
       release();
     };
-  }, [videoRef, attempt, quality]);
+  }, [videoRef, attempt, quality, deviceId]);
 
   return { ...status, fps, retry };
 }
