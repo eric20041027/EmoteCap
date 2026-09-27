@@ -8,6 +8,9 @@ const EYE_COLOR = 0x0b0d12;
 const TORSO_BONES = new Set(['Hips', 'Spine', 'Chest', 'UpperChest']);
 const TORSO_RADIUS = 0.06;
 const LIMB_RADIUS = 0.035;
+const HAND_RADIUS = 0.024;
+const FINGER_RADIUS = 0.008;
+const FINGER_BONE = /(Thumb|Index|Middle|Ring|Little)/;
 const HEAD_RADIUS = 0.1;
 const EYE_RADIUS = 0.017;
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
@@ -19,6 +22,14 @@ function sideOf(name: string): Side {
   if (name.startsWith('Left')) return 'left';
   if (name.startsWith('Right')) return 'right';
   return 'center';
+}
+
+/** Capsule thickness per bone: torso, then fingers (thin, as real fingers are), palm, and the other limbs. */
+function radiusOf(name: string): number {
+  if (TORSO_BONES.has(name)) return TORSO_RADIUS;
+  if (FINGER_BONE.test(name)) return FINGER_RADIUS;
+  if (name.endsWith('Hand')) return HAND_RADIUS;
+  return LIMB_RADIUS;
 }
 
 function vec(v: readonly number[]): THREE.Vector3 {
@@ -102,7 +113,7 @@ export class Mannequin {
   /** Capsule from head to tail; its end caps are centred on the joints so limbs read as one piece. */
   private capsuleMesh(bone: SkeletonBone): THREE.Mesh {
     const direction = vec(bone.tail).sub(vec(bone.head));
-    const radius = TORSO_BONES.has(bone.name) ? TORSO_RADIUS : LIMB_RADIUS;
+    const radius = radiusOf(bone.name);
     const mesh = new THREE.Mesh(
       new THREE.CapsuleGeometry(radius, direction.length(), 6, 16),
       this.materials[sideOf(bone.name)],
