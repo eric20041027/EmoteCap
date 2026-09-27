@@ -34,3 +34,9 @@ server/data/
 # MediaPipe runtime assets (fetched by web/scripts/fetch-mediapipe.mjs)
 web/public/mediapipe/
 web/public/models/
+
+# Demo video footage and renders (large, not source)
+/Demo_*
+/架構圖.png
+/demo/
+*.mp4
