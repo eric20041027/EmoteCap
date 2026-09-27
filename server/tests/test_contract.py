@@ -9,8 +9,8 @@ from emotecap_server.contract import BONES, Clip
 FIXTURES = Path(__file__).resolve().parents[2] / "contracts" / "fixtures"
 
 
-def test_bones_lists_18_driven_bones_starting_at_hips():
-    assert len(BONES) == 18
+def test_bones_lists_48_driven_bones_starting_at_hips():
+    assert len(BONES) == 48
     assert BONES[0] == "Hips"
 
 

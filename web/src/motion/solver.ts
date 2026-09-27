@@ -6,6 +6,7 @@
  * Rest frames come from the same code path (synthetic T-pose, or the actor's pose via calibrateRest).
  */
 import { DRIVEN_BONES, type DrivenBone, type Quat, type Vec3 } from './contract';
+import { FINGER_BASE, FINGERS, HAND_LM, SEGMENTS, SIDES, fingerBone, tposeHandCanonical, type Side } from './hands';
 import { LM, tposeCanonical } from './landmarks';
 import {
   IDENTITY,
@@ -31,9 +32,14 @@ export type Rotations = Record<DrivenBone, Quat>;
 type Limb = 'leftArm' | 'rightArm' | 'leftLeg' | 'rightLeg';
 type LimbNormals = Partial<Record<Limb, Vec3>>;
 
+/** Hand landmarks (21 per hand, canonical space) for the hands detected this frame. */
+export type HandPoints = Partial<Record<Side, Vec3[]>>;
+
 export interface SolverState {
   /** World orientation of each bone frame in the reference pose. */
   readonly rest: Rotations;
+  /** Reference palm frame measured from hand landmarks (used instead of the pose-based hand frame when a hand is tracked). */
+  readonly palmRest: Partial<Record<Side, Quat>>;
   /** Last emitted deltas: continuity reference and fallback for hidden bones. */
   readonly previous: Rotations | null;
   /** Last bend-plane normal per limb, reused while the limb is straight. */
@@ -70,7 +76,7 @@ const TORSO = [LM.leftHip, LM.rightHip, LM.leftShoulder, LM.rightShoulder];
 const HEAD = [LM.leftEar, LM.rightEar, LM.nose];
 
 /** Landmarks that must be visible to solve each bone this frame. */
-const REQUIRED: Record<DrivenBone, readonly number[]> = {
+const REQUIRED: Partial<Record<DrivenBone, readonly number[]>> = {
   Hips: TORSO,
   Spine: TORSO,
   Chest: TORSO,
@@ -168,59 +174,114 @@ function computeWorldFrames(p: Vec3[], previousNormals: LimbNormals): WorldFrame
   return { frames, normals };
 }
 
+/** Palm frame from hand landmarks, with the same axes as the pose-based hand frame (wrist -> knuckles, pinky -> index). */
+function palmFrame(h: Vec3[]): Quat | null {
+  return frameQuat(
+    sub(midpoint(h[HAND_LM.indexMcp], h[HAND_LM.pinkyMcp]), h[HAND_LM.wrist]),
+    sub(h[HAND_LM.indexMcp], h[HAND_LM.pinkyMcp]),
+  );
+}
+
+/** Finger segment frames: segment direction, twisted by the palm's lateral (pinky -> index) axis, the main curl axis. */
+function fingerFrames(side: Side, h: Vec3[]): Partial<Record<DrivenBone, Quat>> {
+  const lateral = sub(h[HAND_LM.indexMcp], h[HAND_LM.pinkyMcp]);
+  const frames: Partial<Record<DrivenBone, Quat>> = {};
+  for (const finger of FINGERS) {
+    const base = FINGER_BASE[finger];
+    for (let i = 0; i < SEGMENTS.length; i++) {
+      const q = frameQuat(sub(h[base + i + 1], h[base + i]), lateral);
+      if (q) frames[fingerBone(side, finger, i)] = q;
+    }
+  }
+  return frames;
+}
+
 const identityRotations = (): Rotations =>
   Object.fromEntries(DRIVEN_BONES.map((bone) => [bone, [...IDENTITY] as Quat])) as Rotations;
 
-/** Use the given canonical pose as the reference (identity) pose. */
-export function calibrateRest(points: Vec3[], state: SolverState): SolverState {
+/** Use the given canonical pose (and hands, when tracked) as the reference (identity) pose. */
+export function calibrateRest(points: Vec3[], state: SolverState, hands: HandPoints = {}): SolverState {
   const { frames } = computeWorldFrames(points, {});
+  const palmRest = { ...state.palmRest };
+  for (const side of SIDES) {
+    const h = hands[side];
+    if (!h) continue;
+    Object.assign(frames, fingerFrames(side, h));
+    const palm = palmFrame(h);
+    if (palm) palmRest[side] = palm;
+  }
   const rest = Object.fromEntries(DRIVEN_BONES.map((bone) => [bone, frames[bone] ?? state.rest[bone]])) as Rotations;
-  return { rest, previous: null, normals: {} };
+  return { rest, palmRest, previous: null, normals: {} };
 }
 
 /** Fresh state whose reference pose is the contract's T-pose. */
 export function createSolverState(): SolverState {
-  return calibrateRest(tposeCanonical(), { rest: identityRotations(), previous: null, normals: {} });
+  const empty: SolverState = { rest: identityRotations(), palmRest: {}, previous: null, normals: {} };
+  return calibrateRest(tposeCanonical(), empty, { Left: tposeHandCanonical('Left'), Right: tposeHandCanonical('Right') });
 }
 
-/** Solve one frame of canonical points (33) with per-landmark visibility. Pure: returns the next state. */
+/**
+ * Solve one frame of canonical points (33) with per-landmark visibility, plus any tracked hands.
+ * Pure: returns the next state.
+ */
 export function solveRotations(
   points: Vec3[],
   visibility: readonly number[],
   state: SolverState,
+  hands: HandPoints = {},
 ): { rotations: Rotations; state: SolverState } {
   const { frames, normals } = computeWorldFrames(points, state.normals);
   const isVisible = (indices: readonly number[]) => indices.every((i) => (visibility[i] ?? 0) >= MIN_VISIBILITY);
   const previousOf = (bone: DrivenBone): Quat => state.previous?.[bone] ?? IDENTITY;
   const delta = (bone: DrivenBone): Quat => {
     const frame = frames[bone];
-    if (!frame || !isVisible(REQUIRED[bone])) return previousOf(bone);
+    if (!frame || !isVisible(REQUIRED[bone] ?? [])) return previousOf(bone);
     return quatMultiply(frame, quatConjugate(state.rest[bone]));
   };
+  const handDelta = (side: Side): Quat => {
+    const h = hands[side];
+    const palm = h ? palmFrame(h) : null;
+    const rest = state.palmRest[side];
+    return palm && rest ? quatMultiply(palm, quatConjugate(rest)) : delta(`${side}Hand`);
+  };
+
+  const fingers: Partial<Rotations> = {};
+  for (const side of SIDES) {
+    const h = hands[side];
+    const fingerFrame = h ? fingerFrames(side, h) : {};
+    for (const finger of FINGERS) {
+      for (let i = 0; i < SEGMENTS.length; i++) {
+        const bone = fingerBone(side, finger, i);
+        const frame = fingerFrame[bone];
+        fingers[bone] = frame ? quatMultiply(frame, quatConjugate(state.rest[bone])) : previousOf(bone);
+      }
+    }
+  }
 
   const hips = delta('Hips');
   const chest = delta('Chest');
   const head = delta('Head');
-  const raw: Rotations = {
+  const raw = {
+    ...fingers,
     Hips: hips,
-    Spine: isVisible(REQUIRED.Spine) ? quatSlerp(hips, chest, 0.5) : previousOf('Spine'),
+    Spine: isVisible(REQUIRED.Spine ?? []) ? quatSlerp(hips, chest, 0.5) : previousOf('Spine'),
     Chest: chest,
     UpperChest: chest,
-    Neck: isVisible(REQUIRED.Neck) ? quatSlerp(chest, head, 0.5) : previousOf('Neck'),
+    Neck: isVisible(REQUIRED.Neck ?? []) ? quatSlerp(chest, head, 0.5) : previousOf('Neck'),
     Head: head,
     LeftUpperArm: delta('LeftUpperArm'),
     LeftLowerArm: delta('LeftLowerArm'),
-    LeftHand: delta('LeftHand'),
+    LeftHand: handDelta('Left'),
     RightUpperArm: delta('RightUpperArm'),
     RightLowerArm: delta('RightLowerArm'),
-    RightHand: delta('RightHand'),
+    RightHand: handDelta('Right'),
     LeftUpperLeg: delta('LeftUpperLeg'),
     LeftLowerLeg: delta('LeftLowerLeg'),
     LeftFoot: delta('LeftFoot'),
     RightUpperLeg: delta('RightUpperLeg'),
     RightLowerLeg: delta('RightLowerLeg'),
     RightFoot: delta('RightFoot'),
-  };
+  } as Rotations;
   const rotations = Object.fromEntries(
     DRIVEN_BONES.map((bone) => [bone, sameHemisphere(quatNormalize(raw[bone]), previousOf(bone))]),
   ) as Rotations;
@@ -229,10 +290,10 @@ export function solveRotations(
   for (const spec of LIMBS) {
     if (isVisible([spec.root, spec.joint, spec.end])) nextNormals[spec.limb] = normals[spec.limb];
   }
-  return { rotations, state: { rest: state.rest, previous: rotations, normals: nextNormals } };
+  return { rotations, state: { ...state, previous: rotations, normals: nextNormals } };
 }
 
-/** Flatten rotations into the wire format (72 floats in DRIVEN_BONES order). */
+/** Flatten rotations into the wire format (BONE_COUNT x 4 floats in DRIVEN_BONES order). */
 export function flattenRotations(rotations: Rotations): number[] {
   return DRIVEN_BONES.flatMap((bone) => rotations[bone]);
 }

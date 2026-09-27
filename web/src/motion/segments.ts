@@ -2,7 +2,7 @@
  * Clip boundaries from motion energy (spec §6.2): snap Gemini's cut points to the nearest pause,
  * and split a take at pauses when Gemini is unavailable.
  */
-import { BONE_COUNT, type MotionFrame, type Quat, type Segment } from './contract';
+import { BODY_BONE_COUNT, type MotionFrame, type Quat, type Segment } from './contract';
 import { quatDot } from './math';
 
 const SMOOTH_FRAMES = 5;
@@ -41,7 +41,7 @@ function percentile(values: readonly number[], fraction: number): number {
   return sorted[Math.min(sorted.length - 1, Math.floor(fraction * sorted.length))];
 }
 
-/** Smoothed total angular speed per frame (rad/s over all bones, plus weighted hips speed). */
+/** Smoothed total angular speed per frame (rad/s over the body bones, plus weighted hips speed). */
 export function motionEnergy(frames: readonly MotionFrame[]): number[] {
   if (frames.length < 2) return frames.map(() => 0);
   const raw = frames.map((frame, i) => {
@@ -49,7 +49,8 @@ export function motionEnergy(frames: readonly MotionFrame[]): number[] {
     const previous = frames[i - 1];
     const dt = Math.max(frame.t - previous.t, 1e-3);
     let angular = 0;
-    for (let bone = 0; bone < BONE_COUNT; bone++) angular += angleBetweenQuats(quatAt(previous, bone), quatAt(frame, bone));
+    // Body bones only: finger jitter should not split clips.
+    for (let bone = 0; bone < BODY_BONE_COUNT; bone++) angular += angleBetweenQuats(quatAt(previous, bone), quatAt(frame, bone));
     return (angular + HIPS_WEIGHT * Math.abs(frame.h[1] - previous.h[1])) / dt;
   });
   raw[0] = raw[1];

@@ -17,7 +17,7 @@ export interface MotionFrame {
   t: number;
   /** Hips position, canonical meters (x = z = 0). */
   h: Vec3;
-  /** 18 x 4 world-delta quaternions (x, y, z, w) in DRIVEN_BONES order. */
+  /** BONE_COUNT x 4 world-delta quaternions (x, y, z, w) in DRIVEN_BONES order. */
   r: number[];
 }
 
@@ -45,12 +45,24 @@ export const DRIVEN_BONES = [
   'RightUpperArm', 'RightLowerArm', 'RightHand',
   'LeftUpperLeg', 'LeftLowerLeg', 'LeftFoot',
   'RightUpperLeg', 'RightLowerLeg', 'RightFoot',
+  'LeftThumbProximal', 'LeftThumbIntermediate', 'LeftThumbDistal',
+  'LeftIndexProximal', 'LeftIndexIntermediate', 'LeftIndexDistal',
+  'LeftMiddleProximal', 'LeftMiddleIntermediate', 'LeftMiddleDistal',
+  'LeftRingProximal', 'LeftRingIntermediate', 'LeftRingDistal',
+  'LeftLittleProximal', 'LeftLittleIntermediate', 'LeftLittleDistal',
+  'RightThumbProximal', 'RightThumbIntermediate', 'RightThumbDistal',
+  'RightIndexProximal', 'RightIndexIntermediate', 'RightIndexDistal',
+  'RightMiddleProximal', 'RightMiddleIntermediate', 'RightMiddleDistal',
+  'RightRingProximal', 'RightRingIntermediate', 'RightRingDistal',
+  'RightLittleProximal', 'RightLittleIntermediate', 'RightLittleDistal',
 ] as const;
 export type DrivenBone = (typeof DRIVEN_BONES)[number];
 export const BONE_COUNT = DRIVEN_BONES.length;
+/** The first 18 driven bones are the body; the rest are fingers (15 per hand). */
+export const BODY_BONE_COUNT = 18;
 export const BONE_INDEX = Object.fromEntries(DRIVEN_BONES.map((name, i) => [name, i])) as Record<DrivenBone, number>;
 
-/** Export skeleton (22 bones, T-pose, parents first). */
+/** Export skeleton (52 bones, T-pose, parents first). */
 export const SKELETON = bonesJson.skeleton as unknown as readonly SkeletonBone[];
 
 export const CLIP_NAME_PATTERN = /^[A-Za-z0-9_]{1,24}$/;

@@ -16,10 +16,10 @@ describe('contract', () => {
     for (const name of DRIVEN_BONES) expect(seen.has(name)).toBe(true);
   });
 
-  it('T-pose frame holds 18 identity quaternions', () => {
+  it('T-pose frame holds one identity quaternion per driven bone (18 body + 30 finger)', () => {
     const frame = tposeFrame();
-    expect(BONE_COUNT).toBe(18);
-    expect(frame.r).toHaveLength(72);
+    expect(BONE_COUNT).toBe(48);
+    expect(frame.r).toHaveLength(192);
     expect(frame.r.slice(0, 4)).toEqual([0, 0, 0, 1]);
   });
 });

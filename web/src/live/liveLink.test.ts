@@ -44,7 +44,7 @@ describe('LiveLinkSender', () => {
     const hello = JSON.parse(FakeSocket.instances[0].sent[0]);
     expect(hello.type).toBe('hello');
     expect(hello.bones[0]).toBe('Hips');
-    expect(hello.bones).toHaveLength(18);
+    expect(hello.bones).toHaveLength(48);
   });
 
   it('sends frames with type "frame" and the full rotation array', () => {
@@ -54,7 +54,7 @@ describe('LiveLinkSender', () => {
     expect(sender.send(tposeFrame(1.25))).toBe(true);
     const frame = JSON.parse(FakeSocket.instances[0].sent[1]);
     expect(frame).toMatchObject({ type: 'frame', t: 1.25 });
-    expect(frame.r).toHaveLength(72);
+    expect(frame.r).toHaveLength(192);
     expect(frame.h).toHaveLength(3);
   });
 
