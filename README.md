@@ -2,33 +2,63 @@
 
 > **Act once. Animate anything.**
 
-Webcam motion capture for Unity. Act out moves in front of your laptop camera and get Humanoid FBX animation clips you can drop onto any humanoid character — no suit, no studio, no Mixamo-only menu. Live Link mirrors your pose onto a Unity character in real time.
+**Webcam motion capture for Unity.** Act out a move in front of your laptop camera and get a Humanoid FBX animation clip you can drop onto any humanoid character — no mocap suit, no studio, and no more settling for whatever Mixamo happens to have. Live Link mirrors your pose onto a Unity character in real time.
 
-Built at HackNite 2026. Work in progress.
+Built in 12 hours at HackNite 2026.
+
+## Why
+
+Indie and student game devs animate characters with whatever premade clips they can find. The move you actually need — *your* sword slash, *your* victory dance — is never in the library, and optical mocap costs thousands. EmoteCap turns the webcam you already have into a mocap studio that speaks Unity.
+
+## What it does
+
+- **Real-time capture in the browser** — MediaPipe Pose (33 landmarks, GPU) feeds a custom quaternion solver; a 3D mannequin mirrors you at camera frame rate. Nothing is uploaded to capture.
+- **Record → trim → FBX** — a one-click export runs Blender headless and writes a Humanoid-ready FBX (Mixamo bone names, T-pose rest) plus a sidecar with the clip name and loop flag.
+- **Zero-setup Unity import** — the EmoteCap Unity package's `AssetPostprocessor` imports every clip as an in-place Humanoid animation, so it retargets to any humanoid (verified on Mixamo's Y Bot).
+- **Live Link** — stream your pose over WebSocket to a Unity character while you act.
+- **Gemini one-take slicing** — record several moves in one continuous take; Gemini watches the video and splits it into named, loop-tagged clips (`Wave_Right`, `Sword_Slash`, …), with cut points snapped to your pauses. *(Server endpoint done; browser UI in progress.)*
 
 ## How it works
 
-```
-webcam → MediaPipe Pose (browser) → quaternion solver → 3D preview
-                                   ├─ Live Link → Unity character, real time
-                                   └─ record → trim → Blender → Humanoid FBX → Unity (auto-configured)
+```mermaid
+flowchart LR
+  cam[Webcam] --> mp[MediaPipe Pose<br/>33 world landmarks]
+  mp --> solver[Quaternion solver<br/>One Euro filter + grounding]
+  solver --> preview[3D mannequin preview]
+  solver -->|Live Link WebSocket| relay[FastAPI relay] --> live[Unity character<br/>real time]
+  solver --> rec[Recorder]
+  rec -->|raw webm| gemini[Gemini video understanding<br/>named segments]
+  gemini --> clips[Clips]
+  rec -->|manual trim| clips
+  clips -->|POST /api/export| blender[Blender headless<br/>Humanoid FBX]
+  blender --> unity[Unity AssetPostprocessor<br/>Humanoid + loop configured]
 ```
 
-## Repo layout
+**One motion format everywhere.** Every frame is 18 quaternions — each bone's *world rotation relative to T-pose* — plus hips height ([`contracts/motion-v1.md`](contracts/motion-v1.md)). Any rig applies it as `boneWorld = delta × restWorld`, so the browser preview, the exported FBX, and the Unity Live Link all show exactly the same pose.
 
-| Path | What |
-|---|---|
-| `contracts/` | Shared data contract (bones, coordinate systems, MotionFrame) and fixture clips |
-| `web/` | Browser app: webcam, MediaPipe pose, motion solver, 3D preview, recorder |
-| `server/` | FastAPI: Blender FBX export, Live Link relay, Gemini auto-slicing |
-| `unity/com.emotecap.mocap/` | Unity package: automatic Humanoid import, Live Link receiver |
+**The solver** builds an orthonormal frame per bone from a primary axis (e.g. shoulder → elbow) and a secondary axis (the elbow's bend-plane normal), and divides it by the same frame computed from a T-pose. Straight limbs reuse the previous bend normal so twists never flip; elbows and knees are clamped to 150°; a One Euro filter removes jitter without lag; the lowest foot is pinned to the floor and scaled to the canonical skeleton.
+
+**Gemini** receives the raw take with structured-output JSON (name, start, end, loop, description). Its cut points are then snapped to the nearest pause using motion energy (angular speed summed over all bones). If Gemini is unavailable, the take is split at pauses locally.
 
 ## Quick start
 
+Requirements: Node 20+, [uv](https://docs.astral.sh/uv/), Blender 4.4+ (tested on 5.1), Unity 2021.3+ (tested on 6000.5).
+
 ```bash
-cp .env.example .env
+cp .env.example .env          # set UNITY_EXPORT_DIR to <UnityProject>/Assets/EmoteCap; GEMINI_API_KEY is optional
 (cd server && uv sync && uv run uvicorn emotecap_server.main:app --port 8787)
-(cd web && npm install && npm run dev)   # open http://localhost:5173
+(cd web && npm install && npm run dev)   # open http://localhost:5173 in Chrome
 ```
 
-Unity: Package Manager → **Add package from disk…** → `unity/com.emotecap.mocap/package.json`.
+In Unity: Package Manager → **+** → **Add package from git URL…** → `https://github.com/eric20041027/EmoteCap.git?path=/unity/com.emotecap.mocap`
+
+1. Exported clips land in `Assets/EmoteCap/` and import as Humanoid automatically. Drag one onto any humanoid's Animator and tick **Foot IK**.
+2. For Live Link, add the **EmoteCap Live Link** component to a T-pose humanoid with no Animator Controller, press Play, and switch on **Live Link** in the web app.
+
+## Tech stack
+
+Gemini API (`google-genai`) · MediaPipe Tasks Vision · three.js · React · Vite · TypeScript · FastAPI · Python · Blender (bpy) · Unity (C#)
+
+## Tests
+
+`cd web && npm test` (motion solver, filters, clip resampling, segmentation, UI logic) · `cd server && uv run pytest` (export, relay, Gemini slicing with a mocked API, a real Blender smoke test).
