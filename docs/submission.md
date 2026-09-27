@@ -19,14 +19,12 @@ Indie and student game developers are stuck with whatever premade animations the
 What it does
 - Full-body and finger tracking in the browser (MediaPipe Pose + Hand Landmarker), solved into 48 bone rotations by our own quaternion solver and shown on a live 3D mannequin.
 - Live Link: your pose streams into Unity over WebSocket, so a character in your scene moves with you in real time and physically pushes props around.
-- Import any video: drop in an mp4, mov or webm and every frame is analysed with the most accurate models; the take calibrates itself from its first T-pose and flows through the same pipeline as a live recording.
-- One-take auto-slicing with Gemini: act several moves in one continuous take; Gemini watches the video and returns named, loop-tagged clips (Wave_Right, Punching_Combo, Jump_InPlace...). Cut points snap to your pauses; if a Gemini model is overloaded the server falls back to another, and if Gemini is unreachable the take is split at pauses locally.
+- Import any video: drop in an mp4, mov or webm and every frame is analysed with the most accurate models; the take calibrates itself from its first T-pose and goes through the same pipeline as a live recording.
+- One-take auto-slicing with Gemini: act several moves in one continuous take; Gemini watches the video and returns named, loop-tagged clips (Wave_Right, Punching_Combo, Jump_InPlace...). Cut points snap to your pauses. If a Gemini model is overloaded, the server falls back to another; without Gemini, the take is still split at pauses locally.
 - One click exports every clip through headless Blender as a Humanoid FBX; our Unity package auto-configures the import so each clip retargets to any humanoid character, with an in-game menu to preview and loop clips.
 
 How we built it
-One motion format runs through the whole pipeline: each bone's world rotation relative to T-pose. The solver builds an orthonormal frame per bone from landmark directions and bend-plane normals, keeps the feet planted with forward kinematics, and removes jitter with per-bone One Euro filters; Unity eases between Live Link frames for smooth motion. The same frames drive the browser preview, the FBX and Unity, so what you see is what you export. Gemini's structured output (name, start, end, loop, description) is validated server-side and refined with a motion-energy signal.
-
-Built with: Gemini API (video understanding, plus text-to-speech for the demo narration), MediaPipe, three.js, React, TypeScript, FastAPI, Blender, Unity (C#).
+One motion format runs through the whole pipeline: each bone's world rotation relative to T-pose. The solver builds an orthonormal frame per bone from landmark directions and bend-plane normals, keeps the feet planted with forward kinematics, and removes jitter with per-bone One Euro filters; Unity eases between Live Link frames for smooth motion. The same frames drive the browser preview, the FBX and Unity, so what you see is what you export. A T-pose calibration (an on-screen outline when live, found automatically in imported videos) cancels MediaPipe's camera-angle bias: before it, a level head read as tilted 30 degrees. Gemini's structured output (name, start, end, loop, description) is validated server-side and refined with a motion-energy signal, and Gemini text-to-speech narrates our demo video.
 ```
 
 ## Demo video (final edit, 1:41)
