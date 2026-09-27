@@ -29,17 +29,17 @@ One motion format runs through the whole pipeline: each bone's world rotation re
 Built with: Gemini API, MediaPipe, three.js, React, TypeScript, FastAPI, Blender, Unity (C#).
 ```
 
-## Demo video shot list (≤ 3 min)
+## Demo video shot list (about 2:50)
 
-| Time | Shot | What to say (one line each) |
-|---|---|---|
-| 0:00–0:15 | You in front of the laptop; Unity with Mixamo's menu | "Mixamo only has what it has. What if your webcam was the mocap studio?" |
-| 0:15–0:45 | Split screen: web app + Unity playground, Live Link on; wave, make a fist, push the cubes off the table | "My body and fingers drive the Unity character in real time, with physics." |
-| 0:45–1:10 | One continuous take: 3–4 moves with a pause between each | "One take, four moves." |
-| 1:10–1:30 | Auto-slice: named clips appear on the timeline | "Gemini watches the take and names each move; cuts snap to my pauses." |
-| 1:30–1:55 | Import video: pick an mp4 → skeleton on the video, preview follows → Review | "Already have a video? Import it: same pipeline." |
-| 1:55–2:30 | Export all → Unity → clip menu plays the clips on Y Bot | "One click to Humanoid FBX; Unity imports it ready to retarget." |
-| 2:30–2:50 | Architecture diagram from the README | "48-bone solver, one motion format from browser to Blender to Unity." |
-| 2:50–3:00 | Logo + GitHub URL | "EmoteCap. Act once. Animate anything." |
+| # | Time | Screen | Narration | Aims at |
+|---|---|---|---|---|
+| 1 | 0:00–0:12 | Y Bot standing idle in Unity; title card "Need a custom animation?" | "Every game needs custom animations. Mocap studios cost thousands, and stock libraries never have the exact move you need." | Overall (usefulness) |
+| 2 | 0:12–0:40 | Split screen: actor + web skeleton on the left, Unity playground on the right. Wave, peace sign, then sweep the cubes off the table | "This is EmoteCap. My webcam becomes a motion-capture studio: full body and all ten fingers, streamed into Unity in real time. And it's physical." | People's Choice |
+| 3 | 0:40–1:00 | Record → countdown → one take: wave, punch combo, jump, victory pose, one-second pause between moves (2× speed in the edit) | "To make game clips, I act out several moves in one take." | Overall |
+| 4 | 1:00–1:30 | Auto-slice with Gemini → named clips with descriptions and loop flags → play one on the 3D preview | "Gemini watches the raw video and cuts it into named clips, with a description and whether each move should loop. We snap its cuts to my pauses, so every clip starts and ends cleanly." | Gemini |
+| 5 | 1:30–1:55 | Export all → Unity: FBX files appear in Assets/EmoteCap → clip menu plays them on Y Bot, loop on/off | "One click: Blender turns every clip into a Humanoid FBX, and Unity imports them ready for any humanoid character." | Overall (execution) |
+| 6 | 1:55–2:20 | Import video: a teammate's phone video → skeleton on the video, preview follows (sped up) → Y Bot does the same moves in Unity | "Already have a video? Drop it in. Same pipeline, frame by frame." | People's Choice |
+| 7 | 2:20–2:40 | README architecture diagram + three key facts on screen | "Under the hood: our own 48-bone quaternion solver and one motion format from browser to Blender to Unity. What you see is exactly what you export." | Overall (technical depth) |
+| 8 | 2:40–2:50 | Logo + GitHub URL | "EmoteCap. Act once. Animate anything." | |
 
-Recording tips: QuickTime → New Screen Recording (full screen, internal mic); record the live-link and one-take segments separately and cut them together; keep the Unity Game view large.
+Recording tips: QuickTime → New Screen Recording, one segment at a time; keep the Unity Game view large; burn in English captions (judges may watch muted); speed up waiting (Gemini, video import) 2–4×; use your own footage and royalty-free music so YouTube does not block the video; upload as Unlisted and check it plays in a private window.
