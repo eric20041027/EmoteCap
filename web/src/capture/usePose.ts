@@ -1,14 +1,11 @@
-import {
-  FilesetResolver,
-  PoseLandmarker,
-  type HandLandmarker,
-  type Landmark,
-  type NormalizedLandmark,
-} from '@mediapipe/tasks-vision';
+import type { Landmark, NormalizedLandmark } from '@mediapipe/tasks-vision';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
-import { INSECURE_CONTEXT_MESSAGE, describeCameraError, describeModelError } from './captureChecks';
+import { INSECURE_CONTEXT_MESSAGE, describeCameraError } from './captureChecks';
 import { cropRect, type CropMode } from './cropFrame';
-import { NO_HANDS, assignHands, createHandLandmarker, type TrackedHands } from './hands';
+import { NO_HANDS, assignHands, type TrackedHands } from './hands';
+import { CaptureError, closeLandmarkers, createLandmarkers, type CaptureQuality, type Landmarkers } from './landmarkers';
+
+export type { CaptureQuality } from './landmarkers';
 
 export interface PoseResult {
   /** Normalized image landmarks (0..1) of the first pose, for the overlay. */
@@ -36,13 +33,6 @@ export interface PoseTracker {
   retry: () => void;
 }
 
-const WASM_PATH = '/mediapipe/wasm';
-/** fast: Pose Full + hands every other frame (smooth Live Link). accurate: Pose Heavy + hands every frame. */
-export type CaptureQuality = 'fast' | 'accurate';
-const POSE_MODEL_PATH: Record<CaptureQuality, string> = {
-  fast: '/models/pose_landmarker_full.task',
-  accurate: '/models/pose_landmarker_heavy.task',
-};
 const HAND_EVERY_N_FRAMES: Record<CaptureQuality, number> = { fast: 2, accurate: 1 };
 /** Reuse the last hand result on skipped frames for at most this long. */
 const HAND_REUSE_MS = 150;
@@ -50,9 +40,6 @@ const LOADING_MESSAGE = 'Starting the camera and loading the pose model…';
 const FPS_SMOOTHING = 0.1;
 const FPS_PUBLISH_MS = 500;
 const HAVE_CURRENT_DATA = 2;
-
-/** Error whose message is already user-facing. */
-class CaptureError extends Error {}
 
 /**
  * Default: the built-in camera at 720p. A chosen device (e.g. an upright iPhone via Continuity Camera) only
@@ -79,39 +66,6 @@ async function openCamera(deviceId: string): Promise<MediaStream> {
   }
 }
 
-interface Landmarkers {
-  pose: PoseLandmarker;
-  /** Optional: body tracking keeps working if the hand model fails to load. */
-  hands: HandLandmarker | undefined;
-}
-
-async function createLandmarkers(quality: CaptureQuality): Promise<Landmarkers> {
-  try {
-    const fileset = await FilesetResolver.forVisionTasks(WASM_PATH);
-    const options = (delegate: 'GPU' | 'CPU') => ({
-      baseOptions: { modelAssetPath: POSE_MODEL_PATH[quality], delegate },
-      runningMode: 'VIDEO' as const,
-      numPoses: 1,
-    });
-    let pose: PoseLandmarker;
-    try {
-      pose = await PoseLandmarker.createFromOptions(fileset, options('GPU'));
-    } catch (gpuError) {
-      console.warn('PoseLandmarker GPU delegate failed, retrying on CPU:', gpuError);
-      pose = await PoseLandmarker.createFromOptions(fileset, options('CPU'));
-    }
-    let hands: HandLandmarker | undefined;
-    try {
-      hands = await createHandLandmarker(fileset);
-    } catch (handError) {
-      console.warn('Hand tracking unavailable; continuing with body only:', handError);
-    }
-    return { pose, hands };
-  } catch (error) {
-    throw new CaptureError(describeModelError(error));
-  }
-}
-
 function stopStream(stream: MediaStream | undefined): void {
   stream?.getTracks().forEach((track) => track.stop());
 }
@@ -130,6 +84,8 @@ export function usePose(
   trackHands = true,
   /** Crop a landscape camera to a centred portrait window before tracking (applies instantly). */
   crop: CropMode = 'none',
+  /** Skip tracking (the camera keeps running), e.g. while a video file is being imported. */
+  paused = false,
 ): PoseTracker {
   const [status, setStatus] = useState<{ status: PoseStatus; message: string }>({
     status: 'loading',
@@ -141,11 +97,13 @@ export function usePose(
   const onResultRef = useRef(onResult);
   const trackHandsRef = useRef(trackHands);
   const cropRef = useRef(crop);
+  const pausedRef = useRef(paused);
 
   useLayoutEffect(() => {
     onResultRef.current = onResult;
     trackHandsRef.current = trackHands;
     cropRef.current = crop;
+    pausedRef.current = paused;
   });
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
@@ -161,8 +119,7 @@ export function usePose(
     const release = () => {
       cancelAnimationFrame(rafId);
       stopStream(stream);
-      landmarkers?.pose.close();
-      landmarkers?.hands?.close();
+      closeLandmarkers(landmarkers);
       stream = undefined;
       landmarkers = undefined;
       video.srcObject = null;
@@ -210,6 +167,7 @@ export function usePose(
 
       const tick = () => {
         rafId = requestAnimationFrame(tick);
+        if (pausedRef.current) return;
         if (video.readyState < HAVE_CURRENT_DATA || video.currentTime === lastVideoTime) return;
         lastVideoTime = video.currentTime;
         const timestampMs = performance.now();
