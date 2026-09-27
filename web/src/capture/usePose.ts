@@ -4,6 +4,7 @@ import { INSECURE_CONTEXT_MESSAGE, describeCameraError } from './captureChecks';
 import { cropRect, type CropMode } from './cropFrame';
 import { NO_HANDS, assignHands, type TrackedHands } from './hands';
 import { CaptureError, closeLandmarkers, createLandmarkers, type CaptureQuality, type Landmarkers } from './landmarkers';
+import { detachStream, stopStream } from './streams';
 
 export type { CaptureQuality } from './landmarkers';
 
@@ -66,10 +67,6 @@ async function openCamera(deviceId: string): Promise<MediaStream> {
   }
 }
 
-function stopStream(stream: MediaStream | undefined): void {
-  stream?.getTracks().forEach((track) => track.stop());
-}
-
 /**
  * Webcam + MediaPipe PoseLandmarker loop. Calls `onResult` once per new video frame
  * (from requestAnimationFrame, outside React rendering). The latest `onResult` is always used.
@@ -118,11 +115,11 @@ export function usePose(
 
     const release = () => {
       cancelAnimationFrame(rafId);
+      detachStream(video, stream);
       stopStream(stream);
       closeLandmarkers(landmarkers);
       stream = undefined;
       landmarkers = undefined;
-      video.srcObject = null;
     };
 
     const fail = (error: unknown) => {
