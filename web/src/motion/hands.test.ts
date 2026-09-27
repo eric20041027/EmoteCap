@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { DrivenBone, Quat, Vec3 } from './contract';
 import { HAND_LM, tposeHandCanonical } from './hands';
-import { normalize, quatDot, quatFromAxisAngle, sub } from './math';
+import { normalize, quatDot, quatFromAxisAngle, quatMultiply as quatMultiplyPublic, sub } from './math';
 import { DEG, rotatePoints, tpose } from './poses.testutil';
-import { createSolverState, solveRotations, type Rotations } from './solver';
+import { createSolverState, relaxFingers, solveRotations, type Rotations } from './solver';
 
 const ALL_VISIBLE = new Array(33).fill(1);
 const IDENTITY: Quat = [0, 0, 0, 1];
@@ -66,5 +66,34 @@ describe('solveRotations with hand landmarks', () => {
     const first = solveRotations(tpose(), ALL_VISIBLE, createSolverState(), { Left: curled });
     const second = solveRotations(tpose(), ALL_VISIBLE, first.state, {});
     expectRotation(second.rotations, 'LeftIndexProximal', curl);
+  });
+});
+
+describe('finger poses while a hand is not tracked', () => {
+  const armDown = () => {
+    const p = tpose();
+    return rotatePoints(p, [13, 15, 17, 19, 21], p[11], quatFromAxisAngle([0, 0, 1], -90 * DEG));
+  };
+
+  it('keeps fingers attached to the hand when the arm moves without hand tracking', () => {
+    const hand = tposeHandCanonical('Left');
+    const curl = quatFromAxisAngle(normalize(sub(hand[HAND_LM.indexMcp], hand[HAND_LM.pinkyMcp])), -60 * DEG);
+    const curled = rotatePoints(hand, [HAND_LM.indexPip, HAND_LM.indexDip, HAND_LM.indexTip], hand[HAND_LM.indexMcp], curl);
+    const first = solveRotations(tpose(), ALL_VISIBLE, createSolverState(), { Left: curled });
+    const second = solveRotations(armDown(), ALL_VISIBLE, first.state, {});
+    const handTurn = second.rotations.LeftHand;
+    // Finger world delta = new hand delta x (finger relative to hand), so the curl rides along with the hand.
+    const expected = quatMultiplyPublic(handTurn, curl);
+    expectRotation(second.rotations, 'LeftIndexProximal', expected);
+  });
+
+  it('relaxes fingers straight along the hand after relaxFingers', () => {
+    const hand = tposeHandCanonical('Left');
+    const curl = quatFromAxisAngle(normalize(sub(hand[HAND_LM.indexMcp], hand[HAND_LM.pinkyMcp])), -60 * DEG);
+    const curled = rotatePoints(hand, [HAND_LM.indexPip, HAND_LM.indexDip, HAND_LM.indexTip], hand[HAND_LM.indexMcp], curl);
+    const first = solveRotations(tpose(), ALL_VISIBLE, createSolverState(), { Left: curled });
+    const relaxed = solveRotations(armDown(), ALL_VISIBLE, relaxFingers(first.state), {});
+    expectRotation(relaxed.rotations, 'LeftIndexProximal', relaxed.rotations.LeftHand);
+    expectRotation(relaxed.rotations, 'LeftThumbDistal', relaxed.rotations.LeftHand);
   });
 });

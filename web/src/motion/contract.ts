@@ -26,6 +26,8 @@ export interface Clip {
   loop: boolean;
   fps: number;
   frames: MotionFrame[];
+  /** Exported bones: 'full' (default, 52 incl. fingers) or 'body' (22, no finger bones). */
+  skeleton?: 'full' | 'body';
 }
 
 export interface Segment {

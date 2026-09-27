@@ -6,6 +6,8 @@ import { needsStepBack } from './capture/captureChecks';
 import { drawPoseOverlay } from './capture/drawPoseOverlay';
 import { useCalibration } from './capture/useCalibration';
 import { useCameraDevices } from './capture/useCameraDevices';
+import { SkeletonSelect } from './settings/SkeletonSelect';
+import { setSkeleton, useSkeleton, type SkeletonMode } from './settings/skeleton';
 import { usePose, type CaptureQuality, type PoseResult } from './capture/usePose';
 import { ChipToggle, LiveLinkToggle } from './live/LiveLinkToggle';
 import { useLiveLink } from './live/useLiveLink';
@@ -32,6 +34,11 @@ export default function App() {
   const [mirrorPreview, setMirrorPreview] = useState(true);
   const [quality, setQuality] = useState<CaptureQuality>('fast');
   const cameras = useCameraDevices();
+  const skeleton = useSkeleton();
+  const chooseSkeleton = (mode: SkeletonMode) => {
+    setSkeleton(mode);
+    if (mode === 'body') solver.relaxFingers();
+  };
   const [hasPose, setHasPose] = useState(false);
   const [stepBack, setStepBack] = useState(true);
   const { state } = recorder;
@@ -50,7 +57,7 @@ export default function App() {
     recorder.push(frame);
   };
 
-  const pose = usePose(videoRef, handlePose, quality, cameras.deviceId);
+  const pose = usePose(videoRef, handlePose, quality, cameras.deviceId, skeleton === 'full');
   const { refresh: refreshCameras } = cameras;
   useEffect(() => {
     if (pose.status === 'ready') void refreshCameras(); // device labels appear once permission is granted
@@ -61,6 +68,7 @@ export default function App() {
     <div className="app">
       <AppHeader>
         <StatusBar cameraStatus={pose.status} fps={pose.fps} hasPose={hasPose} server={server} />
+        <SkeletonSelect value={skeleton} onChange={chooseSkeleton} />
         <ChipToggle
           label={quality === 'accurate' ? 'Accurate' : 'Fast'}
           pressed={quality === 'accurate'}

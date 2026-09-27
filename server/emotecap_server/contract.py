@@ -1,7 +1,7 @@
 """Pydantic mirror of contracts/motion-v1.md."""
 import json
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
@@ -24,6 +24,8 @@ class Clip(BaseModel):
     loop: bool
     fps: Annotated[int, Field(ge=1, le=MAX_FPS)]
     frames: Annotated[list[MotionFrame], Field(min_length=1, max_length=MAX_FPS * MAX_CLIP_SECONDS)]
+    # "full": 52 exported bones incl. fingers; "body": 22 bones, finger bones left out of the FBX.
+    skeleton: Literal["full", "body"] = "full"
 
 
 class ExportRequest(BaseModel):

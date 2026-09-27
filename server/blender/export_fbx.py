@@ -35,6 +35,17 @@ def to_blender_quat(x: float, y: float, z: float, w: float) -> Quaternion:
     return Quaternion((w, x, -z, y))
 
 
+BODY_BONE_COUNT = 18  # contracts/motion-v1.md: driven bones after the first 18 are fingers
+
+
+def select_skeleton(contract: dict, mode: str) -> dict:
+    """Contract copy whose export skeleton drops the finger bones when mode is "body"."""
+    if mode != "body":
+        return contract
+    fingers = set(contract["driven"][BODY_BONE_COUNT:])
+    return {**contract, "skeleton": [bone for bone in contract["skeleton"] if bone["name"] not in fingers]}
+
+
 def reset_scene(fps: int, frame_count: int) -> None:
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
@@ -146,9 +157,10 @@ def main() -> None:
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     for clip in clips:
+        clip_contract = select_skeleton(contract, clip.get("skeleton", "full"))
         reset_scene(clip["fps"], len(clip["frames"]))
-        armature = build_armature(contract["skeleton"])
-        key_clip(armature, contract, clip)
+        armature = build_armature(clip_contract["skeleton"])
+        key_clip(armature, clip_contract, clip)
         armature.animation_data.action.name = clip["name"]
         export_fbx(out_dir / f"{clip['name']}.fbx")
         sidecar = {"name": clip["name"], "loop": clip["loop"], "fps": clip["fps"]}

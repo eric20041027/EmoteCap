@@ -119,6 +119,8 @@ export function usePose(
   quality: CaptureQuality = 'fast',
   /** Camera to open; '' = browser default. */
   deviceId = '',
+  /** Run the hand model (off for the body-only skeleton, which also raises fps). */
+  trackHands = true,
 ): PoseTracker {
   const [status, setStatus] = useState<{ status: PoseStatus; message: string }>({
     status: 'loading',
@@ -127,9 +129,11 @@ export function usePose(
   const [fps, setFps] = useState(0);
   const [attempt, setAttempt] = useState(0);
   const onResultRef = useRef(onResult);
+  const trackHandsRef = useRef(trackHands);
 
   useLayoutEffect(() => {
     onResultRef.current = onResult;
+    trackHandsRef.current = trackHands;
   });
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
@@ -183,8 +187,9 @@ export function usePose(
           fail(error);
           return;
         }
-        let hands = timestampMs - lastHandsMs < HAND_REUSE_MS ? lastHands : NO_HANDS;
-        if (handTracker && frameIndex % HAND_EVERY_N_FRAMES[quality] === 0) {
+        const wantHands = trackHandsRef.current;
+        let hands = wantHands && timestampMs - lastHandsMs < HAND_REUSE_MS ? lastHands : NO_HANDS;
+        if (handTracker && wantHands && frameIndex % HAND_EVERY_N_FRAMES[quality] === 0) {
           try {
             hands = assignHands(handTracker.detectForVideo(video, timestampMs), result.landmarks[0]);
             lastHands = hands;

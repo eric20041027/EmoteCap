@@ -1,4 +1,5 @@
 import type { Clip } from '../motion/index';
+import { currentSkeleton } from '../settings/skeleton';
 
 export interface ExportedFile {
   name: string;
@@ -82,7 +83,7 @@ export async function postClips(clips: readonly Clip[], fetchFn: FetchFn = fetch
     response = await fetchFn(EXPORT_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clips }),
+      body: JSON.stringify({ clips: currentSkeleton() === 'body' ? clips.map((clip) => ({ ...clip, skeleton: 'body' })) : clips }),
     });
   } catch (error) {
     throw new ExportFailure(`Cannot reach the export server. ${SERVER_HINT}`, String(error));

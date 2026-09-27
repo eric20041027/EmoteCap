@@ -40,6 +40,8 @@ export interface SolverState {
   readonly rest: Rotations;
   /** Reference palm frame measured from hand landmarks (used instead of the pose-based hand frame when a hand is tracked). */
   readonly palmRest: Partial<Record<Side, Quat>>;
+  /** Each finger's delta relative to its hand's delta, so untracked fingers keep their pose and follow the hand. */
+  readonly fingerRelative: Partial<Record<DrivenBone, Quat>>;
   /** Last emitted deltas: continuity reference and fallback for hidden bones. */
   readonly previous: Rotations | null;
   /** Last bend-plane normal per limb, reused while the limb is straight. */
@@ -211,12 +213,17 @@ export function calibrateRest(points: Vec3[], state: SolverState, hands: HandPoi
     if (palm) palmRest[side] = palm;
   }
   const rest = Object.fromEntries(DRIVEN_BONES.map((bone) => [bone, frames[bone] ?? state.rest[bone]])) as Rotations;
-  return { rest, palmRest, previous: null, normals: {} };
+  return { rest, palmRest, previous: null, normals: {}, fingerRelative: {} };
+}
+
+/** Straighten untracked fingers along their hand (body-only skeleton, or to reset a stale finger pose). */
+export function relaxFingers(state: SolverState): SolverState {
+  return { ...state, fingerRelative: {} };
 }
 
 /** Fresh state whose reference pose is the contract's T-pose. */
 export function createSolverState(): SolverState {
-  const empty: SolverState = { rest: identityRotations(), palmRest: {}, previous: null, normals: {} };
+  const empty: SolverState = { rest: identityRotations(), palmRest: {}, previous: null, normals: {}, fingerRelative: {} };
   return calibrateRest(tposeCanonical(), empty, { Left: tposeHandCanonical('Left'), Right: tposeHandCanonical('Right') });
 }
 
@@ -245,15 +252,25 @@ export function solveRotations(
     return palm && rest ? quatMultiply(palm, quatConjugate(rest)) : delta(`${side}Hand`);
   };
 
+  const handDeltas: Record<Side, Quat> = { Left: handDelta('Left'), Right: handDelta('Right') };
   const fingers: Partial<Rotations> = {};
+  const fingerRelative = { ...state.fingerRelative };
   for (const side of SIDES) {
     const h = hands[side];
+    const hand = handDeltas[side];
     const fingerFrame = h ? fingerFrames(side, h) : {};
     for (const finger of FINGERS) {
       for (let i = 0; i < SEGMENTS.length; i++) {
         const bone = fingerBone(side, finger, i);
         const frame = fingerFrame[bone];
-        fingers[bone] = frame ? quatMultiply(frame, quatConjugate(state.rest[bone])) : previousOf(bone);
+        if (frame) {
+          const tracked = quatMultiply(frame, quatConjugate(state.rest[bone]));
+          fingers[bone] = tracked;
+          fingerRelative[bone] = quatMultiply(quatConjugate(hand), tracked);
+        } else {
+          // Not tracked this frame: keep the last pose relative to the hand so the finger moves with it.
+          fingers[bone] = quatMultiply(hand, state.fingerRelative[bone] ?? IDENTITY);
+        }
       }
     }
   }
@@ -271,10 +288,10 @@ export function solveRotations(
     Head: head,
     LeftUpperArm: delta('LeftUpperArm'),
     LeftLowerArm: delta('LeftLowerArm'),
-    LeftHand: handDelta('Left'),
+    LeftHand: handDeltas.Left,
     RightUpperArm: delta('RightUpperArm'),
     RightLowerArm: delta('RightLowerArm'),
-    RightHand: handDelta('Right'),
+    RightHand: handDeltas.Right,
     LeftUpperLeg: delta('LeftUpperLeg'),
     LeftLowerLeg: delta('LeftLowerLeg'),
     LeftFoot: delta('LeftFoot'),
@@ -290,7 +307,7 @@ export function solveRotations(
   for (const spec of LIMBS) {
     if (isVisible([spec.root, spec.joint, spec.end])) nextNormals[spec.limb] = normals[spec.limb];
   }
-  return { rotations, state: { ...state, previous: rotations, normals: nextNormals } };
+  return { rotations, state: { ...state, previous: rotations, normals: nextNormals, fingerRelative } };
 }
 
 /** Flatten rotations into the wire format (BONE_COUNT x 4 floats in DRIVEN_BONES order). */

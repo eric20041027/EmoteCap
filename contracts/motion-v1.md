@@ -51,6 +51,7 @@ Only flat arrays are used so Unity's `JsonUtility` can parse frames directly.
 
 - `name` matches `^[A-Za-z0-9_]{1,24}$`. Duplicate names in one export get `_2`, `_3`, … appended.
 - `frames` are filtered, grounded, and resampled to exactly `fps` (frame `k` has `t = k / fps`).
+- `skeleton` (optional): `"full"` (default) exports all 52 bones; `"body"` leaves the 30 finger bones out of the FBX (22 bones) for characters without fingers. Frames always carry all 48 driven rotations.
 
 ## Segment (phase 3, Gemini)
 

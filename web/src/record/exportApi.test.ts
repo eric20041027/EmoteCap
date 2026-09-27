@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { tposeFrame, type Clip } from '../motion/index';
 import { ExportFailure, describeErrorDetail, parseExportResponse, postClips, postExport } from './exportApi';
+import { setSkeleton } from '../settings/skeleton';
 
 const CLIP: Clip = { name: 'Clip_01', loop: false, fps: 30, frames: [tposeFrame(0)] };
 
@@ -93,5 +94,19 @@ describe('postExport', () => {
     const error = (await postExport(CLIP, fetchFn).catch((e: unknown) => e)) as ExportFailure;
     expect(error).toBeInstanceOf(ExportFailure);
     expect(error.message).toMatch(/Cannot reach the export server/);
+  });
+});
+
+describe('postClips skeleton option', () => {
+  it('marks clips as body-only when the body skeleton is selected', async () => {
+    setSkeleton('body');
+    try {
+      const fetchFn = vi.fn().mockResolvedValue(new Response(JSON.stringify({ files: [] }), { status: 200 }));
+      await postClips([CLIP], fetchFn);
+      const body = JSON.parse(fetchFn.mock.calls[0][1].body as string);
+      expect(body.clips[0].skeleton).toBe('body');
+    } finally {
+      setSkeleton('full');
+    }
   });
 });
