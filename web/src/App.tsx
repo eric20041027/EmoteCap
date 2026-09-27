@@ -33,12 +33,12 @@ export default function App() {
   const latestWorldRef = useRef<PoseLandmark[] | null>(null);
   const solver = useMemo(() => createPoseSolver(), []);
   const recorder = useRecorder();
-  const calibration = useCalibration(solver, latestWorldRef);
+  const cameras = useCameraDevices();
+  const calibration = useCalibration(solver, latestWorldRef, cameras.deviceId);
   const server = useServerHealth();
   const liveLink = useLiveLink();
   const [mirrorPreview, setMirrorPreview] = useState(true);
   const [quality, setQuality] = useState<CaptureQuality>('fast');
-  const cameras = useCameraDevices();
   const [crop, setCrop] = useState<CropMode>('none');
   const skeleton = useSkeleton();
   const smoothing = useSmoothing();
@@ -129,6 +129,9 @@ export default function App() {
               recordingSeconds={recordingSeconds}
               aspect={pose.frameAspect}
               cropped={pose.cropped}
+              calibrated={calibration.isCalibrated}
+              calibrationSecondsLeft={calibration.remaining}
+              onCalibrate={calibration.start}
             />
           </div>
           {importState.phase !== 'idle' && (
@@ -173,9 +176,6 @@ export default function App() {
       />
 
       {recorder.countdown !== null && <CountdownOverlay value={recorder.countdown} caption="Get into position" />}
-      {calibration.remaining !== null && (
-        <CountdownOverlay value={calibration.remaining} caption="Hold a T-pose — arms straight out" />
-      )}
     </div>
   );
 }

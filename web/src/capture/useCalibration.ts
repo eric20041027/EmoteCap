@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState, type RefObject } from 'react';
 import type { PoseLandmark, PoseSolver } from '../motion/index';
 import { useCountdown } from '../ui/useCountdown';
 
-export const CALIBRATION_SECONDS = 3;
+/** Long enough to walk back from the laptop and line up with the on-screen outline. */
+export const CALIBRATION_SECONDS = 5;
 const MESSAGE_MS = 4000;
 
 export interface CalibrationMessage {
@@ -14,17 +15,22 @@ export interface Calibration {
   /** Seconds left before the T-pose is captured, or null. */
   remaining: number | null;
   message: CalibrationMessage | null;
+  /** A T-pose was captured with the current camera; a reload or a camera switch asks for a new one. */
+  isCalibrated: boolean;
   start: () => void;
   cancel: () => void;
 }
 
-/** "Calibrate T-pose": 3-second countdown, then hand the latest world landmarks to the solver. */
+/** "Calibrate T-pose": 5-second countdown (with an outline to stand in), then hand the latest world landmarks to the solver. */
 export function useCalibration(
   solver: PoseSolver,
   latestWorldRef: RefObject<PoseLandmark[] | null>,
+  /** The camera in use: MediaPipe's 3D bias depends on the camera angle, so each camera needs its own T-pose. */
+  cameraKey = '',
 ): Calibration {
   const { remaining, start: startCountdown, cancel } = useCountdown();
   const [message, setMessage] = useState<CalibrationMessage | null>(null);
+  const [calibratedFor, setCalibratedFor] = useState<string | null>(null);
 
   useEffect(() => {
     if (!message) return;
@@ -42,13 +48,14 @@ export function useCalibration(
       }
       try {
         solver.calibrate(landmarks);
+        setCalibratedFor(cameraKey);
         setMessage({ tone: 'ok', text: 'T-pose calibrated.' });
       } catch (error) {
         console.error('T-pose calibration failed:', error);
         setMessage({ tone: 'warn', text: 'Calibration failed. Hold a clear T-pose facing the camera and try again.' });
       }
     });
-  }, [latestWorldRef, solver, startCountdown]);
+  }, [cameraKey, latestWorldRef, solver, startCountdown]);
 
-  return { remaining, message, start, cancel };
+  return { remaining, message, isCalibrated: calibratedFor === cameraKey, start, cancel };
 }

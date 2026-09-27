@@ -103,6 +103,107 @@
   margin-inline: auto;
 }
 
+/* Calibration prompt at the top of the camera view: orange until a T-pose is captured, then a small green chip. */
+.camera__calibrate {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 28px);
+  white-space: nowrap;
+  border-radius: 999px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.camera__calibrate--needed {
+  padding: 10px 20px;
+  border: none;
+  background: rgba(255, 181, 71, 0.96);
+  color: #1d1406;
+  font-size: clamp(14px, 1.4vw, 18px);
+  font-weight: 800;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  animation: calibrate-pulse 2s ease-in-out infinite;
+}
+
+/* Top-left corner (free while not recording), so the chip does not sit on the actor's head. */
+.camera__calibrate--done {
+  left: 14px;
+  transform: none;
+  padding: 5px 12px;
+  border: 1px solid rgba(61, 214, 140, 0.55);
+  background: rgba(10, 12, 17, 0.72);
+  color: var(--ok);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.camera__calibrate:focus-visible {
+  outline: 2px solid var(--ok);
+  outline-offset: 2px;
+}
+
+@keyframes calibrate-pulse {
+  0%,
+  100% {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 0 0 rgba(255, 181, 71, 0.55);
+  }
+  50% {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 0 10px rgba(255, 181, 71, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .camera__calibrate--needed {
+    animation: none;
+  }
+}
+
+/* Calibration countdown: T-pose outline to stand inside, caption, and the seconds left. */
+/* Starts below the caption so the outline's head stays visible. */
+.camera__guide {
+  position: absolute;
+  top: 13%;
+  left: 0;
+  width: 100%;
+  height: 85%;
+  pointer-events: none;
+}
+
+.camera__guide-fill {
+  opacity: 0.14;
+}
+
+.camera__guide-caption {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 28px);
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: rgba(255, 181, 71, 0.96);
+  color: #1d1406;
+  font-size: clamp(13px, 1.3vw, 17px);
+  font-weight: 800;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.camera__guide-count {
+  position: absolute;
+  right: 18px;
+  bottom: 12px;
+  font-size: clamp(56px, 9vw, 128px);
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.7);
+  animation: pop 1s ease-out both;
+}
+
 /* Portrait crop of a landscape camera: show the same centred window the tracker sees. */
 .camera__media--cover {
   object-fit: cover;
