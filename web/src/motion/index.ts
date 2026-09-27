@@ -9,6 +9,7 @@ import { calibrateRest, createSolverState, flattenRotations, solveRotations } fr
 
 export * from './contract';
 export { makeClip, type ClipOptions } from './clip';
+export { fallbackSegments, motionEnergy, refineSegments } from './segments';
 export type { PoseLandmark } from './landmarks';
 export type { OneEuroParams } from './oneEuro';
 
