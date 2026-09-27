@@ -23,8 +23,8 @@ Measured in Chromium on a 27 s, 1706×1280 VP8 take: ~54 ms per `currentTime` se
 `requestVideoFrameCallback` stalled after 60 frames, so it is not used.
 
 - Sample times `0, 1/30, 2/30, … ≤ duration` (30 fps, the export rate).
-- For each time: set `currentTime`, wait for `seeked`, draw the frame into a canvas (long side ≤ 1280 px), run
-  PoseLandmarker (Heavy) and, for the Body + Fingers skeleton, HandLandmarker on every frame. MediaPipe timestamps are video time in ms.
+- For each time: set `currentTime`, wait for `seeked`, run PoseLandmarker (Heavy) on the `<video>` element and, for the
+  Body + Fingers skeleton, HandLandmarker on every frame. MediaPipe timestamps are video time in ms.
 - MediaRecorder WebM files report `duration = Infinity` until scanned: seek far past the end, wait for `durationchange`, then seek to 0.
 
 ## Solving
