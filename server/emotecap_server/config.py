@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SERVER_DIR = REPO_ROOT / "server"
+DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
 
 load_dotenv(REPO_ROOT / ".env")
 
@@ -17,6 +18,7 @@ class Settings:
     blender_path: str
     unity_export_dir: Path | None
     gemini_api_key: str | None
+    gemini_model: str
     data_dir: Path
     bones_path: Path
 
@@ -28,6 +30,7 @@ def load_settings() -> Settings:
         blender_path=os.getenv("BLENDER_PATH", "/Applications/Blender.app/Contents/MacOS/Blender"),
         unity_export_dir=Path(unity_dir) if unity_dir else None,
         gemini_api_key=os.getenv("GEMINI_API_KEY") or None,
+        gemini_model=os.getenv("GEMINI_MODEL", "").strip() or DEFAULT_GEMINI_MODEL,
         data_dir=SERVER_DIR / "data",
         bones_path=REPO_ROOT / "contracts" / "bones.json",
     )

@@ -45,3 +45,8 @@ class Segment(BaseModel):
     end: float
     loop: bool
     description: str = ""
+
+
+class TakeResponse(BaseModel):
+    takeId: str  # wire name from contracts/motion-v1.md (POST /api/takes)
+    segments: list[Segment]

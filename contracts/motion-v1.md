@@ -69,7 +69,9 @@ Time range inside a take; the web app cuts Clips from it.
 | 1 | GET | `/files/<name>.fbx` | – | FBX file (a `<name>.emotecap.json` sidecar sits next to it) |
 | 3 | POST | `/api/takes` | multipart `video` (webm ≤ 100 MB, ≤ 3 min), `duration` | `{ "takeId": str, "segments": Segment[] }` |
 
-Errors: `422` invalid body, `500` Blender failure (`detail` holds the last 20 lines of Blender stderr), `503` Gemini not configured.
+Errors: `422` invalid body, `500` Blender failure (`detail` holds the last 20 lines of Blender stderr), `503` Gemini not configured, `413` take over 100 MB or 180 s, `415` upload is not a video, `502` Gemini failed or returned nothing usable (`detail = {"message": ..., "fallback": "motion-energy"}` — the web app then splits the take locally with `fallbackSegments`).
+
+The uploaded video must be the raw, **un-mirrored** camera stream so Gemini's Left/Right clip names match the actor's own sides.
 
 ## Sidecar `<name>.emotecap.json`
 
