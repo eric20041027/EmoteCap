@@ -1,6 +1,6 @@
 # Video Import Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Import a video file (mp4 / mov / webm, ≤ 3 min) as a take that flows through the existing Review → Gemini → FBX pipeline.
 
@@ -18,7 +18,7 @@ Spec: `docs/superpowers/specs/2026-09-27-video-import-design.md`. All paths belo
 
 **Files:** Create `capture/landmarkers.ts`; modify `capture/usePose.ts`.
 
-- [ ] Move `WASM_PATH`, `CaptureQuality`, `POSE_MODEL_PATH`, `CaptureError`, `Landmarkers`, `createLandmarkers` from `usePose.ts` into
+- [x] Move `WASM_PATH`, `CaptureQuality`, `POSE_MODEL_PATH`, `CaptureError`, `Landmarkers`, `createLandmarkers` from `usePose.ts` into
       `capture/landmarkers.ts` unchanged (all exported), plus:
 
 ```ts
@@ -28,17 +28,17 @@ export function closeLandmarkers(landmarkers: Landmarkers | undefined): void {
 }
 ```
 
-- [ ] In `usePose.ts`: import them from `./landmarkers`, keep `export type { CaptureQuality } from './landmarkers';` (App imports it
+- [x] In `usePose.ts`: import them from `./landmarkers`, keep `export type { CaptureQuality } from './landmarkers';` (App imports it
       from `usePose`), use `closeLandmarkers(landmarkers)` in `release()`, and add a 7th parameter `paused = false` kept in a ref
       (`pausedRef`, updated in the existing layout effect). First line after `rafId = requestAnimationFrame(tick);`:
       `if (pausedRef.current) return;`
-- [ ] `npx tsc --noEmit` and `npm test` pass. Commit `refactor(web): share landmarker loading and let the camera loop pause`.
+- [x] `npx tsc --noEmit` and `npm test` pass. Commit `refactor(web): share landmarker loading and let the camera loop pause`.
 
 ### Task 2: Frame times (pure, TDD)
 
 **Files:** Create `import/frameTimes.ts`, `import/frameTimes.test.ts`.
 
-- [ ] Tests:
+- [x] Tests:
 
 ```ts
 describe('sampleTimes', () => {
@@ -71,7 +71,7 @@ describe('holdFromStart', () => {
 });
 ```
 
-- [ ] Run → FAIL (module missing). Implement:
+- [x] Run → FAIL (module missing). Implement:
 
 ```ts
 export const IMPORT_FPS = 30;
@@ -88,20 +88,20 @@ export function holdFromStart(frames: readonly MotionFrame[]): MotionFrame[] {
 }
 ```
 
-- [ ] Run → PASS.
+- [x] Run → PASS.
 
 ### Task 3: Conversion loop (pure, TDD)
 
 **Files:** Create `import/convertVideo.ts`, `import/convertVideo.test.ts`.
 
-- [ ] Tests with a fake solver (`solve: (world, t) => (world ? tposeFrame(t) : null)`), `PERSON = { world: [], image: [], hands: { world: {}, image: {} } }`,
+- [x] Tests with a fake solver (`solve: (world, t) => (world ? tposeFrame(t) : null)`), `PERSON = { world: [], image: [], hands: { world: {}, image: {} } }`,
       `NOBODY` with `world: undefined`:
   - seeks `[0, 1/30, 2/30, 3/30]` for `duration = 0.1`, detector timestamps round to `[0, 33, 67, 100]`, frames' `t` equal the seek
     times, progress `[[1,4],[2,4],[3,4],[4,4]]`;
   - person from 50 ms on → frame times `[0, 2/30, 3/30]`;
   - nobody → rejects with `NO_PERSON_MESSAGE`;
   - abort in `onProgress` at `done === 2` → rejects with `name === 'AbortError'`, exactly 2 seeks.
-- [ ] Run → FAIL. Implement:
+- [x] Run → FAIL. Implement:
 
 ```ts
 export class ImportError extends Error {} // message is user-facing
@@ -133,28 +133,28 @@ export async function convertVideo(duration: number, steps: ConvertSteps): Promi
 }
 ```
 
-- [ ] Run → PASS. Commit Tasks 2–3: `feat(web): frame-by-frame video conversion core`.
+- [x] Run → PASS. Commit Tasks 2–3: `feat(web): frame-by-frame video conversion core`.
 
 ### Task 4: Recorder `load` (TDD)
 
 **Files:** Modify `record/useRecorder.ts`, `record/useRecorder.test.ts`.
 
-- [ ] Tests: `load` from idle → `{ phase: 'recorded', frames, video }`; ignored while recording; ignored with no frames.
-- [ ] Implement: `recorded` state gets `video?: Blob`; action `{ type: 'load'; frames; video: Blob }` →
+- [x] Tests: `load` from idle → `{ phase: 'recorded', frames, video }`; ignored while recording; ignored with no frames.
+- [x] Implement: `recorded` state gets `video?: Blob`; action `{ type: 'load'; frames; video: Blob }` →
       `state.phase === 'idle' && action.frames.length > 0 ? { phase: 'recorded', frames, video } : state`; `Recorder.load(frames, video)`.
-- [ ] Run → PASS. Commit `feat(web): recorder can open an imported take`.
+- [x] Run → PASS. Commit `feat(web): recorder can open an imported take`.
 
 ### Task 5: Browser glue
 
 **Files:** Create `import/videoSource.ts`, `import/detectFrame.ts`, `import/useVideoImport.ts`.
 
-- [ ] `videoSource.ts`: `waitFor(video, type, timeoutMs)` (rejects with `ImportError` on `error`/timeout);
+- [x] `videoSource.ts`: `waitFor(video, type, timeoutMs)` (rejects with `ImportError` on `error`/timeout);
       `seekTo(video, t)` (skip when already there; then `while (video.seeking) await waitFor(video, 'seeked', …)` to ignore stale events);
       `openVideoFile(file, video)` → duration: type/extension check, `loadedmetadata`, Infinity fix (`currentTime = 1e9`,
       wait `durationchange`, wait out the seek), `> MAX_TAKE_SECONDS` refused, ends on frame 0; `closeVideoFile(video)` revokes the URL.
-- [ ] `detectFrame.ts`: `createFrameDetector(landmarkers, trackHands)` → `(video, ms) => FrameDetection`; pose every frame, hands via
+- [x] `detectFrame.ts`: `createFrameDetector(landmarkers, trackHands)` → `(video, ms) => FrameDetection`; pose every frame, hands via
       `assignHands` every frame, hands switched off for the rest of the import after one failure.
-- [ ] `useVideoImport.ts`: state `idle { error? } | loading { fileName } | converting { fileName, done, total, startedAt }`, `aspect`,
+- [x] `useVideoImport.ts`: state `idle { error? } | loading { fileName } | converting { fileName, done, total, startedAt }`, `aspect`,
       `start(file)`, `cancel()`. An effect keyed on the picked file runs: open → `createLandmarkers('accurate')` → `convertVideo` with a
       fresh `createPoseSolver({}, smoothing)`; each frame draws the overlay and calls `onFrame`; progress state at most every 200 ms;
       `onDone(frames, file)` at the end; cleanup aborts and closes the file. Errors: `ImportError`/`CaptureError` messages as-is, else
@@ -165,17 +165,17 @@ export async function convertVideo(duration: number, steps: ConvertSteps): Promi
 **Files:** Create `import/ImportButton.tsx`, `import/ImportProgress.tsx`, `import/ImportView.tsx`, `import/import.css`;
 modify `record/CaptureControls.tsx`, `record/RecordPanel.tsx`, `App.tsx`.
 
-- [ ] `ImportButton`: secondary button + hidden `<input type="file" accept="video/*">` (value reset after each pick).
-- [ ] `ImportProgress`: Cancel, "Analysing frame N / M · about X s left" (or "Loading … and the pose models…"), `<progress>`.
-- [ ] `ImportView`: `.camera` box with the un-mirrored `<video>` + overlay canvas and an "Analysing <file>" badge.
-- [ ] `CaptureControls`: `onImport`, `importError` props; button after Calibrate; error as a `capture__note--warn`.
-- [ ] `RecordPanel`: `importer` prop; `ImportProgress` while importing; take video = `{ status: 'ready', blob: state.video }` for imports.
-- [ ] `App`: `useVideoImport({ … onFrame: preview + Live Link, onDone: recorder.load })`; `usePose(…, isImporting)`;
+- [x] `ImportButton`: secondary button + hidden `<input type="file" accept="video/*">` (value reset after each pick).
+- [x] `ImportProgress`: Cancel, "Analysing frame N / M · about X s left" (or "Loading … and the pose models…"), `<progress>`.
+- [x] `ImportView`: `.camera` box with the un-mirrored `<video>` + overlay canvas and an "Analysing <file>" badge.
+- [x] `CaptureControls`: `onImport`, `importError` props; button after Calibrate; error as a `capture__note--warn`.
+- [x] `RecordPanel`: `importer` prop; `ImportProgress` while importing; take video = `{ status: 'ready', blob: state.video }` for imports.
+- [x] `App`: `useVideoImport({ … onFrame: preview + Live Link, onDone: recorder.load })`; `usePose(…, isImporting)`;
       camera view wrapped in `<div hidden={isImporting}>` (keeps the webcam element mounted); `ImportView` while importing.
-- [ ] `npx tsc --noEmit`, `npm test` pass. Commit `feat(web): import a video file as a take`.
+- [x] `npx tsc --noEmit`, `npm test` pass. Commit `feat(web): import a video file as a take`.
 
 ### Task 7: Manual end-to-end check
 
-- [ ] Serve a stored take (`server/data/takes/*.webm`) to the page, feed it to the file input, watch progress and the 3D preview.
-- [ ] Review → Auto-slice (Gemini) → Export FBX → the clip appears in Unity (`Assets/EmoteCap/`).
-- [ ] README: one line under features. Commit `docs: video import`.
+- [x] Serve a stored take (`server/data/takes/*.webm`) to the page, feed it to the file input, watch progress and the 3D preview.
+- [x] Review → Auto-slice (Gemini) → Export FBX → the clip appears in Unity (`Assets/EmoteCap/`).
+- [x] README: one line under features. Commit `docs: video import`.

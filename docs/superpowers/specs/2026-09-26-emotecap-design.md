@@ -5,6 +5,17 @@
 > 目標：Overall Winner，同時投 Best Use of Gemini API
 > 狀態：設計已確認（21:05）；21:15 調整開發順序：**先做動捕 → Unity，Gemini 延後**。專案名稱 **EmoteCap**（21:40 定案）。
 
+## 0. 目前狀態（2026-09-27 02:00 更新）
+
+三個階段都已完成並在 `main` 上。原始設計之後新增的功能：
+
+- **手指**：契約 v2，48 根驅動骨骼（身體 18 + 手指 30）；網頁可選「身體 / 身體 + 手指」骨架。
+- **iPhone 鏡頭**：Safari 透過接續互通相機使用 iPhone，會記住上次選的鏡頭；可裁成直式 3:4。
+- **防抖**：地標和每根骨頭的旋轉都有 One Euro 濾波（Low / Medium / High）；Unity Live Link 在兩幀之間平滑插值。
+- **站姿**：站立時腳掌貼平地面；偵測跳躍。
+- **匯入影片**：現成影片逐格轉成 take，走同一套 Gemini 切片 → FBX 流程（見 `2026-09-27-video-import-design.md`）。
+- **Unity**：動畫選單（Clip Player）、實體碰撞（Body Colliders）、道具重置（Reset Props）、匯出後自動建立播放清單。
+
 ## 1. 一句話
 
 用電腦鏡頭錄一次、連續做好幾個動作。EmoteCap 用 Gemini 看影片，自動切成命名好的動畫片段，解算成人形骨架動作，再匯出 Unity 能直接用的 Humanoid FBX。錄的時候還能透過 Live Link 讓 Unity 角色即時同步。

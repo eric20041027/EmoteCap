@@ -42,4 +42,17 @@ Built with: Gemini API, MediaPipe, three.js, React, TypeScript, FastAPI, Blender
 | 7 | 2:20–2:40 | README architecture diagram + three key facts on screen | "Under the hood: our own 48-bone quaternion solver and one motion format from browser to Blender to Unity. What you see is exactly what you export." | Overall (technical depth) |
 | 8 | 2:40–2:50 | Logo + GitHub URL | "EmoteCap. Act once. Animate anything." | |
 
+## Recording run sheet (record grouped by setup, assemble in shot order)
+
+Before recording: turn on Do Not Disturb, hide desktop icons, close other apps using the camera, clean test clips out of `Assets/EmoteCap/`, set Smoothing to Medium, and have the phone video for shot 6 ready.
+
+| Take | Setup | Do | Becomes |
+|---|---|---|---|
+| A | Unity **EmoteCapDemo** in Play mode | 10 s of Y Bot standing idle | Shot 1 |
+| B | Safari on the left half, Unity **EmoteCapPlayground** (Play mode) on the right; web app **Fast**, Live Link on | Wave, peace sign, then sweep the cubes off the table; press **R** and repeat until one run looks great | Shot 2 |
+| C | Web app, **Accurate** mode | Record → one take of four moves with pauses → Stop → Auto-slice with Gemini → play one clip → Export all | Shots 3, 4 and the start of 5 |
+| D | Unity **EmoteCapDemo** in Play mode | Clip Player menu: pick each new clip, toggle Loop | Shot 5 |
+| E | Web app + the phone video | Import video → let it finish → Auto-slice → Export all → play the dance in Unity | Shot 6 |
+| F | GitHub README in the browser | Scroll to the architecture diagram | Shot 7 |
+
 Recording tips: QuickTime → New Screen Recording, one segment at a time; keep the Unity Game view large; burn in English captions (judges may watch muted); speed up waiting (Gemini, video import) 2–4×; use your own footage and royalty-free music so YouTube does not block the video; upload as Unlisted and check it plays in a private window.
