@@ -19,6 +19,8 @@ namespace EmoteCap
         [SerializeField] string host = "localhost";
         [SerializeField] int port = 8787;
         [SerializeField] bool applyHipsHeight = true;
+        [Tooltip("Keep the lowest sole on the floor every frame (prevents sinking and floating; disable for jumps).")]
+        [SerializeField] bool groundFeet = true;
         [SerializeField] bool showStatus = true;
 
         public string Status { get; private set; } = "idle";
@@ -28,6 +30,8 @@ namespace EmoteCap
 
         Transform[] bones;
         Quaternion[] restWorld;
+        readonly Transform[] soleJoints = new Transform[4];
+        readonly float[] soleHeights = new float[4];
         Quaternion rootRest;
         float restHipsHeight;
         volatile LiveMessage latest;
@@ -52,6 +56,7 @@ namespace EmoteCap
             restWorld = bones.Select(bone => bone != null ? bone.rotation : Quaternion.identity).ToArray();
             rootRest = transform.rotation;
             restHipsHeight = bones[0].position.y - transform.position.y;
+            RecordSoleHeights(animator);
 
             cancellation = new CancellationTokenSource();
             _ = ReceiveLoopAsync(cancellation.Token);
@@ -84,6 +89,30 @@ namespace EmoteCap
                 position.y = transform.position.y + restHipsHeight * (frame.h[1] / EmoteCapContract.HipsRestHeight);
                 hips.position = position;
             }
+
+            if (groundFeet) GroundLowestSole();
+        }
+
+        /// <summary>Bind-pose height of each ankle and toe joint above the floor (the character's own sole thickness).</summary>
+        void RecordSoleHeights(Animator animator)
+        {
+            var joints = new[] { HumanBodyBones.LeftFoot, HumanBodyBones.RightFoot, HumanBodyBones.LeftToes, HumanBodyBones.RightToes };
+            for (var i = 0; i < joints.Length; i++)
+            {
+                soleJoints[i] = animator.GetBoneTransform(joints[i]);
+                if (soleJoints[i] != null) soleHeights[i] = soleJoints[i].position.y - transform.position.y;
+            }
+        }
+
+        void GroundLowestSole()
+        {
+            var lowest = float.PositiveInfinity;
+            for (var i = 0; i < soleJoints.Length; i++)
+            {
+                if (soleJoints[i] != null) lowest = Mathf.Min(lowest, soleJoints[i].position.y - soleHeights[i]);
+            }
+            if (float.IsPositiveInfinity(lowest)) return;
+            bones[0].position += Vector3.up * (transform.position.y - lowest);
         }
 
         async Task ReceiveLoopAsync(CancellationToken token)
