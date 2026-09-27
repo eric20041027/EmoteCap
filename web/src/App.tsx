@@ -40,7 +40,7 @@ export default function App() {
     latestWorldRef.current = worldLandmarks ?? null;
     setHasPose(worldLandmarks !== undefined);
     setStepBack(needsStepBack(landmarks));
-    const frame = solver.solve(worldLandmarks, timestampMs / 1000, hands.world);
+    const frame = solver.solve(worldLandmarks, timestampMs / 1000, hands.world, landmarks);
     if (!frame) return;
     if (liveLink.enabled) liveLink.send(frame);
     if (!isReviewing) frameRef.current = frame;

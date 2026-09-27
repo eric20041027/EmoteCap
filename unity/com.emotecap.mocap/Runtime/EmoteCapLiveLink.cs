@@ -19,8 +19,10 @@ namespace EmoteCap
         [SerializeField] string host = "localhost";
         [SerializeField] int port = 8787;
         [SerializeField] bool applyHipsHeight = true;
-        [Tooltip("Keep the lowest sole on the floor every frame (prevents sinking and floating; disable for jumps).")]
+        [Tooltip("Keep the lowest sole on the floor: never below it, and pulled down when floating less than Airborne Threshold.")]
         [SerializeField] bool groundFeet = true;
+        [Tooltip("Soles higher than this above the floor are treated as a jump and left in the air (meters).")]
+        [SerializeField] float airborneThreshold = 0.04f;
         [SerializeField] bool showStatus = true;
 
         public string Status { get; private set; } = "idle";
@@ -112,7 +114,9 @@ namespace EmoteCap
                 if (soleJoints[i] != null) lowest = Mathf.Min(lowest, soleJoints[i].position.y - soleHeights[i]);
             }
             if (float.IsPositiveInfinity(lowest)) return;
-            bones[0].position += Vector3.up * (transform.position.y - lowest);
+            var floatHeight = lowest - transform.position.y;
+            // Below the floor: always lift. Slightly above: pull down (proportion mismatch). Well above: a jump.
+            if (floatHeight < airborneThreshold) bones[0].position -= Vector3.up * floatHeight;
         }
 
         async Task ReceiveLoopAsync(CancellationToken token)

@@ -3,6 +3,7 @@
  */
 import type { MotionFrame, Vec3 } from './contract';
 import { HAND_LANDMARK_COUNT, SIDES, type Side } from './hands';
+import { createJumpState, solveJumpLift } from './jump';
 import { LANDMARK_COUNT, toCanonical, type PoseLandmark } from './landmarks';
 import { LandmarkFilter, type OneEuroParams } from './oneEuro';
 import { groundedHipsHeight } from './skeleton';
@@ -19,19 +20,23 @@ export type HandLandmarks = Partial<Record<Side, PoseLandmark[]>>;
 export type { OneEuroParams } from './oneEuro';
 
 export interface PoseSolver {
-  /** Solve one frame from the 33 MediaPipe world landmarks. Returns null when no pose is available. */
-  solve(worldLandmarks: PoseLandmark[] | undefined, t: number, hands?: HandLandmarks): MotionFrame | null;
+  /**
+   * Solve one frame from the 33 MediaPipe world landmarks (plus tracked hands and, for jump detection,
+   * the same frame's normalized image landmarks). Returns null when no pose is available.
+   */
+  solve(worldLandmarks: PoseLandmark[] | undefined, t: number, hands?: HandLandmarks, image?: PoseLandmark[]): MotionFrame | null;
   /** Treat the current pose (and tracked hands) as the actor's T-pose (call while the actor holds a T-pose). */
   calibrate(worldLandmarks: PoseLandmark[], hands?: HandLandmarks): void;
   /** Forget filter and continuity state (call when a new session starts). */
   reset(): void;
 }
 
-/** Stateful wrapper: One Euro filter -> rotation solver -> skeleton grounding (lowest sole on the floor). */
+/** Stateful wrapper: One Euro filter -> rotation solver -> skeleton grounding (lowest sole on the floor) + jump lift. */
 export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}): PoseSolver {
   let filter = new LandmarkFilter(filterParams);
   let handFilters = { Left: new LandmarkFilter(filterParams), Right: new LandmarkFilter(filterParams) };
   let rotationState = createSolverState();
+  let jumpState = createJumpState();
   let lastPoints: Vec3[] | null = null;
   let lastHands: HandPoints = {};
 
@@ -45,7 +50,7 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}): Pos
   };
 
   return {
-    solve(worldLandmarks, t, hands = {}) {
+    solve(worldLandmarks, t, hands = {}, image) {
       if (!worldLandmarks || worldLandmarks.length !== LANDMARK_COUNT) return null;
       const filtered = filter.filter(worldLandmarks, t);
       const points = filtered.map(toCanonical);
@@ -55,7 +60,10 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}): Pos
       rotationState = rotation.state;
       lastPoints = points;
       lastHands = handPoints;
-      return { t, h: [0, groundedHipsHeight(rotation.rotations), 0], r: flattenRotations(rotation.rotations) };
+      const jump = solveJumpLift(image, points, visibility, t, jumpState);
+      jumpState = jump.state;
+      const hipsY = groundedHipsHeight(rotation.rotations) + jump.lift;
+      return { t, h: [0, hipsY, 0], r: flattenRotations(rotation.rotations) };
     },
     calibrate(worldLandmarks, hands) {
       const points = lastPoints ?? (worldLandmarks.length === LANDMARK_COUNT ? worldLandmarks.map(toCanonical) : null);
@@ -71,6 +79,7 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}): Pos
       filter = new LandmarkFilter(filterParams);
       handFilters = { Left: new LandmarkFilter(filterParams), Right: new LandmarkFilter(filterParams) };
       rotationState = createSolverState();
+      jumpState = createJumpState();
       lastPoints = null;
       lastHands = {};
     },
