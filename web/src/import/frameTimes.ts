@@ -2,13 +2,17 @@ import type { MotionFrame } from '../motion/index';
 
 /** Frames per second analysed from an imported video: the rate clips are exported at. */
 export const IMPORT_FPS = 30;
-/** Absorbs float error so a 1.0 s video at 30 fps still gets its frame at exactly 1.0 s. */
+/** Absorbs float error in the frame count (e.g. 29.999999 frames is 30). */
 const EPSILON = 1e-6;
 
-/** Frame times 0, 1/fps, 2/fps, … up to `duration` (seconds); empty for a missing or endless duration. */
+/**
+ * Frame times 0, 1/fps, 2/fps, … staying at least half a frame before the end (a seek to the very end may never be
+ * reported); always at least the first frame. Empty for a missing or endless duration.
+ */
 export function sampleTimes(duration: number, fps: number = IMPORT_FPS): number[] {
   if (!Number.isFinite(duration) || duration <= 0 || !(fps > 0)) return [];
-  const count = Math.floor(duration * fps + EPSILON) + 1;
+  const last = duration - 1 / (2 * fps);
+  const count = Math.max(1, Math.floor(last * fps + EPSILON) + 1);
   return Array.from({ length: count }, (_, i) => i / fps);
 }
 

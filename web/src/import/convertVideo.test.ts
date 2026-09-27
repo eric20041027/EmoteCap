@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { tposeFrame, type PoseSolver } from '../motion/index';
-import { convertVideo, NO_PERSON_MESSAGE, type FrameDetection } from './convertVideo';
+import { convertVideo, MAX_FAILED_FRAMES_IN_A_ROW, NO_PERSON_MESSAGE, type FrameDetection } from './convertVideo';
 
 const PERSON: FrameDetection = { world: [], image: [], hands: { world: {}, image: {} } };
 const NOBODY: FrameDetection = { world: undefined, image: undefined, hands: { world: {}, image: {} } };
@@ -34,14 +34,13 @@ describe('convertVideo', () => {
       onProgress: ({ done, total }) => progress.push([done, total]),
     });
 
-    expect(seeks).toEqual([0, 1 / 30, 2 / 30, 3 / 30]);
-    expect(stamps.map(Math.round)).toEqual([0, 33, 67, 100]);
+    expect(seeks).toEqual([0, 1 / 30, 2 / 30]);
+    expect(stamps.map(Math.round)).toEqual([0, 33, 67]);
     expect(frames.map((frame) => frame.t)).toEqual(seeks);
     expect(progress).toEqual([
-      [1, 4],
-      [2, 4],
-      [3, 4],
-      [4, 4],
+      [1, 3],
+      [2, 3],
+      [3, 3],
     ]);
   });
 
@@ -52,7 +51,35 @@ describe('convertVideo', () => {
       solver: fakeSolver(),
     });
 
-    expect(frames.map((frame) => frame.t)).toEqual([0, 2 / 30, 3 / 30]);
+    expect(frames.map((frame) => frame.t)).toEqual([0, 2 / 30]);
+  });
+
+  it('skips a frame whose detection fails and keeps going', async () => {
+    const frames = await convertVideo(0.1, {
+      seek: async () => {},
+      detect: (timestampMs) => {
+        if (Math.round(timestampMs) === 33) throw new Error('one bad frame');
+        return PERSON;
+      },
+      solver: fakeSolver(),
+    });
+
+    expect(frames.map((frame) => frame.t)).toEqual([0, 2 / 30]);
+  });
+
+  it('gives up when frame after frame fails', async () => {
+    let calls = 0;
+    const run = convertVideo(1, {
+      seek: async () => {},
+      detect: () => {
+        calls += 1;
+        throw new Error('WebGL context lost');
+      },
+      solver: fakeSolver(),
+    });
+
+    await expect(run).rejects.toThrow('WebGL context lost');
+    expect(calls).toBe(MAX_FAILED_FRAMES_IN_A_ROW);
   });
 
   it('rejects when nobody is found in any frame', async () => {

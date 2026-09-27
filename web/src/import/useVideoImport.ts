@@ -71,7 +71,7 @@ export function useVideoImport(options: VideoImportOptions): VideoImport {
     const { signal } = controller;
 
     const run = async (): Promise<MotionFrame[]> => {
-      const duration = await openVideoFile(file, video);
+      const duration = await openVideoFile(file, video, signal);
       setAspect(video.videoWidth / video.videoHeight);
       const landmarkers = await createLandmarkers('accurate');
       try {
@@ -82,7 +82,7 @@ export function useVideoImport(options: VideoImportOptions): VideoImport {
         const startedAt = performance.now();
         let publishedAt = 0;
         return await convertVideo(duration, {
-          seek: (t) => seekTo(video, t),
+          seek: (t) => seekTo(video, t, signal),
           detect: (timestampMs) => detect(video, timestampMs),
           solver: createPoseSolver({}, smoothing),
           signal,

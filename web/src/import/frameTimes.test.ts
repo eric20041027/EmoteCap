@@ -3,17 +3,28 @@ import { tposeFrame } from '../motion/index';
 import { holdFromStart, sampleTimes } from './frameTimes';
 
 describe('sampleTimes', () => {
-  it('samples from 0 to the end at the given rate', () => {
+  it('samples every 1/fps from 0, stopping half a frame before the end', () => {
     const times = sampleTimes(1, 30);
-    expect(times).toHaveLength(31);
+    expect(times).toHaveLength(30);
     expect(times[0]).toBe(0);
     expect(times[1]).toBeCloseTo(1 / 30);
-    expect(times[30]).toBeCloseTo(1);
+    expect(times[29]).toBeCloseTo(29 / 30);
+  });
+
+  it('never seeks to the very end of the video, where browsers may not report the seek', () => {
+    for (const duration of [0.1, 1, 361 / 30, 27.016]) {
+      const times = sampleTimes(duration, 30);
+      expect(times[times.length - 1]).toBeLessThan(duration - 1 / 90);
+    }
   });
 
   it('stops at the last frame that fits', () => {
-    expect(sampleTimes(0.1, 30)).toHaveLength(4);
+    expect(sampleTimes(0.1, 30)).toHaveLength(3);
     expect(sampleTimes(0.05, 30)).toHaveLength(2);
+  });
+
+  it('still reads the first frame of a very short video', () => {
+    expect(sampleTimes(0.01, 30)).toEqual([0]);
   });
 
   it('returns nothing for an empty, unknown or endless video', () => {

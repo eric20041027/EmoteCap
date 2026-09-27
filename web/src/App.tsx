@@ -80,7 +80,8 @@ export default function App() {
     recorder.push(frame);
   };
 
-  // Importing pauses camera tracking so the GPU goes to the video, and so the two never fight over the preview.
+  // Importing pauses camera tracking (its models stay loaded) so the GPU works on the video alone and the two never
+  // fight over the preview.
   const pose = usePose(videoRef, handlePose, quality, cameras.deviceId, skeleton === 'full', crop, isImporting);
   const { refresh: refreshCameras } = cameras;
   useEffect(() => {
