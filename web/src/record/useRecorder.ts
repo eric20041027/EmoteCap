@@ -9,18 +9,24 @@ export type RecorderState =
   | { phase: 'idle'; notice?: string }
   | { phase: 'countdown' }
   | { phase: 'recording'; frames: readonly MotionFrame[]; t0: number | null }
-  | { phase: 'recorded'; frames: readonly MotionFrame[] };
+  | {
+      phase: 'recorded';
+      frames: readonly MotionFrame[];
+      /** An imported take's source file: Gemini slices it instead of a camera recording. */
+      video?: Blob;
+    };
 
 export type RecorderAction =
   | { type: 'arm' }
   | { type: 'begin' }
   | { type: 'push'; frame: MotionFrame }
   | { type: 'stop' }
-  | { type: 'discard' };
+  | { type: 'discard' }
+  | { type: 'load'; frames: readonly MotionFrame[]; video: Blob };
 
 export const INITIAL_RECORDER_STATE: RecorderState = { phase: 'idle' };
 
-/** Pure state machine: idle -> countdown -> recording -> recorded; discard returns to idle. */
+/** Pure state machine: idle -> countdown -> recording -> recorded (or idle -> recorded for an imported video); discard returns to idle. */
 export function recorderReducer(state: RecorderState, action: RecorderAction): RecorderState {
   switch (action.type) {
     case 'arm':
@@ -42,6 +48,10 @@ export function recorderReducer(state: RecorderState, action: RecorderAction): R
         : { phase: 'idle', notice: EMPTY_TAKE_NOTICE };
     case 'discard':
       return { phase: 'idle' };
+    case 'load':
+      return state.phase === 'idle' && action.frames.length > 0
+        ? { phase: 'recorded', frames: action.frames, video: action.video }
+        : state;
   }
 }
 
@@ -54,6 +64,8 @@ export interface Recorder {
   discard: () => void;
   /** Feed every solved frame; frames are kept only while recording. */
   push: (frame: MotionFrame) => void;
+  /** Open an imported take (frames timed in video seconds) and its source video for review. */
+  load: (frames: readonly MotionFrame[], video: Blob) => void;
 }
 
 export function useRecorder(): Recorder {
@@ -82,5 +94,7 @@ export function useRecorder(): Recorder {
     if (phaseRef.current === 'recording') dispatch({ type: 'push', frame });
   }, []);
 
-  return { state, countdown: remaining, start, stop, discard, push };
+  const load = useCallback((frames: readonly MotionFrame[], video: Blob) => dispatch({ type: 'load', frames, video }), []);
+
+  return { state, countdown: remaining, start, stop, discard, push, load };
 }

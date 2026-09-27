@@ -85,4 +85,21 @@ describe('recorderReducer', () => {
     const withNotice: RecorderState = { phase: 'idle', notice: EMPTY_TAKE_NOTICE };
     expect(recorderReducer(withNotice, { type: 'arm' })).toEqual({ phase: 'countdown' });
   });
+
+  it('opens an imported take for review together with its source video', () => {
+    const video = new Blob(['video'], { type: 'video/mp4' });
+    const frames = [frameAt(0), frameAt(0.5)];
+    expect(recorderReducer(INITIAL_RECORDER_STATE, { type: 'load', frames, video })).toEqual({
+      phase: 'recorded',
+      frames,
+      video,
+    });
+  });
+
+  it('loads only when idle and only a take with frames', () => {
+    const load = { type: 'load' as const, frames: [frameAt(0)], video: new Blob(['video']) };
+    const recording = recordingWith([1]);
+    expect(recorderReducer(recording, load)).toBe(recording);
+    expect(recorderReducer(INITIAL_RECORDER_STATE, { ...load, frames: [] })).toBe(INITIAL_RECORDER_STATE);
+  });
 });
