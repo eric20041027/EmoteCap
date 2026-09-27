@@ -42,18 +42,19 @@ function landmarkOutline(data: LandmarkData): string {
   return isVisible(data.from) ? OUTLINE : HIDDEN;
 }
 
-/** Draw the pose (and hand) skeletons over the (unmirrored) video frame; the canvas is mirrored with CSS like the video. */
+/** Draw the pose (and hand) skeletons over the (unmirrored) tracked frame; the canvas is mirrored with CSS like the video. */
 export function drawPoseOverlay(
   canvas: HTMLCanvasElement | null,
-  video: HTMLVideoElement | null,
+  frameSize: { width: number; height: number },
   landmarks: NormalizedLandmark[] | undefined,
   hands: TrackedHands['image'] = {},
 ): void {
   const ctx = canvas?.getContext('2d');
   if (!canvas || !ctx) return;
-  if (video?.videoWidth && (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight)) {
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+  // Match the (possibly cropped) frame the landmarks are normalized to.
+  if (frameSize.width && (canvas.width !== frameSize.width || canvas.height !== frameSize.height)) {
+    canvas.width = frameSize.width;
+    canvas.height = frameSize.height;
   }
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 

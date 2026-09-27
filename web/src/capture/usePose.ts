@@ -7,6 +7,7 @@ import {
 } from '@mediapipe/tasks-vision';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { INSECURE_CONTEXT_MESSAGE, describeCameraError, describeModelError } from './captureChecks';
+import { cropRect, type CropMode } from './cropFrame';
 import { NO_HANDS, assignHands, createHandLandmarker, type TrackedHands } from './hands';
 
 export interface PoseResult {
@@ -16,6 +17,8 @@ export interface PoseResult {
   worldLandmarks: Landmark[] | undefined;
   /** Hands matched to the actor's left/right (empty when hand tracking is off or nothing is detected). */
   hands: TrackedHands;
+  /** Size of the (possibly cropped) frame the landmarks are normalized to. */
+  frameSize: { width: number; height: number };
   timestampMs: number;
 }
 
@@ -26,6 +29,10 @@ export interface PoseTracker {
   message: string;
   /** Detection rate, smoothed (EMA). */
   fps: number;
+  /** Width / height of the frame fed to the model (after cropping), for sizing the camera view. */
+  frameAspect: number;
+  /** True while a landscape camera is being cropped to portrait. */
+  cropped: boolean;
   retry: () => void;
 }
 
@@ -121,19 +128,24 @@ export function usePose(
   deviceId = '',
   /** Run the hand model (off for the body-only skeleton, which also raises fps). */
   trackHands = true,
+  /** Crop a landscape camera to a centred portrait window before tracking (applies instantly). */
+  crop: CropMode = 'none',
 ): PoseTracker {
   const [status, setStatus] = useState<{ status: PoseStatus; message: string }>({
     status: 'loading',
     message: LOADING_MESSAGE,
   });
   const [fps, setFps] = useState(0);
+  const [frame, setFrame] = useState({ aspect: 16 / 9, cropped: false });
   const [attempt, setAttempt] = useState(0);
   const onResultRef = useRef(onResult);
   const trackHandsRef = useRef(trackHands);
+  const cropRef = useRef(crop);
 
   useLayoutEffect(() => {
     onResultRef.current = onResult;
     trackHandsRef.current = trackHands;
+    cropRef.current = crop;
   });
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
@@ -174,15 +186,37 @@ export function usePose(
       let lastPublishMs = 0;
       let fpsEma = 0;
       let callbackFailed = false;
+      const cropCanvas = document.createElement('canvas');
+      const cropContext = cropCanvas.getContext('2d');
+      let publishedFrame = '';
+
+      /** The frame to track: the video itself, or a centred portrait crop drawn into a canvas. */
+      const frameSource = (): { image: HTMLVideoElement | HTMLCanvasElement; width: number; height: number } => {
+        const rect = cropRect(video.videoWidth, video.videoHeight, cropRef.current);
+        const cropping = cropContext !== null && rect.sw < video.videoWidth;
+        const key = `${rect.sw}x${rect.sh}:${cropping}`;
+        if (key !== publishedFrame && rect.sh > 0) {
+          publishedFrame = key;
+          setFrame({ aspect: rect.sw / rect.sh, cropped: cropping });
+        }
+        if (!cropping || !cropContext) return { image: video, width: video.videoWidth, height: video.videoHeight };
+        if (cropCanvas.width !== rect.sw || cropCanvas.height !== rect.sh) {
+          cropCanvas.width = rect.sw;
+          cropCanvas.height = rect.sh;
+        }
+        cropContext.drawImage(video, rect.sx, rect.sy, rect.sw, rect.sh, 0, 0, rect.sw, rect.sh);
+        return { image: cropCanvas, width: rect.sw, height: rect.sh };
+      };
 
       const tick = () => {
         rafId = requestAnimationFrame(tick);
         if (video.readyState < HAVE_CURRENT_DATA || video.currentTime === lastVideoTime) return;
         lastVideoTime = video.currentTime;
         const timestampMs = performance.now();
+        const source = frameSource();
         let result;
         try {
-          result = active.pose.detectForVideo(video, timestampMs);
+          result = active.pose.detectForVideo(source.image, timestampMs);
         } catch (error) {
           fail(error);
           return;
@@ -191,7 +225,7 @@ export function usePose(
         let hands = wantHands && timestampMs - lastHandsMs < HAND_REUSE_MS ? lastHands : NO_HANDS;
         if (handTracker && wantHands && frameIndex % HAND_EVERY_N_FRAMES[quality] === 0) {
           try {
-            hands = assignHands(handTracker.detectForVideo(video, timestampMs), result.landmarks[0]);
+            hands = assignHands(handTracker.detectForVideo(source.image, timestampMs), result.landmarks[0]);
             lastHands = hands;
             lastHandsMs = timestampMs;
           } catch (error) {
@@ -215,6 +249,7 @@ export function usePose(
             landmarks: result.landmarks[0],
             worldLandmarks: result.worldLandmarks[0],
             hands,
+            frameSize: { width: source.width, height: source.height },
             timestampMs,
           });
         } catch (error) {
@@ -254,5 +289,5 @@ export function usePose(
     };
   }, [videoRef, attempt, quality, deviceId]);
 
-  return { ...status, fps, retry };
+  return { ...status, fps, frameAspect: frame.aspect, cropped: frame.cropped, retry };
 }

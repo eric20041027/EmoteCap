@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './App.css';
 import { CameraSelect } from './capture/CameraSelect';
+import type { CropMode } from './capture/cropFrame';
 import { CameraView } from './capture/CameraView';
 import { needsStepBack } from './capture/captureChecks';
 import { drawPoseOverlay } from './capture/drawPoseOverlay';
@@ -34,6 +35,7 @@ export default function App() {
   const [mirrorPreview, setMirrorPreview] = useState(true);
   const [quality, setQuality] = useState<CaptureQuality>('fast');
   const cameras = useCameraDevices();
+  const [crop, setCrop] = useState<CropMode>('none');
   const skeleton = useSkeleton();
   const chooseSkeleton = (mode: SkeletonMode) => {
     setSkeleton(mode);
@@ -45,8 +47,8 @@ export default function App() {
   const isReviewing = state.phase === 'recorded';
 
   // Runs once per camera frame, outside React rendering.
-  const handlePose = ({ landmarks, worldLandmarks, hands, timestampMs }: PoseResult) => {
-    drawPoseOverlay(overlayRef.current, videoRef.current, landmarks, hands.image);
+  const handlePose = ({ landmarks, worldLandmarks, hands, frameSize, timestampMs }: PoseResult) => {
+    drawPoseOverlay(overlayRef.current, frameSize, landmarks, hands.image);
     latestWorldRef.current = worldLandmarks ?? null;
     setHasPose(worldLandmarks !== undefined);
     setStepBack(needsStepBack(landmarks));
@@ -57,7 +59,7 @@ export default function App() {
     recorder.push(frame);
   };
 
-  const pose = usePose(videoRef, handlePose, quality, cameras.deviceId, skeleton === 'full');
+  const pose = usePose(videoRef, handlePose, quality, cameras.deviceId, skeleton === 'full', crop);
   const { refresh: refreshCameras } = cameras;
   useEffect(() => {
     if (pose.status === 'ready') void refreshCameras(); // device labels appear once permission is granted
@@ -81,7 +83,15 @@ export default function App() {
         <section className="panel" aria-label="Camera">
           <div className="panel__head">
             <h2 className="panel__title">Camera</h2>
-            <CameraSelect devices={cameras.devices} deviceId={cameras.deviceId} onChange={cameras.setDeviceId} />
+            <span className="legend">
+              <ChipToggle
+                label="Portrait crop"
+                pressed={crop === 'portrait'}
+                onToggle={() => setCrop((c) => (c === 'portrait' ? 'none' : 'portrait'))}
+                title="Crop a landscape camera to a centred 3:4 portrait window: you fill more of the frame the tracker sees"
+              />
+              <CameraSelect devices={cameras.devices} deviceId={cameras.deviceId} onChange={cameras.setDeviceId} />
+            </span>
           </div>
           <CameraView
             videoRef={videoRef}
@@ -91,6 +101,8 @@ export default function App() {
             onRetry={pose.retry}
             showStepBackHint={stepBack}
             recordingSeconds={recordingSeconds}
+            aspect={pose.frameAspect}
+            cropped={pose.cropped}
           />
         </section>
 

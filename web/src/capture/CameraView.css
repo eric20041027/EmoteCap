@@ -95,3 +95,15 @@
   outline: 2px solid var(--ok);
   outline-offset: 2px;
 }
+
+/* The view takes the tracked frame's shape; tall (portrait) frames are capped at 68% of the viewport height. */
+.camera {
+  width: 100%;
+  max-width: calc(68vh * var(--aspect, 1.7778));
+  margin-inline: auto;
+}
+
+/* Portrait crop of a landscape camera: show the same centred window the tracker sees. */
+.camera__media--cover {
+  object-fit: cover;
+}

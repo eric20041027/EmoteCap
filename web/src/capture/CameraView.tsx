@@ -1,4 +1,4 @@
-import type { RefObject } from 'react';
+import type { CSSProperties, RefObject } from 'react';
 import './CameraView.css';
 import { formatClock } from '../ui/format';
 import type { PoseStatus } from './usePose';
@@ -12,15 +12,20 @@ interface CameraViewProps {
   showStepBackHint: boolean;
   /** Seconds recorded so far, or null when not recording. */
   recordingSeconds: number | null;
+  /** Width / height of the tracked frame; the view takes the camera's own shape. */
+  aspect: number;
+  /** A landscape camera is cropped to portrait: fill the view and cut the sides like the tracker does. */
+  cropped: boolean;
 }
 
 /** Mirrored webcam feed with the pose overlay, loading/error covers, REC badge and framing hint. */
 export function CameraView(props: CameraViewProps) {
-  const { videoRef, overlayRef, status, message, onRetry, showStepBackHint, recordingSeconds } = props;
+  const { videoRef, overlayRef, status, message, onRetry, showStepBackHint, recordingSeconds, aspect, cropped } = props;
+  const shape = { aspectRatio: String(aspect), '--aspect': aspect } as CSSProperties;
 
   return (
-    <div className="camera">
-      <video ref={videoRef} className="camera__media mirrored" muted playsInline />
+    <div className="camera" style={shape}>
+      <video ref={videoRef} className={`camera__media mirrored${cropped ? ' camera__media--cover' : ''}`} muted playsInline />
       <canvas ref={overlayRef} className="camera__media mirrored" />
 
       {recordingSeconds !== null && (
