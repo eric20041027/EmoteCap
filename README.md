@@ -159,3 +159,4 @@ Gemini API (`google-genai`: structured video understanding, text-to-speech) · M
   <img src="docs/media/dozed-off.gif" alt="The Live Link character slumped on the floor with Z z z above it" width="420"><br>
   <sub>Built overnight at <b>HackNite 2026</b>. Our Live Link actor didn't quite make it to morning.</sub>
 </div>
+
