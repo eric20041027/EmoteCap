@@ -140,10 +140,6 @@ Already have a video? **Import video** turns it into a take instead; start the v
 - **Choppy Live Link**: keep **Fast** mode on; use **Accurate** for recordings and imported videos.
 - **iPhone missing from the camera list**: use Safari, keep the iPhone locked, mounted and near the Mac.
 
-## Tech stack
-
-Gemini API (`google-genai`: structured video understanding, text-to-speech) · MediaPipe Pose + Hand Landmarker · three.js · React · Vite · TypeScript · FastAPI · Python · Blender (bpy) · Unity (C#)
-
 ## Tests
 
 `cd web && npm test` (220+ tests: motion solver, filters, calibration, video import, hand tracking, UI logic) · `cd server && uv run pytest` (350+ tests: export, relay, Gemini slicing and model fallback with a mocked API, a real Blender smoke test).
