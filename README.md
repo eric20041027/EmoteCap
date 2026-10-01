@@ -9,13 +9,6 @@
 Turn a webcam, an iPhone, or any video into **Humanoid animation clips for Unity**.<br>
 Stream your pose live, act a whole take in one go, and let **Gemini** cut it into named, loopable moves.
 
-[![Gemini API](https://img.shields.io/badge/Gemini_API-video_understanding-8E75B2?logo=googlegemini&logoColor=white)](#how-gemini-is-used)
-[![MediaPipe](https://img.shields.io/badge/MediaPipe-Pose_%2B_Hands-0097A7?logo=google&logoColor=white)](#how-it-works)
-[![Unity](https://img.shields.io/badge/Unity-Humanoid_%2B_Live_Link-000000?logo=unity&logoColor=white)](unity/com.emotecap.mocap/README.md)
-[![Blender](https://img.shields.io/badge/Blender-headless_FBX-F5792A?logo=blender&logoColor=white)](#how-it-works)
-[![React + TypeScript](https://img.shields.io/badge/React_%2B_TypeScript-web_app-3178C6?logo=typescript&logoColor=white)](web/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-server-009688?logo=fastapi&logoColor=white)](server/)
-
 <a href="https://youtu.be/ETPATTBDosc"><img src="https://img.shields.io/badge/Watch_the_demo-1%3A41-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Watch the demo on YouTube (1:41)"></a>
 
 <a href="https://youtu.be/ETPATTBDosc"><img src="docs/media/hero.gif" alt="The actor on the webcam (left) waves an arm and the Unity character (right) mirrors him live, knocking a table and a tower of cubes over" width="900"></a>
