@@ -4,6 +4,8 @@
 
 ### Act once. Animate anything.
 
+<a href="https://ushackathons.com/events/hacknite"><img src="https://img.shields.io/badge/HackNite_2026-%F0%9F%8F%86_Overall_Winner-F4C430?style=for-the-badge" alt="HackNite 2026: Overall Winner"></a>
+
 Turn a webcam, an iPhone, or any video into **Humanoid animation clips for Unity**.<br>
 Stream your pose live, act a whole take in one go, and let **Gemini** cut it into named, loopable moves.
 
@@ -157,6 +159,6 @@ Gemini API (`google-genai`: structured video understanding, text-to-speech) · M
 
 <div align="center">
   <img src="docs/media/dozed-off.gif" alt="The Live Link character slumped on the floor with Z z z above it" width="420"><br>
-  <sub>Built overnight at <b>HackNite 2026</b>. Our Live Link actor didn't quite make it to morning.</sub>
+  <sub>🏆 <b>Team EmoteCap: Overall Winners at <a href="https://ushackathons.com/events/hacknite">HackNite 2026</a></b><br>We built it overnight. Our Live Link actor didn't quite make it to morning.</sub>
 </div>
 
