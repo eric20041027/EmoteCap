@@ -16,7 +16,7 @@ export type CameraHandState='off'|'ran'|'reused'|'unavailable';
 export interface CameraDiagnostics {
   readonly active:boolean;
   configure(context:CameraContext):void;setup(setup:CameraSetup):void;previewReady(ready:boolean):void;
-  begin(inputTimeS:number,startedMs:number,width:number,height:number):void;solved(frame:MotionFrame):void;
+  begin(inputTimeS:number,startedMs:number,width:number,height:number,inputFrame?:number|null):void;solved(frame:MotionFrame):void;
   end(finishedMs:number,status:CameraAttemptStatus,handState:CameraHandState):void;
   rendered(frame:MotionFrame,finishedMs:number):void;interrupt(reason:string):void;
 }

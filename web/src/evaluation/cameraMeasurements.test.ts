@@ -13,9 +13,9 @@ function metadata():CameraMetadata{return {sourceCommit:'a'.repeat(40),classific
 function ready(){let time=1000;const probe=new CameraMeasurements(()=>time);
   probe.configure({...context});probe.setup({...setup});probe.previewReady(true);
   return {probe,setTime:(value:number)=>{time=value;}};}
-function ok(probe:CameraMeasurements,input:number,start:number,end:number,render:number|null){
+function ok(probe:CameraMeasurements,input:number,start:number,end:number,render:number|null,inputFrame=Math.round(input*1000)){
   const frame=tposeFrame();frame.t=input;
-  probe.begin(input,start,1280,720);probe.solved(frame);probe.end(end,'ok','ran');
+  probe.begin(input,start,1280,720,inputFrame);probe.solved(frame);probe.end(end,'ok','ran');
   if(render!==null)probe.rendered(frame,render);return frame;
 }
 describe('camera measurement receipts',()=>{
@@ -31,7 +31,7 @@ describe('camera measurement receipts',()=>{
   it('includes failed attempts and trailing idle in wall FPS and counts a frame only once',()=>{
     const {probe,setTime}=ready();probe.start(metadata());
     const frame=ok(probe,0,1000,1010,1020);probe.rendered(frame,1030);
-    probe.begin(.1,1100,1280,720);probe.end(1110,'no-pose','reused');setTime(2000);probe.stop();
+    probe.begin(.1,1100,1280,720,1);probe.end(1110,'no-pose','reused');setTime(2000);probe.stop();
     expect(probe.getSnapshot().result?.summary).toMatchObject({effectiveRenderedFps:1,attemptFps:2,
       failureRate:.5,p95DetectionToRenderCallMs:20,renderedCount:1,attemptCount:2,unrenderedCount:0});
   });
@@ -44,15 +44,15 @@ describe('camera measurement receipts',()=>{
   });
   it('retains overwritten frames and matches only the latest mutation of the same object',()=>{
     const {probe,setTime}=ready();probe.start(metadata());const frame=ok(probe,0,1000,1010,null);
-    frame.t=.1;probe.begin(.1,1100,1280,720);probe.solved(frame);probe.end(1110,'ok','reused');probe.rendered(frame,1120);
+    frame.t=.1;probe.begin(.1,1100,1280,720,1);probe.solved(frame);probe.end(1110,'ok','reused');probe.rendered(frame,1120);
     probe.rendered(tposeFrame(),1130);setTime(2000);probe.stop();
     const report=probe.getSnapshot().result!;expect(report.attempts.map(a=>a.renderedMs)).toEqual([null,1120]);
     expect(report.summary).toMatchObject({unrenderedCount:1,effectiveRenderedFps:1,failureRate:0});
   });
   it('reports zero FPS and null latency for all failed poses without inventing success',()=>{
     const {probe,setTime}=ready();probe.start(metadata());
-    probe.begin(0,1000,1280,720);probe.end(1010,'no-pose','unavailable');
-    probe.begin(.1,1100,1280,720);probe.end(1110,'handler-error','off');setTime(2000);probe.stop();
+    probe.begin(0,1000,1280,720,0);probe.end(1010,'no-pose','unavailable');
+    probe.begin(.1,1100,1280,720,1);probe.end(1110,'handler-error','off');setTime(2000);probe.stop();
     expect(probe.getSnapshot().result?.summary).toMatchObject({effectiveRenderedFps:0,failureRate:1,p95DetectionToRenderCallMs:null});
   });
   it('reports no attempts honestly and rejects exhausted warmup',()=>{
@@ -121,6 +121,29 @@ describe('camera measurement receipts',()=>{
     const {probe,setTime}=ready();probe.start(metadata());for(let n=0;n<40;n++)probe.interaction(1100+n*2,1101+n*2);
     ok(probe,0,1300,1310,1320);setTime(2000);probe.stop();
     expect(probe.getSnapshot().result?.interactions).toHaveLength(32);expect(probe.getSnapshot().result).toMatchObject({interactionSamplesCapped:true,outcome:'completed'});
+  });
+  it('matches portrait tracking dimensions while retaining delivered camera dimensions',()=>{
+    const {probe,setTime}=ready();probe.configure({...context,crop:'portrait'});probe.start(metadata());
+    const frame=tposeFrame();probe.begin(0,1000,540,720,0);probe.solved(frame);probe.end(1010,'ok','ran');probe.rendered(frame,1020);
+    setTime(2000);probe.stop();expect(probe.getSnapshot().result).toMatchObject({outcome:'completed',setup:{width:1280,height:720},
+      fast720pLaptopCandidate:false,summary:{effectiveRenderedFps:1}});
+  });
+  it('deduplicates repeated camera inputs without hiding detector output throughput',()=>{
+    const {probe,setTime}=ready();probe.start(metadata());
+    ok(probe,0,1000,1010,1020,9);ok(probe,.1,1100,1110,1150,9);
+    ok(probe,.2,1200,1210,1240,10);ok(probe,.3,1300,1310,1370,10);setTime(2000);probe.stop();
+    expect(probe.getSnapshot().result?.summary).toMatchObject({effectiveRenderedFps:2,renderedOutputFps:4,
+      renderedCount:2,renderedOutputCount:4,attemptFps:4,p95DetectionToRenderCallMs:40,inputIdentityAvailable:true});
+  });
+  it('keeps output timings but withholds effective camera FPS when input identity is unavailable',()=>{
+    const {probe,setTime}=ready();probe.start(metadata());const frame=tposeFrame();
+    probe.begin(0,1000,1280,720);probe.solved(frame);probe.end(1010,'ok','ran');probe.rendered(frame,1020);setTime(2000);probe.stop();
+    expect(probe.getSnapshot().result?.summary).toMatchObject({effectiveRenderedFps:null,renderedOutputFps:1,inputIdentityAvailable:false});
+    expect(probe.getSnapshot().result?.fast720pLaptopCandidate).toBe(false);
+  });
+  it('rejects a source frame-counter reset while source time still advances',()=>{
+    const {probe}=ready();probe.start(metadata());ok(probe,0,1000,1010,1020,8);
+    probe.begin(.1,1100,1280,720,7);expect(probe.getSnapshot().result).toMatchObject({outcome:'incomplete',reason:'input-frame-counter-reset',summary:null});
   });
   it('isolates a throwing diagnostic observer and its throwing interruption cleanup',()=>{
     const sink={interrupt:()=>{throw new Error('cleanup');}} as unknown as import('../capture/diagnostics').CameraDiagnostics;

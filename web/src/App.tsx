@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import './App.css';
 import { CameraSelect } from './capture/CameraSelect';
 import type { CropMode } from './capture/cropFrame';
@@ -49,8 +49,9 @@ import { StatusBar } from './ui/StatusBar';
 import { useServerHealth } from './ui/useServerHealth';
 import { ProcessingConsent } from './privacy/processingConsent';
 import { ProcessingConsentPanel } from './privacy/ProcessingConsentPanel';
+import {observeCamera,type CameraDiagnostics} from './capture/diagnostics';
 
-export default function App() {
+export default function App({cameraDiagnostics}:{cameraDiagnostics?:CameraDiagnostics}={}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef<MotionFrame | null>(tposeFrame());
@@ -134,13 +135,21 @@ export default function App() {
     const frame = solver.solve(worldLandmarks, timestampMs / 1000, hands.world, landmarks);
     if (!frame) return;
     if (liveLink.enabled) liveLink.send(frame);
-    if (!isReviewing) frameRef.current = frame;
+    if (!isReviewing) {
+      frameRef.current = frame;
+      observeCamera(cameraDiagnostics,sink=>{if(sink.active)sink.solved(frame);});
+    }
     recorder.push(frame);
   };
 
   // Importing pauses camera tracking (its models stay loaded) so the GPU works on the video alone and the two never
   // fight over the preview.
-  const pose = usePose(videoRef, handlePose, quality, cameras.deviceId, skeleton === 'full', crop, isImporting||isReviewing, cameraEnabled&&processingAllowed,processingConsent);
+  const pose = usePose(videoRef, handlePose, quality, cameras.deviceId, skeleton === 'full', crop, isImporting||isReviewing, cameraEnabled&&processingAllowed,processingConsent,cameraDiagnostics);
+  useLayoutEffect(()=>observeCamera(cameraDiagnostics,sink=>sink.configure({cameraKey,quality,crop,skeleton,smoothing,
+    workflow:isImporting||isReviewing||calibration.remaining!==null||state.phase==='countdown'?'paused':state.phase==='recording'?'recording':'live-preview',
+    calibrated:calibration.isCalibrated,liveLink:liveLink.enabled,mirrored:mirrorPreview,status:pose.status,
+    allowed:processingAllowed&&cameraEnabled})),[cameraDiagnostics,cameraKey,quality,crop,skeleton,smoothing,isImporting,isReviewing,
+      calibration.remaining,calibration.isCalibrated,state.phase,liveLink.enabled,mirrorPreview,pose.status,processingAllowed,cameraEnabled]);
   useEffect(()=>{if(pose.status==='off') {latestWorldRef.current=null;setHasPose(false);}},[pose.status]);
   const { refresh: refreshCameras } = cameras;
   useEffect(() => {
@@ -152,6 +161,7 @@ export default function App() {
     processingConsent.setAllowed(allowed);
     setProcessingAllowed(allowed);
     if(!allowed){
+      observeCamera(cameraDiagnostics,sink=>sink.interrupt('permission-withdrawn'));
       setCameraEnabled(false);calibration.cancel();importer.cancel();
       if(state.phase==='recording')recorder.stop();
       else if(state.phase==='countdown')recorder.discard();
@@ -249,7 +259,7 @@ export default function App() {
             </span>
           </div>
           <div className="preview-frame">
-            <PreviewCanvas frameRef={frameRef} mirrored={mirrorPreview} />
+            <PreviewCanvas frameRef={frameRef} mirrored={mirrorPreview} diagnostics={cameraDiagnostics} />
             {isReviewing && <span className="preview-badge">Reviewing take</span>}
           </div>
         </section>

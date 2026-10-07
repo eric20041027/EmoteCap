@@ -9,6 +9,8 @@ or [Traditional Chinese walkthrough](quickstart.zh-TW.md). Current qualification
 pending human/device/rights gates are in [release progress](release-progress.md);
 publication requires the [release checklist](release-checklist.md).
 
+Private [Studio camera measurements](camera-measurements.md) and [video import measurements](video-measurements.md) run through separate development HTML entries. They retain raw failures and explicitly distinguish synthetic controls from actual authorized hardware/source qualification; default production builds omit these tools.
+
 ## Setup and checks
 
 In `web/`:

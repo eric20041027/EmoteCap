@@ -2,6 +2,7 @@ import type {MotionFrame} from '../motion/index';
 import type {CameraContext,CameraSetup,CameraAttemptStatus,CameraHandState,CameraDiagnostics} from '../capture/diagnostics';
 import lock from '../../package-lock.json';
 import pins from '../../scripts/mediapipe-assets.json';
+import {cropRect} from '../capture/cropFrame';
 export interface CameraMetadata {
   sourceCommit:string;classification:'synthetic'|'observed';
   environment:{kind:'desktop'|'laptop';model:string;os:string;cpu:string;gpu:string;browser:string};
@@ -14,11 +15,12 @@ export interface CameraReceipt {
   clock:'performance-monotonic';latencyDefinition:'detection-to-render-call';responseDefinition:'event-to-next-animation-frame';
   startedMs:number;finishedMs:number|null;fast720pLaptopCandidate:boolean;interactionSamplesCapped:boolean;
   attempts:CameraAttempt[];interactions:{startedMs:number;finishedMs:number}[];
-  summary:{effectiveRenderedFps:number;attemptFps:number;failureRate:number|null;p95DetectionToRenderCallMs:number|null;
-    p95NextAnimationFrameResponseMs:number|null;measuredWallMs:number;renderedCount:number;attemptCount:number;unrenderedCount:number}|null;
+  summary:{effectiveRenderedFps:number|null;renderedOutputFps:number;attemptFps:number;failureRate:number|null;p95DetectionToRenderCallMs:number|null;
+    p95OutputDetectionToRenderCallMs:number|null;p95NextAnimationFrameResponseMs:number|null;measuredWallMs:number;renderedCount:number|null;
+    renderedOutputCount:number;attemptCount:number;unrenderedCount:number;inputIdentityAvailable:boolean}|null;
 }
 export interface CameraAttempt {
-  inputTimeS:number;startedMs:number;finishedMs:number;renderedMs:number|null;
+  inputTimeS:number;inputFrame:number|null;startedMs:number;finishedMs:number;renderedMs:number|null;
   status:CameraAttemptStatus;handState:CameraHandState;
 }
 const MAX_ATTEMPTS=21601,MAX_WALL_MS=180000,MAX_BYTES=32*1024*1024;
@@ -52,14 +54,14 @@ function p95(values:number[]):number|null {
 }
 interface Running {
   runId:string;metadata:CameraMetadata;context:CameraContext;setup:CameraSetup;startedMs:number;lastMs:number;
-  attempts:CameraAttempt[];interactions:{startedMs:number;finishedMs:number}[];interactionSamplesCapped:boolean;bytes:number;
+  attempts:CameraAttempt[];interactions:{startedMs:number;finishedMs:number}[];interactionSamplesCapped:boolean;bytes:number;lastInputFrame:number|null;
 }
 export class CameraMeasurements implements CameraDiagnostics {
   private context:CameraContext|null=null;
   private cameraSetup:CameraSetup|null=null;
   private preview=false;
   private run:Running|null=null;
-  private pending:{inputTimeS:number;startedMs:number;frame?:MotionFrame;frameTime?:number}|null=null;
+  private pending:{inputTimeS:number;inputFrame:number|null;startedMs:number;frame?:MotionFrame;frameTime?:number}|null=null;
   private awaitingRender:{frame:MotionFrame;frameTime:number;attempt:CameraAttempt}|null=null;
   private listeners=new Set<()=>void>();
   private snapshot={ready:false,busy:false,result:null as CameraReceipt|null};
@@ -95,7 +97,7 @@ export class CameraMeasurements implements CameraDiagnostics {
     const frozen:CameraMetadata={sourceCommit:metadata.sourceCommit,classification:metadata.classification,
       environment:{...metadata.environment},warmupMs:metadata.warmupMs,localProcessingAuthorized:true,sourceDigests:{...metadata.sourceDigests}};
     this.run={runId:crypto.randomUUID(),metadata:frozen,context:{...this.context},setup:{...this.cameraSetup},
-      startedMs,lastMs:startedMs,attempts:[],interactions:[],interactionSamplesCapped:false,bytes:16384};
+      startedMs,lastMs:startedMs,attempts:[],interactions:[],interactionSamplesCapped:false,bytes:16384,lastInputFrame:null};
     this.pending=null;this.awaitingRender=null;this.publish();
   }
   private time(value:number):boolean {
@@ -104,7 +106,7 @@ export class CameraMeasurements implements CameraDiagnostics {
     if(value-run.startedMs>MAX_WALL_MS){this.interrupt('duration-limit');return false;}
     run.lastMs=value;return true;
   }
-  begin(inputTimeS:number,startedMs:number,width:number,height:number){
+  begin(inputTimeS:number,startedMs:number,width:number,height:number,inputFrame:number|null=null){
     if(!this.run||!this.time(startedMs))return;
     const run=this.run;
     if(this.pending){this.interrupt('unfinished-attempt');return;}
@@ -112,8 +114,14 @@ export class CameraMeasurements implements CameraDiagnostics {
     if(!finite(inputTimeS)||(run.attempts.length>0&&inputTimeS<=run.attempts.at(-1)!.inputTimeS)){
       this.interrupt('invalid-input-time');return;
     }
-    if(width!==run.setup.width||height!==run.setup.height){this.interrupt('frame-dimensions-changed');return;}
-    this.pending={inputTimeS,startedMs};
+    const tracked=cropRect(run.setup.width,run.setup.height,run.context.crop);
+    if(width!==tracked.sw||height!==tracked.sh){this.interrupt('frame-dimensions-changed');return;}
+    if(inputFrame!==null){
+      if(!Number.isSafeInteger(inputFrame)||!finite(inputFrame)){this.interrupt('invalid-input-frame-counter');return;}
+      if(run.lastInputFrame!==null&&inputFrame<run.lastInputFrame){this.interrupt('input-frame-counter-reset');return;}
+      run.lastInputFrame=inputFrame;
+    }
+    this.pending={inputTimeS,inputFrame,startedMs};
   }
   solved(frame:MotionFrame){
     if(!this.run)return;
@@ -126,7 +134,7 @@ export class CameraMeasurements implements CameraDiagnostics {
     if(!pending||!['ok','no-pose','no-frame','handler-error','detector-error'].includes(status)
       ||!['off','ran','reused','unavailable'].includes(handState)){this.interrupt('invalid-attempt');return;}
     if(status==='ok'&&!pending.frame)status='no-frame';
-    const attempt:CameraAttempt={inputTimeS:pending.inputTimeS,startedMs:pending.startedMs,finishedMs,renderedMs:null,status,handState};
+    const attempt:CameraAttempt={inputTimeS:pending.inputTimeS,inputFrame:pending.inputFrame,startedMs:pending.startedMs,finishedMs,renderedMs:null,status,handState};
     // Reserve space for a future first-render timestamp as well as JSON separators.
     const size=new TextEncoder().encode(JSON.stringify(attempt)).byteLength+128;
     if(this.run.bytes+size>MAX_BYTES){this.interrupt('diagnostic-byte-limit');return;}
@@ -159,13 +167,18 @@ export class CameraMeasurements implements CameraDiagnostics {
     const measuredWallMs=finishedMs===null?0:finishedMs-run.startedMs-run.metadata.warmupMs;
     if(measuredWallMs<=0)reason??='warmup-exhausted';
     const samples=run.attempts.filter(a=>a.startedMs>=run.startedMs+run.metadata.warmupMs);
-    const rendered=samples.filter(a=>a.status==='ok'&&a.renderedMs!==null);
+    const outputs=samples.filter(a=>a.status==='ok'&&a.renderedMs!==null);
+    const inputIdentityAvailable=samples.every(a=>a.inputFrame!==null),unique=new Map<number,CameraAttempt>();
+    if(inputIdentityAvailable)for(const attempt of outputs)if(!unique.has(attempt.inputFrame!))unique.set(attempt.inputFrame!,attempt);
+    const rendered=Array.from(unique.values());
     const responses=run.interactions.filter(a=>a.startedMs>=run.startedMs+run.metadata.warmupMs);
-    const summary=reason?null:{measuredWallMs,attemptCount:samples.length,renderedCount:rendered.length,
-      effectiveRenderedFps:rendered.length*1000/measuredWallMs,attemptFps:samples.length*1000/measuredWallMs,
+    const summary=reason?null:{measuredWallMs,attemptCount:samples.length,renderedCount:inputIdentityAvailable?rendered.length:null,
+      effectiveRenderedFps:inputIdentityAvailable?rendered.length*1000/measuredWallMs:null,
+      renderedOutputCount:outputs.length,renderedOutputFps:outputs.length*1000/measuredWallMs,inputIdentityAvailable,attemptFps:samples.length*1000/measuredWallMs,
       failureRate:samples.length?samples.filter(a=>a.status!=='ok').length/samples.length:null,
       unrenderedCount:samples.filter(a=>a.status==='ok'&&a.renderedMs===null).length,
       p95DetectionToRenderCallMs:p95(rendered.map(a=>a.renderedMs!-a.startedMs)),
+      p95OutputDetectionToRenderCallMs:p95(outputs.map(a=>a.renderedMs!-a.startedMs)),
       p95NextAnimationFrameResponseMs:p95(responses.map(a=>a.finishedMs-a.startedMs))};
     const {cameraKey:_privateKey,...context}=run.context;
     const receipt:CameraReceipt={schema:'emotecap-camera-measurement-v1',qualification:'pending',runId:run.runId,
@@ -176,7 +189,7 @@ export class CameraMeasurements implements CameraDiagnostics {
       clock:'performance-monotonic',latencyDefinition:'detection-to-render-call',responseDefinition:'event-to-next-animation-frame',
       startedMs:run.startedMs,finishedMs,attempts:run.attempts,interactions:run.interactions,
       interactionSamplesCapped:run.interactionSamplesCapped,summary,
-      fast720pLaptopCandidate:!!summary&&run.metadata.classification==='observed'&&run.metadata.environment.kind==='laptop'
+      fast720pLaptopCandidate:!!summary&&summary.inputIdentityAvailable&&run.metadata.classification==='observed'&&run.metadata.environment.kind==='laptop'
         &&context.quality==='fast'&&context.crop==='none'&&run.setup.width===1280&&run.setup.height===720
         &&run.setup.poseDelegate!==null&&(context.skeleton==='body'||(run.setup.handModelAvailable&&run.setup.handDelegate!==null))};
     this.run=null;this.pending=null;this.awaitingRender=null;this.publish(receipt);

@@ -6,6 +6,7 @@ import { NO_HANDS, assignHands, type TrackedHands } from './hands';
 import { CaptureError, closeLandmarkers, createLandmarkers, type CaptureQuality, type Landmarkers } from './landmarkers';
 import { detachStream, stopStream } from './streams';
 import { ProcessingConsent, ProcessingConsentError, type SdkAuthorization } from '../privacy/processingConsent';
+import {observeCamera,type CameraDiagnostics,type CameraSetup,type CameraAttemptStatus,type CameraHandState} from './diagnostics';
 
 export type { CaptureQuality } from './landmarkers';
 
@@ -90,6 +91,7 @@ export function usePose(
   /** Camera/model access is opt-in. Disabling closes current and late-arriving resources. */
   enabled = false,
   processingConsent: ProcessingConsent,
+  diagnostics?:CameraDiagnostics,
 ): PoseTracker {
   const [status, setStatus] = useState<{ status: PoseStatus; message: string }>({
     status: enabled?'loading':'off',
@@ -123,6 +125,7 @@ export function usePose(
     let authorize:SdkAuthorization;
 
     const release = () => {
+      observeCamera(diagnostics,sink=>sink.interrupt('camera-stopped'));
       cancelAnimationFrame(rafId);
       detachStream(video, stream);
       stopStream(stream);
@@ -132,6 +135,7 @@ export function usePose(
     };
 
     const fail = (error: unknown) => {
+      observeCamera(diagnostics,sink=>sink.interrupt('camera-failed'));
       release();
       if (disposed) return;
       const message = error instanceof CaptureError ? error.message : `Pose tracking stopped: ${String(error)}`;
@@ -152,6 +156,11 @@ export function usePose(
       const cropCanvas = document.createElement('canvas');
       const cropContext = cropCanvas.getContext('2d');
       let publishedFrame = '';
+      const cameraSetup=():CameraSetup=>({width:video.videoWidth,height:video.videoHeight,
+        frameRate:stream?.getVideoTracks()[0]?.getSettings().frameRate??null,
+        poseDelegate:active.poseDelegate??null,handDelegate:active.hands?active.handDelegate??null:null,
+        handModelAvailable:active.hands!==undefined});
+      observeCamera(diagnostics,sink=>sink.setup(cameraSetup()));
 
       /** The frame to track: the video itself, or a centred portrait crop drawn into a canvas. */
       const frameSource = (): { image: HTMLVideoElement | HTMLCanvasElement; width: number; height: number } => {
@@ -179,28 +188,42 @@ export function usePose(
         lastVideoTime = video.currentTime;
         const timestampMs = performance.now();
         const source = frameSource();
+        let observing=false;
+        observeCamera(diagnostics,sink=>{
+          observing=sink.active;if(!observing)return;
+          const playback=video.getVideoPlaybackQuality?.();
+          const presented=playback?playback.totalVideoFrames-playback.droppedVideoFrames:null;
+          const inputFrame=presented!==null&&Number.isSafeInteger(presented)&&presented>0?presented:null;
+          sink.begin(lastVideoTime,timestampMs,source.width,source.height,inputFrame);
+        });
+        const wantHands = trackHandsRef.current;
+        let handState:CameraHandState=wantHands?(handTracker?'reused':'unavailable'):'off';
         let result;
         try {
           result = active.pose.detectForVideo(source.image, timestampMs);
           authorize();
         } catch (error) {
+          if(observing)observeCamera(diagnostics,sink=>sink.end(performance.now(),'detector-error',handState));
           fail(error);
           return;
         }
-        const wantHands = trackHandsRef.current;
         let hands = wantHands && timestampMs - lastHandsMs < HAND_REUSE_MS ? lastHands : NO_HANDS;
+        let handFailed=false;
+        if(wantHands&&handTracker&&(lastHandsMs===0||timestampMs-lastHandsMs>=HAND_REUSE_MS))handState='unavailable';
         if (handTracker && wantHands && frameIndex % HAND_EVERY_N_FRAMES[quality] === 0) {
           try {
             hands = assignHands(handTracker.detectForVideo(source.image, timestampMs), result.landmarks[0], source);
             authorize();
             lastHands = hands;
             lastHandsMs = timestampMs;
+            handState='ran';
           } catch (error) {
             if(error instanceof ProcessingConsentError){fail(error);return;}
             console.warn('Hand tracking stopped (body tracking continues):', error);
             handTracker.close();
             handTracker = undefined;
             active.hands=undefined;
+            handState='unavailable';handFailed=true;
           }
         }
         frameIndex += 1;
@@ -214,6 +237,7 @@ export function usePose(
           setFps(Math.round(fpsEma));
         }
         try {authorize();}catch(error){fail(error);return;}
+        let measurementStatus:CameraAttemptStatus=result.worldLandmarks[0]?'ok':'no-pose';
         try {
           onResultRef.current({
             landmarks: result.landmarks[0],
@@ -223,10 +247,13 @@ export function usePose(
             timestampMs,
           });
         } catch (error) {
+          measurementStatus='handler-error';
           // Keep tracking; report the first failure only so the console stays readable.
           if (!callbackFailed) console.error('Pose frame handler failed (further errors suppressed):', error);
           callbackFailed = true;
         }
+        if(observing)observeCamera(diagnostics,sink=>sink.end(performance.now(),measurementStatus,handState));
+        if(handFailed)observeCamera(diagnostics,sink=>sink.setup(cameraSetup()));
       };
       tick();
     };
@@ -239,7 +266,7 @@ export function usePose(
         else {try {authorize();stream=value;}catch(error){stopStream(value);throw error;}}
         return value;
       });
-      const modelTask=createLandmarkers(quality,authorize).then(value=>{
+      const modelTask=createLandmarkers(quality,authorize,diagnostics?{reportDelegate:true}:undefined).then(value=>{
         if(disposed)closeLandmarkers(value);
         else {try {authorize();landmarkers=value;}catch(error){closeLandmarkers(value);throw error;}}
         return value;
@@ -268,7 +295,7 @@ export function usePose(
       disposed = true;
       release();
     };
-  }, [videoRef, attempt, quality, deviceId, enabled,processingConsent]);
+  }, [videoRef, attempt, quality, deviceId, enabled,processingConsent,diagnostics]);
 
   return { ...status, fps, frameAspect: frame.aspect, cropped: frame.cropped, retry };
 }
