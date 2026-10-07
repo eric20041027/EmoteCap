@@ -20,6 +20,16 @@ All26Task2cases then passed23.41seconds; whole fast backend692passed/18slow dese
 
 The first actual build atb376c64stopped before writing a candidate manifest: contract source includes a developer generator and sample archive outside the runtime allowlist. Its unique source snapshot/attempt is preserved. A watched regression now narrows the archived runtime contract to bones.json only; source developer fixtures remain intact and the public built sample stays included. No failed attempt is counted as a packaged success.
 
+The corrected candidate links source**229aaed2555c0dd122a2e43679d2763dedeb012a**,5269payload files and ZIP**87387402bytes**, SHA256**8c23384f5d5f3f1c6fb004cc717c9562529f8ab84c89e721bff38bbc4e7b27db**. An independently regenerated ZIP from the exact complete inputs matched that SHA. Original candidate/ZIP and repeat ZIP remain unchanged.
+
+Actual qualification copied the complete package to a separate Unicode/space directory. Its Windows batch entry forwarded arguments and exit code2without readiness/data; the initial QA invocation used C-runtime argument escaping incorrectly for cmd, then the explicitly quoted owned cmd invocation verified the delivered wrapper. A separate retained complete copy with changed index.htmlreturned1before private data/readiness. No failed probe is counted as a success.
+
+The relocated package then ran its own **Python -I -B**, with PATHonly WindowsSystem32(no node.exe/uv.exe/python.exe) and actual poisoned PYTHONPATHmodules present. **Edge154.0.4258.62**used the real packaged API/production Web: sample→edit→native-IDB save→reload→backup/import preserved all original frames/new project identity; pairing acknowledgment/Stop/retry404revocation passed. Its real durable worker used external verified development Blender4.5.14and downloaded**595388bytes FBX**, SHA256`31b2b10cb3326b1413bbcfce98010f0a9e8d18ce1e35ac6e59f7f306b0f58302`. Blender was not bundled.
+
+Observed page requests/errors:0external,0cloud,0model,0page errors. Camera/model inference was not exercised. Desktop1280x1000and390x844screenshots were visually inspected without horizontal overflow. Owned browser/service exited. Retained evidence:browser-c5fb1793-a128-4806-961f-ffd2f46269b1and qualified-paths.jsonin this plan's ignored workspace. This is relocation/developer-tool independence on the current physical machine, not a clean second machine or Unity/user study.
+
+After the runtime-contract fix,27Task2cases passed and whole fast backend**693passed/18slow deselected50.93seconds**. Native task-done/final fresh review follow; the candidate remains a development candidate with pending release gates.
+
 ## Rulings made
 
 1. Continue authorized Native without another plan/method prompt. Cost if wrong: local reviewable work only; public operations require their own authorization.
@@ -33,5 +43,7 @@ The first actual build atb376c64stopped before writing a candidate manifest: con
 9. User entry is start.cmdwith -I -B; direct nonisolated Python embedding is unsupported. Cost if wrong: custom hosts need their own isolation; the delivered entry does not depend on user Python/site packages.
 10. Preserve actual built Web byte/lock/model receipts without pretending an arbitrary dist was regenerated from HEAD. Cost if wrong: source rebuild qualification remains separately necessary and traceable.
 11. Package only the runtime bones.jsoncontract from the committed source; exclude development generators/fixture archives. Cost if wrong: developer contract docs/fixtures are obtained from source, not the runtime payload; the built public sample is unaffected.
+12. Owned cmd QA uses explicit Windows cmd quoting after diagnosing list2cmdlineescaping; reject shell metacharacters in its generated path. Cost if wrong: the QA helper is limited to its own safe paths and does not process arbitrary shell input; product start.cmdis unchanged.
+13. Keep relocation/no-developer-PATH evidence separate from an actual clean second machine and human Unity study. Cost if wrong: those required release gates stay incomplete despite successful local automation.
 
 Deferred minors:none before final review. Unity activation/receiver/two rigs, physical/laptop, owner MIT/contributors/images, complete vendor notices, clean-machine/five-user and publication gates remain pending.
