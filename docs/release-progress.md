@@ -6,7 +6,7 @@ Authoritative product requirements: [product design](superpowers/specs/2026-10-0
 
 ## Current work
 
-- Active: M3 export jobs accepted after its three TDD review fixes:425backend/412Web/8Node/15actualEdge cases. M2 storage/archive/Studio integration independently accepted; physical/hardware gates remain pending. [Export jobs report](superpowers/reports/2026-10-07-export-jobs.md), [M2 spec](superpowers/specs/2026-10-06-studio-projects-design.md), [storage report](superpowers/reports/2026-10-07-studio-storage.md), [archive report](superpowers/reports/2026-10-07-project-archive.md), [Studio report](superpowers/reports/2026-10-07-studio-integration.md). M1 remains qualified.
+- Active: M3 media control locally qualified469backend/431Web/8Node/17actualEdge cases, independent review pending; export jobs already accepted after its three TDD fixes. M2 storage/archive/Studio integration independently accepted; physical/hardware gates remain pending. [Export jobs report](superpowers/reports/2026-10-07-export-jobs.md), [M2 spec](superpowers/specs/2026-10-06-studio-projects-design.md), [storage report](superpowers/reports/2026-10-07-studio-storage.md), [archive report](superpowers/reports/2026-10-07-project-archive.md), [Studio report](superpowers/reports/2026-10-07-studio-integration.md). M1 remains qualified.
 - Execution: main agent implements each stage; a fresh independent reviewer checks each completed implementation plan. Do not reopen the already-approved execution-method question.
 - Workspace: reuse the existing linked worktree `EmoteCap-release-foundation`; do not touch unrelated workspaces or delete earlier policy-blocked scratch.
 - Keep each stage in committed, testable increments. No force-push or history rewrite.
@@ -27,7 +27,7 @@ Authoritative product requirements: [product design](superpowers/specs/2026-10-0
 | M2.5 | Real browser record/import → save → reload → restore → edit, quota-failure preservation | 14 Edge154.0.4258.62 workflows pass, including built bundle, native IDB/source deletion, CAS conflicts, injected quota and synthetic capture; physical camera, real quota/eviction and hardware gates remain pending |
 | M3.1 | Bounded export queue, progress, cancel, retry, immutable clip revision, job-specific outputs | Single durable worker/finite queue, immutable digest/revision, cancellation, explicit retry and isolated downloads implemented; unit/API/browser checks pass; independent review accepted after TDD fixes |
 | M3.2 | Restart/timeout recovery and no silent filename collisions | Persisted interrupted recovery, owned-process timeout and case-insensitive names/job folders implemented; actual Python-child lifecycle and deterministic file tests pass; real Blender/Unity remains M4 |
-| M3.3 | Local media retention/deletion and explicit Gemini opt-in with no upload before consent | Implementation pending |
+| M3.3 | Local media retention/deletion and explicit Gemini opt-in with no upload before consent | Explicit browser source deletion, one-use source-bound grants, temporary/legacy cleanup and separate provider reports implemented; unit/browser gates pass; independent review pending |
 | M3.4 | Live Link version/pairing/source controls, slow-receiver handling | Implementation pending |
 | M4.1 | Authorized motion fixtures, original/new quality and performance measurements including failures | Evaluation pending |
 | M4.2 | Actual Blender export with correct direction, scale and timing within one output frame | Blender availability to establish; real smoke tests pending |

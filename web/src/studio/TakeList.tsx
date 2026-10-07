@@ -3,8 +3,8 @@ import { removeTake, renameTake, selectTake } from '../project/model';
 import { MAX_TAKES } from '../project/types';
 import { NameField } from './NameField';
 import type { StudioSession, StudioSnapshot } from './session';
-interface Props {session:StudioSession;state:StudioSnapshot;locked:boolean;onNewTake:()=>void}
-export function TakeList({session,state,locked,onNewTake}:Props) {
+interface Props {session:StudioSession;state:StudioSnapshot;locked:boolean;onNewTake:()=>void;sourceBusy?:boolean}
+export function TakeList({session,state,locked,onNewTake,sourceBusy=false}:Props) {
   const selected=state.project.takes.find(t=>t.id===state.project.activeTakeId);
   const [source,setSource]=useState<'loading'|'available'|'none'|'error'>('none');
   useEffect(()=>{
@@ -29,8 +29,11 @@ export function TakeList({session,state,locked,onNewTake}:Props) {
       {selected && <div className="studio-actions studio-take-details">
         <NameField key={selected.id} label="Take name" name={selected.name} onChange={name=>session.update(p=>renameTake(p,selected.id,name))} />
         <label className="studio-check"><input type="checkbox" aria-label="Keep source video" checked={!!selected.media}
-          disabled={!selected.media && source!=='available'} onChange={event=>{const keep=event.currentTarget.checked;apply(()=>session.keepSource(selected.id,keep));}} />Keep source video for reloads</label>
-        <button type="button" className="btn btn--ghost" onClick={()=>{
+          disabled={sourceBusy||(!selected.media && source!=='available')} onChange={event=>{const keep=event.currentTarget.checked;apply(()=>session.keepSource(selected.id,keep));}} />Keep source video for reloads</label>
+        <button type="button" className="btn btn--ghost" disabled={sourceBusy||(!selected.media&&source!=='available')} onClick={()=>{
+          if(window.confirm('Delete this source video from memory and browser storage? Motion and clips remain. Backups keep their own copies.'))apply(()=>session.deleteSource(selected.id));
+        }}>Delete source video</button>
+        <button type="button" className="btn btn--ghost" disabled={sourceBusy} onClick={()=>{
           if(window.confirm('Delete this take, its clips and kept source video?')) apply(()=>session.update(p=>removeTake(p,selected.id)));
         }}>Delete take</button>
       </div>}

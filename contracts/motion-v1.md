@@ -61,10 +61,11 @@ Segments describe editable ranges inside a take; the Web app produces clips.
 
 | Method | Path | Input / output |
 |---|---|---|
-| GET | `/api/health` | `{ok, blender, gemini}` |
+| GET | `/api/health` | `{ok, blender, gemini, exportJobs}` |
 | POST | `/api/export` | `{clips: Clip[]}` → `{files: [{name, url}]}` |
-| GET | `/files/{name}.fbx` | FBX download |
-| POST | `/api/takes` | Multipart video + duration → `{takeId, segments}` |
+| GET | `/files/{jobId}/{name}.fbx` | Isolated FBX download; paired sidecar |
+| POST | `/api/cloud-consent` | Explicit selected-source permission → one-use grant |
+| POST | `/api/takes` | Granted multipart video + duration + takeId → `{takeId, segments, cleanup}` |
 
 Uploads retain the current 100 MiB / 180 second limit. Supported decoding
 depends on the browser and provider; a `video/*` MIME type alone is not a codec
@@ -78,9 +79,9 @@ location, message, and error type, not raw payload values. Other current codes:
 ## FBX sidecar
 
 `<name>.emotecap.json` contains `name: string`, `loop: boolean`, `fps: number`.
-Unity reads it to configure clip naming and looping. Publishing currently
-allows same-name replacement; job-scoped non-overwriting output is a later
-product milestone, not a guarantee of this contract revision.
+Unity reads it to configure clip naming and looping. [Export jobs v1](export-jobs-v1.md)
+defines the implemented job-specific output and compatibility adapter;
+[media consent v1](media-consent-v1.md) defines mandatory upload permission and cleanup.
 
 ## Live Link
 

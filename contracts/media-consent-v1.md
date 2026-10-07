@@ -22,7 +22,7 @@ New uploads use `data/cloud-tmp/<UUID>/video.webm`, with bounded ownership metad
 
 ## Explicit local cleanup
 
-GET `/api/media-cleanup` returns recognized temporary/legacy items with id, kind, size and active. DELETE `/api/media-cleanup/{id}` removes only a recognized contained ordinary path, never active video. Temporary UUID directories use ownership metadata; an empty reserved UUID directory left by final-directory removal failure remains safely inventoryable/retryable. Unknown files, links or arbitrary paths reject rather than being followed/deleted.
+GET `/api/media-cleanup` returns at most100recognized temporary/legacy items with id, kind, size and active, plus nextCursor. Pass `?after=<nextCursor>` for the next lexically ordered page. History is never hidden behind an arbitrary client row cap. DELETE `/api/media-cleanup/{id}` removes only a recognized contained ordinary path, never active video. Temporary UUID directories use ownership metadata; an empty reserved UUID directory left by final-directory removal failure remains safely inventoryable/retryable. Unknown files, links or arbitrary paths reject rather than being followed/deleted.
 
 Legacy `data/takes/<32hex>.webm` files are inventoried as legacy-<32hex>; they are never auto-deleted. The user must explicitly choose deletion. The new API does not keep raw video for debugging. Browser Keep source, Include source in backup, Delete source and Send to Gemini remain separate product choices.
 

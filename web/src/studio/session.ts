@@ -166,6 +166,14 @@ export class StudioSession {
       this.change(p=>setTakeMedia(p,takeId,keep&&source?{name:source.name,size:source.blob.size,type:source.blob.type}:null));
     });
   }
+  async deleteSource(takeId:string):Promise<void> {
+    return this.perform(async()=>{
+      if(!this.snapshot.project.takes.some(t=>t.id===takeId))throw new ProjectDataError('Source take does not exist.');
+      this.change(p=>setTakeMedia(p,takeId,null));
+      await this.flush();
+      this.sources.delete(takeId);this.publish({mediaRevision:this.snapshot.mediaRevision+1});
+    });
+  }
   async flush():Promise<void> {this.alive();if(!this.lane) throw unavailable();await this.lane.flush();}
   async retry():Promise<void> {
     this.alive();if(!this.store) await this.initialize();

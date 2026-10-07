@@ -1,23 +1,23 @@
 import { fallbackSegments, refineSegments, type MotionFrame, type Segment } from '../motion/index';
 import { takeDuration } from '../record/take';
-import { preflightFailure, requestSegments, toSliceFailure, type SliceFailureKind } from './takesApi';
+import { hasCloudGrant,preflightFailure, requestSegments, sliceFailure,toSliceFailure, type SliceFailureKind,type CloudGrant } from './takesApi';
 
 export type SliceResult =
   | { source: 'gemini'; segments: Segment[] }
   | { source: 'fallback'; segments: Segment[]; kind: SliceFailureKind; reason: string; details: string };
 
-export type SegmentRequest = (video: Blob, duration: number, signal?: AbortSignal) => Promise<Segment[]>;
+export type SegmentRequest = (video: Blob, duration: number, signal?: AbortSignal,consent?:CloudGrant) => Promise<Segment[]>;
 
 export interface SliceOptions {
   request?: SegmentRequest;
   signal?: AbortSignal;
+  consent?:CloudGrant;
 }
 
-const defaultRequest: SegmentRequest = (video, duration, signal) => requestSegments(video, duration, { signal });
+const defaultRequest: SegmentRequest = (video, duration, signal,consent) => requestSegments(video, duration, { signal,consent });
 
 /**
- * Gemini first (cut points snapped to the actor's pauses); on any failure, split the take at pauses
- * locally so the user always gets clips. Never rejects for Gemini/server problems.
+ * Local pauses by default. An explicit grant permits Gemini; failures preserve the local option.
  */
 export async function sliceTake(
   frames: readonly MotionFrame[],
@@ -29,7 +29,8 @@ export async function sliceTake(
   try {
     const blocked = preflightFailure(video, duration);
     if (blocked || !video) throw blocked;
-    const segments = await request(video, duration, signal);
+    if(!hasCloudGrant(options.consent))throw sliceFailure('consent-required');
+    const segments = await request(video, duration, signal,options.consent);
     return { source: 'gemini', segments: refineSegments(segments, frames) };
   } catch (error) {
     const failure = toSliceFailure(error);
@@ -44,7 +45,7 @@ export async function sliceTake(
 }
 
 /** Problems a retry cannot fix (the same video would be rejected again). */
-const FINAL_KINDS: ReadonlySet<SliceFailureKind> = new Set(['no-video', 'too-short', 'too-long', 'too-large', 'unsupported-video']);
+const FINAL_KINDS: ReadonlySet<SliceFailureKind> = new Set(['consent-required','no-video', 'too-short', 'too-long', 'too-large', 'unsupported-video']);
 
 /** Offer "Try Gemini again" only after a fallback that a retry might fix (no key, timeout, network…). */
 export function canRetryGemini(result: SliceResult): boolean {

@@ -23,6 +23,8 @@ import { ExportedFiles } from './record/ExportedFiles';
 import { useExporter } from './record/useExporter';
 import { useExportJobs } from './jobs/useExportJobs';
 import { JobPanel } from './jobs/JobPanel';
+import { useCloudSlice } from './cloud/useCloudSlice';
+import { CloudPanel } from './cloud/CloudPanel';
 import { takeDuration } from './record/take';
 import { useRecorder } from './record/useRecorder';
 import { useTakeVideo } from './take/useTakeVideo';
@@ -51,6 +53,7 @@ export default function App() {
   const frameRef = useRef<MotionFrame | null>(tposeFrame());
   const latestWorldRef = useRef<PoseLandmark[] | null>(null);
   const studio = useStudioSession();
+  const cloud=useCloudSlice(studio.session);
   const cameras = useCameraDevices();
   const server = useServerHealth();
   const liveLink = useLiveLink();
@@ -165,7 +168,7 @@ export default function App() {
       </AppHeader>
 
       <ProjectBar session={studio.session} state={studio.state} locked={locked} onBusyChange={setArchiveBusy} onSample={openSample} />
-      <TakeList session={studio.session} state={studio.state} locked={locked} onNewTake={newTake} />
+      <TakeList session={studio.session} state={studio.state} locked={locked} onNewTake={newTake} sourceBusy={cloud.state.busy} />
 
       <main className="stage">
         <section className="panel" aria-label="Camera">
@@ -248,6 +251,7 @@ export default function App() {
       {capture.sourcePending && <p className="studio-help" role="status">Finishing source video. Captured motion is being saved.</p>}
       <ExportedFiles files={exporter.files} />
       <JobPanel controller={exportJobs.controller} state={exportJobs.state} />
+      {activeTake&&<CloudPanel controller={cloud.controller} state={cloud.state} locked={locked} />}
       <SetupDiagnostics server={server} />
 
       {recorder.countdown !== null && <CountdownOverlay value={recorder.countdown} caption="Get into position" />}

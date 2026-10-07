@@ -204,3 +204,15 @@ it('unkeeping a reloaded source preserves memory backup and re-retention until e
   expect(await decoded.media.get(takeId)!.blob.text()).toBe('original retained source');
   await reloaded.keepSource(takeId,true);await reloaded.flush();expect((await db.readMedia(p.id,takeId))?.size).toBe(blob.size);
 });
+it('explicit source deletion preserves motion and removes memory and stored media',async()=>{
+  const original=readyProject(),{studio,db,factory,name}=await setup(original),id=original.takes[0].id;
+  studio.attachSource(id,{name:'source.webm',blob:new Blob(['video'],{type:'video/webm'})});await studio.keepSource(id,true);await studio.flush();
+  await studio.deleteSource(id);expect(await studio.readSource(id)).toBeNull();expect(await db.readMedia(original.id,id)).toBeNull();
+  expect(studio.getSnapshot().project.takes[0].frames).toEqual(original.takes[0].frames);expect(studio.getSnapshot().project.takes[0].clips).toEqual(original.takes[0].clips);
+  studio.dispose();const next=new StudioSession(()=>openProjectStore({factory,name}));sessions.push(next);await next.initialize();expect(await next.readSource(id)).toBeNull();
+});
+it('a failed deletion confirmation keeps the current original available',async()=>{
+  let fail=false;const {studio}=await setup(readyProject(),store=>({...store,save:async(...args)=>{if(fail)throw new ProjectStorageError('quota','Full');return store.save(...args);}}));
+  const id=studio.getSnapshot().project.takes[0].id;studio.attachSource(id,{name:'source.webm',blob:new Blob(['video'],{type:'video/webm'})});
+  await studio.keepSource(id,true);await studio.flush();fail=true;await expect(studio.deleteSource(id)).rejects.toThrow('Full');expect((await studio.readSource(id))?.blob.size).toBe(5);
+});

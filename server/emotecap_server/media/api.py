@@ -2,7 +2,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 from typing import Annotated
-from fastapi import APIRouter,HTTPException,Request,Response
+from fastapi import APIRouter,HTTPException,Request,Response,Query
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel,ConfigDict,Field,UUID4,ValidationError
 from starlette.concurrency import run_in_threadpool
@@ -137,8 +137,11 @@ async def create_take(request:Request):
     except CloudBusy as exc:raise HTTPException(429,detail=str(exc)) from exc
 
 @router.get('/media-cleanup')
-def cleanup_inventory(request:Request):
-    return {'items':safe_action(service_for(request).storage.inventory)}
+def cleanup_inventory(request:Request,after:Annotated[str|None,Query(max_length=43)]=None):
+    items=sorted(safe_action(service_for(request).storage.inventory),key=lambda item:item.id)
+    eligible=[item for item in items if after is None or item.id>after]
+    page=eligible[:100]
+    return {'items':page,'nextCursor':page[-1].id if len(eligible)>100 else None}
 
 @router.delete('/media-cleanup/{media_id}',status_code=204)
 def cleanup_item(media_id:str,request:Request):

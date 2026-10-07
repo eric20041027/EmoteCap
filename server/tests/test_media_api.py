@@ -137,3 +137,12 @@ def test_remote_cleanup_warning_does_not_replace_the_original_failure(client,mon
     response=send(client,grant(client));assert response.status_code==502
     detail=response.json()['detail'];assert detail['message']=='Original request failed'
     assert detail['cleanup'].get('remoteFiles')=='unknown'
+
+
+def test_legacy_cleanup_inventory_is_paged_without_hiding_valid_history(client):
+    root=main.app.state.media.settings.data_dir/'takes';root.mkdir()
+    for index in range(101):(root/f'{index:032x}.webm').write_bytes(b'synthetic')
+    first=client.get('/api/media-cleanup').json();assert len(first['items'])==100 and first['nextCursor']
+    second=client.get('/api/media-cleanup',params={'after':first['nextCursor']}).json()
+    assert len(second['items'])==1 and second['nextCursor'] is None
+    assert {item['id'] for item in first['items']}.isdisjoint(item['id'] for item in second['items'])

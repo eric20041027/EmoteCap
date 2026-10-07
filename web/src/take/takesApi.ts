@@ -1,5 +1,6 @@
 import type { Segment } from '../motion/index';
 import { describeErrorDetail } from '../record/exportApi';
+import { HttpFailure,httpJSON } from '../cloud/transport';
 
 export const TAKES_ENDPOINT = '/api/takes';
 export const TAKE_FILENAME = 'take.webm';
@@ -9,6 +10,7 @@ export const MAX_TAKE_BYTES = 100 * 1024 * 1024;
 const DEFAULT_VIDEO_TYPE = 'video/webm';
 
 export type SliceFailureKind =
+  | 'consent-required'
   | 'no-video'
   | 'too-short'
   | 'too-long'
@@ -26,6 +28,7 @@ export type SliceFailureKind =
 
 /** Short reasons for the "Split at pauses — Gemini unavailable (…)" badge. */
 const REASONS: Record<SliceFailureKind, string> = {
+  'consent-required': 'explicit Gemini permission required',
   'no-video': 'no video recorded',
   'too-short': 'take too short',
   'too-long': 'take longer than 3 min',
@@ -64,6 +67,11 @@ type FetchFn = (input: string, init: RequestInit) => Promise<Response>;
 export interface RequestOptions {
   fetchFn?: FetchFn;
   signal?: AbortSignal;
+  consent?:CloudGrant;
+}
+export interface CloudGrant {readonly token:string;readonly takeId:string}
+export function hasCloudGrant(grant:CloudGrant|undefined):grant is CloudGrant {
+  return !!grant&&/^[A-Za-z0-9_-]{43}$/.test(grant.token)&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(grant.takeId);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -73,11 +81,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 
 /** Multipart body for POST /api/takes: the raw (un-mirrored) take video plus its duration. */
-export function buildTakeForm(video: Blob, duration: number): FormData {
+export function buildTakeForm(video: Blob, duration: number,takeId?:string): FormData {
   const typed = video.type ? video : new Blob([video], { type: DEFAULT_VIDEO_TYPE });
   const form = new FormData();
   form.append('video', typed, TAKE_FILENAME);
   form.append('duration', duration.toFixed(3));
+  if(takeId)form.append('takeId',takeId);
   return form;
 }
 
@@ -108,6 +117,8 @@ export function parseTakeResponse(body: unknown): Segment[] {
 export function failureForStatus(status: number, body: unknown): SliceFailure {
   const details = describeErrorDetail(body);
   switch (status) {
+    case 403:
+      return sliceFailure('consent-required',details);
     case 503:
       return sliceFailure('not-configured', details);
     case 502:
@@ -139,26 +150,15 @@ export function preflightFailure(video: Blob | null, duration: number): SliceFai
   return null;
 }
 
-function parseBody(text: string): unknown {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text;
-  }
-}
-
 /** POST the take to Gemini via the server; resolves with its segments or rejects with a SliceFailure. */
 export async function requestSegments(video: Blob, duration: number, options: RequestOptions = {}): Promise<Segment[]> {
-  const { fetchFn = fetch, signal } = options;
-  let response: Response;
-  let text: string;
+  const { fetchFn = fetch, signal,consent } = options;
+  if(!hasCloudGrant(consent))throw sliceFailure('consent-required');
   try {
-    response = await fetchFn(TAKES_ENDPOINT, { method: 'POST', body: buildTakeForm(video, duration), signal });
-    text = await response.text();
+    const body=await httpJSON(TAKES_ENDPOINT,{method:'POST',body:buildTakeForm(video,duration,consent.takeId),headers:{'X-EmoteCap-Consent':consent.token}},{fetchFn,signal});
+    return parseTakeResponse(body);
   } catch (error) {
+    if(error instanceof HttpFailure)throw failureForStatus(error.status,error.body);
     throw toSliceFailure(signal?.aborted ? signal.reason : error);
   }
-  const body = parseBody(text);
-  if (!response.ok) throw failureForStatus(response.status, body);
-  return parseTakeResponse(body);
 }
