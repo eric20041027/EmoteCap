@@ -1,8 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import bonesJson from '../../../contracts/bones.json';
-import { BONE_COUNT, DRIVEN_BONES, SKELETON, tposeFrame } from './contract';
+import tposeClip from '../../../contracts/fixtures/tpose.clip.json';
+import raiseClip from '../../../contracts/fixtures/raise-right-arm.clip.json';
+import { BONE_COUNT, CONTRACT_VERSION, DRIVEN_BONES, SKELETON, tposeFrame } from './contract';
 
 describe('contract', () => {
+  it('keeps v2 fixtures readable without changing the wire shape', () => {
+    expect(CONTRACT_VERSION).toBe(2);
+    expect(SKELETON).toHaveLength(52);
+    for (const clip of [tposeClip, raiseClip]) {
+      expect(clip.frames[0].t).toBe(0);
+      for (const frame of clip.frames) {
+        expect(frame.h).toHaveLength(3);
+        expect(frame.r).toHaveLength(192);
+        expect([...frame.h, ...frame.r, frame.t].every(Number.isFinite)).toBe(true);
+      }
+    }
+  });
+
   it('driven bone order matches contracts/bones.json', () => {
     expect([...DRIVEN_BONES]).toEqual(bonesJson.driven);
   });
