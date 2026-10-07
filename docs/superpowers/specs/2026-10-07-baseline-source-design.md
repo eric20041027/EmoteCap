@@ -1,0 +1,11 @@
+# Original MVP source preparation
+
+M4 requires a fixed original/new comparison using authorized recordings. The accepted current collector cannot select the original implementation merely by changing its source field. Prepare a verifiable original source snapshot before building a separately reviewed measurement adapter.
+
+The original is `713d349df05aa26b6b95a1b7974f7f3d8e574149`. Freeze exact bytes and Git blob identities for the thirteen runtime motion modules, original converter/frameTimes/tpose, canonical bones, original Web lock and model pins. These nineteen files form the source input; no old App/camera/SDK factory is run. Current and original MediaPipe are1.0.1 and their model pin file is identical. Historical lock material is evidence, never an instruction to reinstall the vulnerable source-map-js1.2.1.
+
+A local Node tool reads only that fixed Git commit with replacement objects disabled, validates the pinned file hashes/sizes/modes and writes a source-only snapshot below `web/.measurement-baseline/<full-commit>`. It installs nothing, contacts no network and starts no browser/model/camera. The final receipt is written last. An existing exact snapshot can be verified and reused; occupied, modified, incomplete, aliased, hardlinked or extra-file snapshots are refused without changing prior contents. Newly interrupted partial output is retained, not automatically deleted. Files are bounded at2MiB each/8MiB total/64entries; filesystem validation includes parent directories and selected containment. No raw media or runtime binaries enter Git.
+
+The committed index plus private snapshot receipt identifies source preparation, not a compiled original build, instrumented comparison, rights grant, actual inference, hardware result or release acceptance. Current development/runtime locks remain unchanged. The subsequent adapter must independently establish that it uses this original converter and solver, preserves original outputs, records every failure/timing phase and handles session SDK authorization before actual initialization.
+
+Native implementation and one final independent review follow the accepted execution method. Preserve previous scratch, original project history and all pending human/public gates.
