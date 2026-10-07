@@ -216,3 +216,23 @@ it('a failed deletion confirmation keeps the current original available',async()
   const id=studio.getSnapshot().project.takes[0].id;studio.attachSource(id,{name:'source.webm',blob:new Blob(['video'],{type:'video/webm'})});
   await studio.keepSource(id,true);await studio.flush();fail=true;await expect(studio.deleteSource(id)).rejects.toThrow('Full');expect((await studio.readSource(id))?.blob.size).toBe(5);
 });
+it('a failed deletion after reload keeps the IDB-only original accessible until confirmed',async()=>{
+  const original=readyProject(),{studio,factory,name}=await setup(original),id=original.takes[0].id;
+  const bytes='reloaded original source';
+  studio.attachSource(id,{name:'source.webm',blob:new Blob([bytes],{type:'video/webm'})});
+  await studio.keepSource(id,true);await studio.flush();studio.dispose();
+  const db=await openProjectStore({factory,name});let fail=true;
+  const next=new StudioSession(async()=>({...db,save:async(...args)=>{
+    if(fail)throw new ProjectStorageError('quota','Deletion transaction failed');return db.save(...args);
+  }}));sessions.push(next);await next.initialize();
+  expect(await (await next.readSource(id))!.blob.text()).toBe(bytes);
+  await expect(next.deleteSource(id)).rejects.toThrow('Deletion transaction failed');
+  expect(await (await next.readSource(id))?.blob.text()).toBe(bytes);
+  expect(await (await db.readMedia(original.id,id))?.text()).toBe(bytes);
+  expect(next.getSnapshot().project.takes[0].frames).toEqual(original.takes[0].frames);
+  expect(next.getSnapshot().project.takes[0].clips).toEqual(original.takes[0].clips);
+  const archive=await encodeProject(next.getSnapshot().project,{includeMedia:true,readMedia:takeId=>next.readSource(takeId)});
+  expect(await (await decodeProject(archive)).media.get(id)!.blob.text()).toBe(bytes);
+  fail=false;await next.retry();await next.deleteSource(id);
+  expect(await next.readSource(id)).toBeNull();expect(await db.readMedia(original.id,id)).toBeNull();
+});

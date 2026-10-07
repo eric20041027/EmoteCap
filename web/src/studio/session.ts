@@ -169,6 +169,8 @@ export class StudioSession {
   async deleteSource(takeId:string):Promise<void> {
     return this.perform(async()=>{
       if(!this.snapshot.project.takes.some(t=>t.id===takeId))throw new ProjectDataError('Source take does not exist.');
+      const source=await this.readSource(takeId);
+      if(source && !this.sources.has(takeId))this.sources.set(takeId,Object.freeze(source));
       this.change(p=>setTakeMedia(p,takeId,null));
       await this.flush();
       this.sources.delete(takeId);this.publish({mediaRevision:this.snapshot.mediaRevision+1});
