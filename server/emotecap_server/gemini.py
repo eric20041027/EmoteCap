@@ -11,6 +11,7 @@ import re
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 import httpx
 from google import genai
@@ -114,6 +115,14 @@ class GeminiTimeoutError(GeminiError):
     """Gemini did not answer within the time budget."""
 
 
+@dataclass
+class CleanupReport:
+    """File-resource cleanup, separate from provider processing/data-use terms."""
+    remoteFiles: Literal['not-used','deleted','failed','unknown'] = 'not-used'
+    warning: str | None = None
+    model: str | None = None
+
+
 @dataclass(frozen=True)
 class _Deadline:
     budget_s: float
@@ -156,10 +165,11 @@ def make_client(api_key: str) -> genai.Client:
 
 
 def slice_take(
-    video: Path, mime_type: str, duration: float, *, api_key: str, model: str
+    video: Path, mime_type: str, duration: float, *, api_key: str, model: str,cleanup:CleanupReport|None=None
 ) -> list[Segment]:
     """Ask Gemini to split the take into named clips and return the validated segments."""
-    raw = request_segments(video, mime_type, duration, api_key=api_key, model=model)
+    options={'cleanup':cleanup} if cleanup is not None else {}
+    raw = request_segments(video, mime_type, duration, api_key=api_key, model=model,**options)
     segments = clean_segments(raw, duration)
     if not segments:
         raise GeminiError("Gemini found no usable segments in this take")
@@ -178,6 +188,7 @@ def request_segments(
     api_key: str,
     model: str,
     timeout_s: float = GEMINI_TIMEOUT_S,
+    cleanup:CleanupReport|None=None,
 ) -> object:
     """Send the video to Gemini and return its decoded JSON answer, not yet validated.
 
@@ -185,6 +196,8 @@ def request_segments(
     until ACTIVE, and deleted afterwards. The whole exchange shares one `timeout_s` budget.
     """
     deadline = _Deadline.start(timeout_s)
+    if cleanup is not None:
+        cleanup.remoteFiles='not-used';cleanup.warning=None;cleanup.model=None
     inline_bytes = video.read_bytes() if video.stat().st_size <= INLINE_MAX_BYTES else None
     started = time.monotonic()
     try:
@@ -195,14 +208,17 @@ def request_segments(
                     client, _video_part(inline_data=blob), duration, model, deadline
                 )
             else:
-                response, model = _ask_with_upload(client, video, mime_type, duration, model, deadline)
+                response, model = _ask_with_upload(client, video, mime_type, duration, model, deadline,cleanup=cleanup)
+        if cleanup is not None:cleanup.model=model.replace(api_key,REDACTED)[:100] if api_key else model[:100]
         raw = _decode(response)
     except GeminiError:
         raise
     except Exception as exc:  # every SDK or transport failure becomes a GeminiError
-        logger.debug("Gemini request for %s failed", video.name, exc_info=True)
+        # SDK exception text/traceback can echo credentials; the UI gets the redacted error below.
+        logger.debug("Gemini request failed (%s)", type(exc).__name__)
         raise _as_gemini_error(exc, api_key, deadline) from exc
-    logger.info("Gemini (%s) answered for %s in %.1f s", model, video.name, time.monotonic() - started)
+    safe_model=model.replace(api_key,REDACTED) if api_key else model
+    logger.info("Gemini (%s) answered in %.1f s", safe_model[:100], time.monotonic() - started)
     return raw
 
 
@@ -253,8 +269,11 @@ def _ask_first_available(
 
 
 def _ask_with_upload(
-    client: genai.Client, video: Path, mime_type: str, duration: float, model: str, deadline: _Deadline
+    client: genai.Client, video: Path, mime_type: str, duration: float, model: str, deadline: _Deadline,cleanup:CleanupReport|None=None
 ) -> tuple[types.GenerateContentResponse, str]:
+    if cleanup is not None:
+        cleanup.remoteFiles='unknown'
+        cleanup.warning='Google upload or deletion could not be confirmed. Check the provider Files page; its processing terms still apply.'
     uploaded = client.files.upload(
         file=video,
         config=types.UploadFileConfig(
@@ -266,7 +285,7 @@ def _ask_with_upload(
         file_data = types.FileData(file_uri=active.uri, mime_type=mime_type)
         return _ask_first_available(client, _video_part(file_data=file_data), duration, model, deadline)
     finally:
-        _delete_quietly(client, uploaded)
+        _delete_quietly(client, uploaded,cleanup=cleanup)
 
 
 def _wait_until_active(client: genai.Client, file: types.File, deadline: _Deadline) -> types.File:
@@ -284,8 +303,8 @@ def _wait_until_active(client: genai.Client, file: types.File, deadline: _Deadli
     return current
 
 
-def _delete_quietly(client: genai.Client, file: types.File) -> None:
-    """Best effort: an upload that is not deleted expires on its own after 48 h."""
+def _delete_quietly(client: genai.Client, file: types.File,cleanup:CleanupReport|None=None) -> None:
+    """Preserve the original outcome, reporting only the confirmed owned file's cleanup."""
     if not file.name:
         return
     delete_options = types.HttpOptions(timeout=FILE_DELETE_TIMEOUT_MS)
@@ -293,8 +312,12 @@ def _delete_quietly(client: genai.Client, file: types.File) -> None:
         client.files.delete(
             name=file.name, config=types.DeleteFileConfig(http_options=delete_options)
         )
+        if cleanup is not None:cleanup.remoteFiles='deleted';cleanup.warning=None
     except Exception as exc:  # noqa: BLE001 - cleanup must never hide the real result
-        logger.warning("Could not delete Gemini upload %s (%s)", file.name, type(exc).__name__)
+        if cleanup is not None:
+            cleanup.remoteFiles='failed'
+            cleanup.warning='Google Files upload could not be deleted. Check the provider Files page; deletion does not remove all provider processing data.'
+        logger.warning("Could not delete owned Gemini upload (%s)", type(exc).__name__)
 
 
 def _decode(response: types.GenerateContentResponse) -> object:

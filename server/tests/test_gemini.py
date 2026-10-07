@@ -57,6 +57,7 @@ class FakeGenai:
     uploads: list[tuple[Any, types.UploadFileConfig]] = field(default_factory=list)
     gets: list[str] = field(default_factory=list)
     deletes: list[str] = field(default_factory=list)
+    delete_error: Exception | None = None
     closed: bool = False
 
     def make_client(self, api_key: str) -> Self:
@@ -97,6 +98,7 @@ class FakeGenai:
 
     def delete(self, *, name: str, config: types.DeleteFileConfig) -> None:
         self.deletes.append(name)
+        if self.delete_error:raise self.delete_error
 
     def _file(self, poll: int) -> types.File:
         state = self.file_states[min(poll, len(self.file_states) - 1)]
@@ -434,3 +436,39 @@ def test_sdk_uploads_polls_generates_and_deletes_for_a_large_video(
     generate_body = json.loads(sent[3].content)
     assert FILE_URI in json.dumps(generate_body["contents"][0]["parts"][0])
     assert generate_body["contents"][0]["parts"][0]["videoMetadata"] == {"fps": 5}
+
+
+def test_remote_delete_failure_preserves_result_and_is_visible(fake,video,monkeypatch):
+    monkeypatch.setattr(gemini,'INLINE_MAX_BYTES',0);fake.delete_error=OSError('delete failed '+API_KEY)
+    report=gemini.CleanupReport()
+    assert gemini.slice_take(video,'video/webm',DURATION,api_key=API_KEY,model=MODEL,cleanup=report)
+    assert report.remoteFiles=='failed' and report.warning and API_KEY not in report.warning
+    assert fake.deletes==[FILE_NAME]
+
+
+def test_generation_and_delete_failure_preserve_the_original_error(fake,video,monkeypatch):
+    monkeypatch.setattr(gemini,'INLINE_MAX_BYTES',0);fake.error=ValueError('original provider failure');fake.delete_error=OSError('cleanup failure')
+    report=gemini.CleanupReport()
+    with pytest.raises(GeminiError,match='original provider failure'):
+        gemini.slice_take(video,'video/webm',DURATION,api_key=API_KEY,model=MODEL,cleanup=report)
+    assert report.remoteFiles=='failed' and report.warning
+
+
+def test_unconfirmed_upload_is_unknown_and_never_deletes_unrelated_files(fake,video,monkeypatch):
+    monkeypatch.setattr(gemini,'INLINE_MAX_BYTES',0)
+    def fail(**kwargs):raise TimeoutError('upload confirmation lost')
+    monkeypatch.setattr(fake,'upload',fail);report=gemini.CleanupReport()
+    with pytest.raises(GeminiError):gemini.slice_take(video,'video/webm',DURATION,api_key=API_KEY,model=MODEL,cleanup=report)
+    assert report.remoteFiles=='unknown' and report.warning and fake.deletes==[]
+
+
+def test_inline_report_does_not_claim_remote_file_deletion(fake,video):
+    report=gemini.CleanupReport();gemini.slice_take(video,'video/webm',DURATION,api_key=API_KEY,model=MODEL,cleanup=report)
+    assert report.remoteFiles=='not-used' and report.model==MODEL and report.warning is None
+
+
+def test_debug_failure_logs_do_not_expose_the_key(fake,video,caplog):
+    import logging
+    fake.error=ValueError('provider echoed '+API_KEY)
+    with caplog.at_level(logging.DEBUG,logger=gemini.__name__),pytest.raises(GeminiError):request(video)
+    assert API_KEY not in caplog.text

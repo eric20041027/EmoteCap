@@ -48,7 +48,7 @@ class FakeGemini:
     calls: list[GeminiCall] = field(default_factory=list)
 
     def request_segments(
-        self, video: Path, mime_type: str, duration: float, *, api_key: str, model: str
+        self, video: Path, mime_type: str, duration: float, *, api_key: str, model: str,cleanup=None
     ) -> object:
         self.calls.append(GeminiCall(video, video.read_bytes(), mime_type, duration, api_key, model))
         if isinstance(self.answer, Exception):

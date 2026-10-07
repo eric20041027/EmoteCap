@@ -11,6 +11,7 @@ from starlette.formparsers import MultiPartException,MultiPartParser
 
 from .. import gemini
 from ..config import Settings
+from ..contract import TakeResponse,TakeCleanup
 from .consent import ConsentGrants,ConsentRequired,ConsentCapacity,CloudBusy,MAX_VIDEO_BYTES
 from .storage import MediaStorage,MediaStorageError
 
@@ -97,16 +98,20 @@ def process_video(service:MediaService,grant,video:UploadFile):
     media=service.storage.begin(grant,video.file)
     # The independent multipart spool is no longer needed before provider processing.
     video.file.close()
-    error=None;segments=[]
+    error=None;segments=[];remote=gemini.CleanupReport()
     try:
         segments=gemini.slice_take(media.path,grant.mimeType,grant.duration,
-            api_key=service.settings.gemini_api_key,model=service.settings.gemini_model)
+            api_key=service.settings.gemini_api_key,model=service.settings.gemini_model,cleanup=remote)
     except gemini.GeminiError as exc:error=exc
     finally:cleanup=service.storage.cleanup(media)
+    key=service.settings.gemini_api_key or ''
+    redact=lambda value:value.replace(key,'***') if value is not None and key else value
+    summary=TakeCleanup(localVideo=cleanup.localVideo,warning=cleanup.warning,remoteFiles=remote.remoteFiles,
+                        remoteWarning=redact(remote.warning),model=redact(remote.model))
     if error:
         message=str(error).replace(service.settings.gemini_api_key or '\0','***')[:300]
-        raise HTTPException(502,detail={'message':message,'fallback':'motion-energy','cleanup':cleanup.model_dump()}) from error
-    return {'takeId':str(grant.takeId),'segments':[segment.model_dump() for segment in segments],'cleanup':cleanup.model_dump()}
+        raise HTTPException(502,detail={'message':message,'fallback':'motion-energy','cleanup':summary.model_dump()}) from error
+    return TakeResponse(takeId=str(grant.takeId),segments=segments,cleanup=summary)
 
 @router.post('/takes')
 async def create_take(request:Request):

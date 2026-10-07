@@ -117,3 +117,23 @@ def test_chunked_multipart_cannot_bypass_the_total_byte_limit(client,calls,monke
     result=client.post('/api/takes',content=iter([body[:12],body[12:]]),headers={
         'content-type':original.headers['content-type'],'X-EmoteCap-Consent':token})
     assert result.status_code==413 and calls==[]
+
+
+def test_remote_cleanup_warning_reaches_successful_suggestions(client,monkeypatch):
+    def fake(path,mime,duration,cleanup=None,**kwargs):
+        if cleanup:cleanup.remoteFiles='failed';cleanup.warning='Google file deletion could not be confirmed'
+        return [Segment(name='Wave',start=0,end=2,loop=False)]
+    monkeypatch.setattr(gemini,'slice_take',fake)
+    response=send(client,grant(client));assert response.status_code==200
+    assert response.json()['cleanup'].get('remoteFiles')=='failed'
+    assert response.json()['cleanup'].get('remoteWarning')
+
+
+def test_remote_cleanup_warning_does_not_replace_the_original_failure(client,monkeypatch):
+    def fake(path,mime,duration,cleanup=None,**kwargs):
+        if cleanup:cleanup.remoteFiles='unknown';cleanup.warning='Upload cleanup is unknown'
+        raise gemini.GeminiError('Original request failed')
+    monkeypatch.setattr(gemini,'slice_take',fake)
+    response=send(client,grant(client));assert response.status_code==502
+    detail=response.json()['detail'];assert detail['message']=='Original request failed'
+    assert detail['cleanup'].get('remoteFiles')=='unknown'
