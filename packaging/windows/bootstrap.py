@@ -46,6 +46,8 @@ def validate_package(root: Path) -> dict:
     root=root.absolute();_ordinary(root)
     manifest=root/'manifest.json';_ordinary(manifest)
     try:
+        if (root/'.incomplete').exists():
+            raise PackageError('Candidate build is incomplete')
         if not manifest.is_file() or manifest.stat().st_size>MAX_MANIFEST_BYTES:
             raise PackageError('Package manifest is missing or oversized')
         record=json.loads(manifest.read_bytes(),object_pairs_hook=_object,parse_constant=_constant)
@@ -112,8 +114,8 @@ def main(argv=None) -> int:
         validate_package(PACKAGE_ROOT)
         if any(selected.resolve().is_relative_to(PACKAGE_ROOT.resolve()) for selected in (args.data_dir,args.env_file)):
             raise PackageError('Choose private data and settings outside the verified package folder')
-        if not sys.flags.isolated or not sys.flags.dont_write_bytecode:
-            raise PackageError('Use start.cmd to select the isolated bundled runtime')
+        if not sys.flags.isolated or not sys.flags.no_site or not sys.flags.dont_write_bytecode:
+            raise PackageError('Use start.cmd to select the isolated site-disabled bundled runtime')
         sys.dont_write_bytecode=True
         sys.path=[path for path in sys.path if not path.replace('\\','/').lower().endswith('/site-packages')]
         sys.path[:0]=[str(PACKAGE_ROOT/'app/server'),str(PACKAGE_ROOT/'deps')]

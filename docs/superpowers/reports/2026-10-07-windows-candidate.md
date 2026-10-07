@@ -30,6 +30,12 @@ Observed page requests/errors:0external,0cloud,0model,0page errors. Camera/model
 
 After the runtime-contract fix,27Task2cases passed and whole fast backend**693passed/18slow deselected50.93seconds**. Native task-done/final fresh review follow; the candidate remains a development candidate with pending release gates.
 
+## Final independent review and one correction pass
+
+The fresh Python reviewer checked655456b..7a8c931, independently passed all69focused cases14.85seconds, and kept tracked files/HEAD unchanged. No Critical findings; three Important findings retained by user effect: automatic runtime site execution before validation, output aliases/NTFS streams bypassing fresh/separate paths, and a failed ZIP/receipt leaving a consumer-accepted directory. One reserved-name admission gap remains Minor: no outside write/destructive device access was demonstrated. Evidence is retained under the reviewer's unique server/.superpowers/.../final-review-970ec985-0c21-49a9-9a4d-53ff68de9e3fworkspace.
+
+The single correction pass watched seven regressions fail before fixes: real owned-venv sitecustomize/.pthpoisoning using the delivered wrapper flags, a parent-segment archive alias, an NTFS alternate stream on an existing synthetic host file, and missing-parent/ZIP/receipt failures. Startup now uses/enforces -I -S -B; file choices check raw components before canonicalization and reject streams; staged construction keeps a startup-rejected incomplete marker until ZIP/receipt and the confined fresh directory move succeed.76focused cases passed31.02seconds. Whole backend and replacement-candidate qualification follow before final acceptance; original229aaedcandidate remains preserved and superseded, not silently relabeled.
+
 ## Rulings made
 
 1. Continue authorized Native without another plan/method prompt. Cost if wrong: local reviewable work only; public operations require their own authorization.
@@ -40,10 +46,28 @@ After the runtime-contract fix,27Task2cases passed and whole fast backend**693pa
 6. Honor fixed deflate9on each streaming ZipInfo using the pinned Python3.12field after a watched regression. Cost if wrong: a Python upgrade requires checking that stdlib interface; no default-level claim.
 7. Decode fixture source as UTF8and compare raw bytes. Cost if wrong: the platform locale is not a source encoding contract; actual copied bytes, not a lossy string, determine provenance.
 8. Require selected private paths outside the whole verified package before application import. Cost if wrong: users cannot store mutable data/settings inside the package; defaults remain their private user directory.
-9. User entry is start.cmdwith -I -B; direct nonisolated Python embedding is unsupported. Cost if wrong: custom hosts need their own isolation; the delivered entry does not depend on user Python/site packages.
+9. User entry is start.cmdwith enforced isolation (now -I -S -B); direct nonisolated Python embedding is unsupported. Cost if wrong: custom hosts need their own isolation; the delivered entry does not depend on user Python/site packages.
 10. Preserve actual built Web byte/lock/model receipts without pretending an arbitrary dist was regenerated from HEAD. Cost if wrong: source rebuild qualification remains separately necessary and traceable.
 11. Package only the runtime bones.jsoncontract from the committed source; exclude development generators/fixture archives. Cost if wrong: developer contract docs/fixtures are obtained from source, not the runtime payload; the built public sample is unaffected.
 12. Owned cmd QA uses explicit Windows cmd quoting after diagnosing list2cmdlineescaping; reject shell metacharacters in its generated path. Cost if wrong: the QA helper is limited to its own safe paths and does not process arbitrary shell input; product start.cmdis unchanged.
 13. Keep relocation/no-developer-PATH evidence separate from an actual clean second machine and human Unity study. Cost if wrong: those required release gates stay incomplete despite successful local automation.
+14. Disable automatic site initialization with -Sbefore bootstrap; add only validated app/dependency paths. Cost if wrong: libraries cannot rely on automatic .pth/sitecustomizeexecution; the current frozen production imports are explicitly qualified.
+15. Check original filesystem components for links before canonicalizing paths and rejecting NTFS streams. Cost if wrong: stream/link inputs are unsupported, and aliases may display a canonical location rather than the caller's spelling; no existing-host-file stream is created.
+16. Stage with a startup-rejected incomplete marker, exclude only that marker from ZIP, and publish the final directory after ZIP/receipt success with checked move endpoints. Cost if wrong: staging/failure artifacts consume disk; separate-file publication is not globally atomic, but failed builds cannot expose an accepted completed directory.
+17. Interpreter/bootstrap/earliest stdlib must be trusted; payload hashes authenticate neither a publisher nor deliberately replaced startup code. Cost if wrong: verify externally supplied hashes/source through a trusted channel; automatic site execution is now separately prevented.
+18. Actively hostile concurrent filesystem replacement is unqualified; build/package directories are owned local inputs. Cost if wrong: an adversary with write access may race checks/opens; no resistance claim is made.
+19. Attribute existing Web bytes/model/lock digests and retain actual frozen rebuild evidence separately. Cost if wrong: an arbitrary dist does not prove it was regenerated from HEAD.
+20. Keep observed official download pins/preparation receipts rather than repeating downloads. Cost if wrong: a future new preparation must verify both exact inputs and its own imports again.
+21. Keep the reviewed initial actual Edge/Blender receipts; repeat replacement qualification because startup/build code now changed. Cost if wrong: unchanged render/export geometry is not independently requalified for every packaging correction, while the changed integrated entry is.
+22. Clean second-machine/native prerequisites remain a required gate beyond relocation. Cost if wrong: current-machine dependencies may conceal a missing prerequisite on a fresh system.
+23. Windows11x64/Python3.12.14is the candidate target. Cost if wrong: other OS/architectures/interpreters require their own actual qualification.
+24. Direct nonisolated embedding remains unsupported. Cost if wrong: custom hosts must supply the same isolation/site/bytecode constraints; the packaged wrapper enforces them.
+25. Supplied license files/declarations are unassessed; owner/contributor/image and native/npm/transitive redistribution coverage remain pending. Cost if wrong: this internal candidate cannot be treated as a legally approved public distribution.
+26. Actual Unity compilation/playback/two rigs wait for the owner's licensed Editor and qualification. Cost if wrong: the currently incomplete Unity consumer remains outside acceptance; no license is activated automatically.
+27. Physical camera/model inference, laptop performance and five-new-user acceptance remain distinct required gates. Cost if wrong: automated samples cannot prove these device/human outcomes.
+28. Cloud-provider behavior and unchanged app/export semantics retain their separate qualifications. Cost if wrong: packaging checks do not establish actual provider deletion or every unchanged application input; no external call/camera was made.
+29. Public signing/publishing/tagging/merging remain outside this internal plan. Cost if wrong: no owner release approval or public artifact is inferred from local success.
 
-Deferred minors:none before final review. Unity activation/receiver/two rigs, physical/laptop, owner MIT/contributors/images, complete vendor notices, clean-machine/five-user and publication gates remain pending.
+Deferred minor: both relative-name validators still admit CONIN$/CONOUT$/reserved-stem-space forms such as CON .txtandNUL .txt. The reviewer demonstrated the conservative admission gap, without an outside-destination write or destructive access; retain as Minor rather than inventing a stronger effect. Exact pinned/narrow known inputs are qualified, not every possible future Windows filename. No style/polish changes enter this correction pass.
+
+Unity activation/receiver/two rigs, physical/laptop, owner MIT/contributors/images, complete vendor notices, clean-machine/five-user and publication gates remain pending. No second review is dispatched.

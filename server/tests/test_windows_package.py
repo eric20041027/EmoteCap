@@ -102,3 +102,34 @@ def test_zip_uses_fixed_level_nine(tmp_path,monkeypatch):
     monkeypatch.setattr(zlib,'compressobj',selected)
     files.zip_payload(source,tmp_path/'fixed.zip')
     assert levels==[9]
+
+def test_parent_segments_cannot_put_archive_inside_candidate(build_inputs,tmp_path):
+    repo,prepared=build_inputs;(tmp_path/'side').mkdir()
+    output=tmp_path/'candidate';archive=tmp_path/'side/../candidate/candidate.zip'
+    with pytest.raises(files.PackageError):builder.build(repo,prepared,output,archive)
+    assert not output.exists()
+
+def test_ntfs_stream_is_not_a_new_ordinary_archive(tmp_path):
+    source=tmp_path/'source';source.mkdir();(source/'normal').write_bytes(b'normal')
+    host=tmp_path/'existing-host-file.txt';host.write_bytes(b'keep')
+    stream=Path(str(host)+':candidate.zip')
+    with pytest.raises(files.PackageError):files.zip_payload(source,stream)
+    assert host.read_bytes()==b'keep' and not stream.exists()
+
+@pytest.mark.parametrize('failure',['missing-zip-parent','zip','receipt'])
+def test_late_build_failure_never_publishes_a_complete_candidate(build_inputs,tmp_path,monkeypatch,failure):
+    repo,prepared=build_inputs;output=tmp_path/'candidate';archive=tmp_path/'candidate.zip'
+    if failure=='missing-zip-parent':archive=tmp_path/'absent/candidate.zip'
+    elif failure=='zip':
+        def failed(*a,**kw):raise files.PackageError('Synthetic ZIP failure')
+        monkeypatch.setattr(builder,'zip_payload',failed)
+    else:
+        original=builder.write_json
+        def failed(path,value):
+            if path.name.endswith('.receipt.json'):raise files.PackageError('Synthetic receipt failure')
+            return original(path,value)
+        monkeypatch.setattr(builder,'write_json',failed)
+    with pytest.raises(files.PackageError):builder.build(repo,prepared,output,archive)
+    assert not output.exists(), 'Failed build published its consumer-visible candidate directory'
+    staged=next(tmp_path.glob('candidate.build-*/candidate.staged'))
+    assert (staged/'.incomplete').is_file()

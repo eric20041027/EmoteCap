@@ -125,7 +125,7 @@ def prepare(root: Path, cache: Path, destination: Path, uv: Path) -> dict:
         probe = ('import json,sys;sys.path=[p for p in sys.path if not p.replace("\\\\","/").lower().endswith("/site-packages")];'
                  'sys.path.insert(0,sys.argv[1]);import fastapi,uvicorn,google.genai,multipart,dotenv,ssl,sqlite3;'
                  'assert sys.version_info[:3]==(3,12,14);print(json.dumps({"python":"3.12.14","imports":"ok"}))')
-        result = json.loads(_run([str(python),'-I','-B','-c',probe,str(deps)],environment,logs))
+        result = json.loads(_run([str(python),'-I','-S','-B','-c',probe,str(deps)],environment,logs))
         if result != {'python':'3.12.14','imports':'ok'}:
             raise PackageError('Portable production dependency imports were not qualified')
         write_json(payload / 'dependency-inventory.json', _dependency_inventory(deps))

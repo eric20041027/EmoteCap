@@ -2,6 +2,7 @@
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -60,7 +61,7 @@ def test_isolated_bootstrap_selects_private_paths_and_ignores_pythonpath(build_i
     root=tmp_path/'package 空白';builder.build(repo,prepared,root,tmp_path/'package.zip')
     poison=tmp_path/'poison';poison.mkdir();(poison/'emotecap_server.py').write_text('raise RuntimeError("poisoned Python path")')
     private=tmp_path/'user private'
-    result=subprocess.run([sys.executable,'-I','-B',str(root/'bootstrap.py'),'--no-browser'],
+    result=subprocess.run([sys.executable,'-I','-S','-B',str(root/'bootstrap.py'),'--no-browser'],
         env={**os.environ,'PYTHONPATH':str(poison),'LOCALAPPDATA':str(private)},capture_output=True,timeout=10)
     assert result.returncode==0,result.stderr.decode(errors='replace')
     selected=json.loads(result.stdout)
@@ -78,7 +79,25 @@ def test_private_paths_inside_verified_package_are_rejected(build_inputs,tmp_pat
     subprocess.run(['git','-C',str(repo),'commit','-qm','spy launcher'],check=True,capture_output=True)
     root=tmp_path/'package';builder.build(repo,prepared,root,tmp_path/'package.zip')
     selected=root/'private-user-data'
-    result=subprocess.run([sys.executable,'-I','-B',str(root/'bootstrap.py'),flag,str(selected),'--no-browser'],
+    result=subprocess.run([sys.executable,'-I','-S','-B',str(root/'bootstrap.py'),flag,str(selected),'--no-browser'],
         capture_output=True,timeout=10)
     assert result.returncode!=0 and b'unexpected application import' not in result.stdout
     assert not selected.exists()
+
+@pytest.mark.parametrize('poison',['sitecustomize','pth'])
+def test_actual_entry_flags_block_site_execution_before_manifest_rejection(tmp_path,poison):
+    runtime=tmp_path/'owned-venv'
+    subprocess.run([sys.executable,'-m','venv','--without-pip',str(runtime)],check=True,capture_output=True,timeout=30)
+    python=runtime/('Scripts/python.exe' if os.name=='nt' else 'bin/python')
+    site=runtime/('Lib/site-packages' if os.name=='nt' else f'lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages')
+    marker=tmp_path/'unexpected-stateful-import.txt'
+    body=f'import pathlib; pathlib.Path({str(marker)!r}).write_text("unexpected import")\n'
+    (site/('sitecustomize.py' if poison=='sitecustomize' else 'poison.pth')).write_text(body,encoding='utf-8')
+    package=tmp_path/'invalid-package';package.mkdir()
+    (package/'bootstrap.py').write_bytes((ROOT/'packaging/windows/bootstrap.py').read_bytes())
+    (package/'manifest.json').write_text('{}')
+    wrapper=(ROOT/'packaging/windows/start.cmd').read_text(encoding='utf-8')
+    flags=re.search(r'python\.exe"\s+(.+?)\s+"%~dp0bootstrap\.py"',wrapper).group(1).split()
+    result=subprocess.run([str(python),*flags,str(package/'bootstrap.py'),'--no-browser'],
+        cwd=package,capture_output=True,timeout=15)
+    assert result.returncode==1 and not marker.exists(), 'Site initialization ran before integrity validation'

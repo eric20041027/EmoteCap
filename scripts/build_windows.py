@@ -100,14 +100,18 @@ def build(repo: Path, prepared: Path, destination: Path, archive: Path) -> dict:
                 raise PackageError('Contract source allowlist contains an unsupported file')
             if any(part.startswith('.') or part=='__pycache__' for part in name.split('/')):
                 raise PackageError('Fixed source archive contains private/cache files')
-        copy_tree(prepared/'payload',destination)
+        staged=work/'candidate.staged'
+        copy_tree(prepared/'payload',staged)
+        incomplete=staged/'.incomplete'
+        with incomplete.open('xb') as marker:
+            marker.write(b'Build incomplete: archive and receipt must succeed before publication.\n')
         for name in ('server/emotecap_server','server/blender','contracts'):
-            copy_tree(snapshot/name,destination/'app'/name)
-        copy_tree(repo/'web/dist',destination/'app/web/dist')
-        verify_inventory(destination/'app/web/dist',public_inventory)
+            copy_tree(snapshot/name,staged/'app'/name)
+        copy_tree(repo/'web/dist',staged/'app/web/dist')
+        verify_inventory(staged/'app/web/dist',public_inventory)
         for name in ('bootstrap.py','start.cmd','START-HERE.txt'):
             source=snapshot/'packaging/windows'/name
-            with source.open('rb') as incoming,(destination/name).open('xb') as output:
+            with source.open('rb') as incoming,(staged/name).open('xb') as output:
                 output.write(incoming.read())
         if _git(repo,'rev-parse','HEAD').decode('ascii').strip()!=head or _git(repo,'status','--porcelain','-z','--untracked-files=normal'):
             raise PackageError('Source checkout changed during candidate construction')
@@ -115,12 +119,20 @@ def build(repo: Path, prepared: Path, destination: Path, archive: Path) -> dict:
         manifest={'schema':'emotecap-windows-candidate-v1','platform':'windows11-x64','sourceCommit':head,
             'runtime':receipt['runtime'],'sourceLocks':locks,
             'webBuildSha256':hashlib.sha256(json.dumps(public_inventory,sort_keys=True,separators=(',',':')).encode()).hexdigest(),
-            'files':file_inventory(destination),'releaseGate':'pending','pendingGates':PENDING_GATES}
-        write_json(destination/'manifest.json',manifest)
-        archive_sha=zip_payload(destination,archive)
+            'files':[entry for entry in file_inventory(staged) if entry['path']!='.incomplete'],
+            'releaseGate':'pending','pendingGates':PENDING_GATES}
+        write_json(staged/'manifest.json',manifest)
+        archive_sha=zip_payload(staged,archive,omit_incomplete_marker=True)
         result={'manifest':manifest,'archiveSha256':archive_sha,'archiveBytes':archive.stat().st_size}
         write_json(receipt_path,{'schema':'emotecap-candidate-receipt-v1','sourceCommit':head,
             'archiveSha256':archive_sha,'archiveBytes':result['archiveBytes'],'releaseGate':'pending'})
+        # Both resolved endpoints are confined to the caller's selected parent
+        # before the owned recursive directory move. Never replace an output.
+        ordinary_path(work);ordinary_path(destination.parent)
+        if staged.resolve().parent!=work.resolve() or destination.exists() or destination.resolve().parent!=work.resolve().parent:
+            raise PackageError('Candidate publication target changed or already exists')
+        staged.rename(destination)
+        (destination/'.incomplete').unlink()
         return result
     except (OSError,ValueError,KeyError,TypeError,subprocess.TimeoutExpired):
         raise PackageError('Candidate is incomplete; preserve partial outputs and inspect the selected inputs') from None

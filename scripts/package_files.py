@@ -25,10 +25,15 @@ def is_link(path: Path) -> bool:
 
 def ordinary_path(path: Path) -> Path:
     absolute = path.absolute()
+    for part in absolute.parts[1:]:
+        if part not in ('.', '..'):
+            safe_name(part)
     for part in (*reversed(absolute.parents), absolute):
         if is_link(part):
             raise PackageError('Linked package paths are unsupported')
-    return absolute
+    # Inspect the original components before collapsing '..', so an alias
+    # hidden by lexical normalization is never silently followed.
+    return absolute.resolve()
 
 def safe_name(name: str) -> str:
     if not isinstance(name, str) or not name or len(name) > 240:
@@ -252,8 +257,10 @@ def write_json(path: Path, value: dict) -> None:
     except (OSError, ValueError):
         raise PackageError('Cannot write a new finite manifest') from None
 
-def zip_payload(root: Path, output: Path) -> str:
+def zip_payload(root: Path, output: Path, *, omit_incomplete_marker: bool = False) -> str:
     inventory = file_inventory(root)
+    if omit_incomplete_marker:
+        inventory = [entry for entry in inventory if entry['path'] != '.incomplete']
     ordinary_path(output)
     try:
         with output.open('xb') as stream:
