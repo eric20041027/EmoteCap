@@ -133,3 +133,23 @@ def test_explicit_revocation_does_not_close_another_session():
             for task in tasks:task.cancel()
             await asyncio.gather(*tasks,return_exceptions=True);await relay.aclose()
     asyncio.run(scenario())
+
+def test_queued_frame_behind_stalled_hello_is_never_sent_after_expiry():
+    async def scenario():
+        sink=Socket(block='hello')
+        async with paired(sink) as (relay,session,tasks):
+            clock=[session.clock()];session.clock=lambda:clock[0];relay.sessions.clock=session.clock;session.deadline=clock[0]+1
+            await relay.broadcast(session,frame_text(0));clock[0]+=2;sink.release.set()
+            await asyncio.wait_for(sink.closed.wait(),.2)
+            assert sink.frames==[] and sink.codes[0]==1008 and not relay.sessions.live(session)
+    asyncio.run(scenario())
+
+def test_send_timeout_never_extends_the_remaining_pairing_lifetime():
+    async def scenario():
+        sink=Socket(block='frame')
+        async with paired(sink) as (relay,session,tasks):
+            session.deadline=session.clock()+.02
+            await relay.broadcast(session,frame_text(0));await asyncio.wait_for(sink.entered.wait(),.1)
+            await asyncio.wait_for(sink.closed.wait(),.15)
+            assert sink.frames==[] and sink.codes[0]==1008
+    asyncio.run(scenario())
