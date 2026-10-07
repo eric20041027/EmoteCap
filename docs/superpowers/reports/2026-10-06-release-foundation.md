@@ -2,7 +2,7 @@
 
 日期：2026-10-06（America/New_York）
 
-狀態：五個本機實作任務完成；獨立審查進行中。遠端三平台 CI 尚未執行，因此 M1 的跨平台出口尚未完成，也不代表可正式發布 v1。
+狀態：五個本機實作任務完成，獨立審查通過。遠端三平台 CI 尚未執行，因此 M1 的跨平台出口尚未完成，也不代表可正式發布 v1。
 
 ## 位置與版本
 
@@ -19,7 +19,7 @@
 |---|---|---|
 | Task 1 | Python 子程序替身取代 Unix shell，保留 timeout、退出碼與 stderr 尾端驗證 | 重現原來的 Windows 失敗，再驗證修正；中文與空白路徑可用 |
 | Task 2 | v2 協定文件、C#／Python／JSON driven order、TS fixtures 一致性 | 暫時改錯 C# 順序與 TS 版本均使 guard 失敗，之後還原 |
-| Task 3 | 有限數值、四元數、原地 hips、严格遞增時間與 21601 幀邊界；安全 422 | 行為測試先失敗再通過；不合法輸入不呼叫 exporter |
+| Task 3 | 有限數值、四元數、原地 hips、嚴格遞增時間與 21601 幀邊界；安全 422 | 行為測試先失敗再通過；不合法輸入不呼叫 exporter |
 | Task 4 | SHA256 模型驗證、離線快取、損毀更新與原子寫入；WASM 比較內容 | 6 項 Node 測試通過；三個官方模型實際下載並驗證，建置重用快取 |
 | Task 5 | 工具版本、三平台 workflow、開發文件與現行協作規則 | 全新依賴安裝入口、所有本機測試及完整 Web build 通過 |
 
@@ -47,7 +47,7 @@
 
 ## 已知檢查訊息
 
-- npm audit 發現既有 `source-map-js@1.2.1` 高風險公告，路徑為 Vite → PostCSS → source-map-js（開發依賴）。公告描述惡意 indexed source map 的 section offset 可阻塞事件迴圈，修補版為 `1.2.2`。見 [GitHub 公告](https://github.com/advisories/GHSA-68fv-2mgg-jv7q)。目前未修改依賴圖；此項待最終審查裁定，不能宣稱依賴安全檢查已通過。
+- npm audit 發現既有 `source-map-js@1.2.1` 高風險公告，路徑為 Vite → PostCSS → source-map-js（開發依賴）。公告描述惡意 indexed source map 的 section offset 可阻塞事件迴圈，修補版為 `1.2.2`。見 [GitHub 公告](https://github.com/advisories/GHSA-68fv-2mgg-jv7q)。目前未修改依賴圖；依本輪凍結依賴圖的範圍保留為優先獨立安全修補，正式發布或處理不受信任 source map 前須解決；不能宣稱依賴安全檢查已通過。
 - 既有 Vite bundle 大於 500 kB 提示仍在。
 - 既有 Starlette TestClient 對 httpx 的棄用提示仍在。
 
@@ -63,7 +63,26 @@
 
 ## 獨立審查
 
-進行中；完成後記錄裁定、修正與延後項目。
+獨立 reviewer：`gpt-6-astra`，審查範圍 `713d349..1dbca72`。Critical 0、Important 0、Minor 0，接受本輪 M1 本機分支；沒有需要修正的程式項目，也沒有延後的小問題。這不是完整 M1 出口或正式發布認證。
+
+Reviewer 額外重跑 backend（380 passed、2 deselected）、assets（6 passed）與差異格式檢查。前端及建置採用本輪執行證據。受影響的 `source-map-js` 仍是 High 安全後續項，不能因為屬開發依賴而稱為無風險。
+
+對 reviewer 明確未判定的範圍，逐項裁定如下；它們沒有被當成已驗證：
+
+| 裁定 | 理由與保留範圍 | 若判斷錯誤的成本 |
+|---|---|---|
+| 6. 三平台 CI | 取得授權推送／PR 的實際 job 結果前，F5 保持待驗證 | 跨平台缺陷尚未發現 |
+| 7. 攝影機與完整瀏覽器流程 | 留在 M2／M4 整合驗收；本輪未變更擷取 UI | 實際錄製流程仍未驗證 |
+| 8. Blender／Unity | M4 驗證方向、比例、播放及版本；靜態 parity 只攔截格式漂移 | 動畫 runtime 缺陷可能存在 |
+| 9. 不規則 timestamp 與 FPS | M1 保留既有按 frame index 匯出的行為；M4 處理時間語意，Web 現有 clip 會重採樣 | 自訂 API 的不規則時間可產生非預期播放長度 |
+| 10. Gemini 真實服務 | 本輪接受 mock 證據，真實 API 與雲端同意流程另行驗收 | 真實 API／帳務行為未驗證 |
+| 11. 其他代理／憑證環境 | 接受目前主機的 TLS 下載與合成離線／失敗測試，不推論所有網路可用 | 其他環境可能仍需設定網路 |
+| 12. 斷電與檔案系統故障 | 驗證後替換處理一般錯誤；可重建模型不宣稱 fsync／斷電持久性 | 強殺可能留下暫存檔，或需重新下載 |
+| 13. 既有安全公告 | M1 保留凍結依賴，另列優先修補；不發布、不處理不受信任 source map | 惡意 source map 仍可能阻塞建置工具 |
+| 14. M2／M3 產品流程 | 專案保存、防覆蓋、job、relay、影片清理與 Gemini opt-in 保留在路線圖 | MVP 的資料流失及操作限制仍在 |
+| 15. 授權與正式發布 | M5 處理授權、第三方再散布、包裝與發布；本輪沒有對外發布 | 不能把本分支宣稱為正式開源成品 |
+
+延後的小問題：**無**。安全公告與上述待驗證範圍不降格成小問題。
 
 ## 後續出口
 
