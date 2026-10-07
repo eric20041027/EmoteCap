@@ -69,3 +69,22 @@ def test_export_maps_export_error_to_500_with_stderr(
         "message": "Blender exited with code 1",
         "stderr": "Traceback\nKeyError: 'Hips'",
     }
+
+
+@pytest.mark.parametrize("overflow", [False, True])
+def test_bad_motion_returns_json_422_without_starting_export(
+    client: TestClient, export_calls: list[list[str]], overflow: bool
+) -> None:
+    clip = fixture_clip()
+    if overflow:
+        clip["frames"][0]["r"][0] = "FINITE_OVERFLOW"
+        raw = json.dumps({"clips": [clip]}).replace('"FINITE_OVERFLOW"', '1e999')
+    else:
+        clip["frames"][0]["r"][:4] = [0, 0, 0, 0]
+        raw = json.dumps({"clips": [clip]})
+    response = client.post("/api/export", content=raw,
+                           headers={"content-type": "application/json"})
+    assert response.status_code == 422
+    assert export_calls == []
+    detail = response.json()["detail"]
+    assert detail and all(set(item) == {"loc", "msg", "type"} for item in detail)
