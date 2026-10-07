@@ -172,15 +172,15 @@ Task completion command: `bash -c 'cd web && node node_modules/vitest/vitest.mjs
 - `flush():Promise<void>`, `retry():Promise<void>`, `getPending():ProjectDocument|null`, `getStatus():SaveStatus`, `dispose():void`.
 - `SaveStatus` phases saved/dirty/saving/error; revision means the latest staged revision, savedRevision means only a completed database write. Error carries the actual Error. No timer starts an automatic retry after failure. Later recording UI chooses 5-second checkpoints separately.
 
-- [ ] **Step 1: Write temporal behavior tests.**
+- [x] **Step 1: Write temporal behavior tests.**
 
 Use deferred save promises, fake timers and the real Task2 store where useful. Start revision1, stage revision2 while revision1 is pending, resolve first; assert status is not Saved, then resolve latest and assert Saved revision2. Verify only latest pre-timer snapshot writes, expected revision follows last completed save, quota rejection preserves latest project and selected video, stage-after-failure stays in error until retry, retry saves the latest snapshot, wrong-ID/older snapshots fail and dispose cancels only pending timer.
 
-- [ ] **Step 2: Observe RED.**
+- [x] **Step 2: Observe RED.**
 
 Run `node node_modules/vitest/vitest.mjs run src/project/autosave.test.ts`. Expected: missing ordered-save behavior; clean characterization uses a minimal loaded lane without saving to prove flush fails to publish expected data.
 
-- [ ] **Step 3: Implement one ordered lane.**
+- [x] **Step 3: Implement one ordered lane.**
 
 Stage keeps the latest immutable document and a bounded union of selected pending media filtered by the latest take descriptors. One debounce timer starts one drain promise. Drain awaits exactly one save at a time, updates savedRevision only on its success, and continues to the latest pending snapshot. An earlier completion never emits Saved while newer work exists. On rejection restore the failed snapshot unless a newer pending one exists, retain media, emit error and stop. flush cancels the debounce and joins the drain; retry clears the failure and flushes. Dispose cancels a timer, detaches status delivery, and allows an already-started atomic transaction to finish; getPending still preserves any unsaved work.
 
@@ -190,11 +190,11 @@ savedRevision = snapshot.revision;
 // Emit Saved only after the queue and in-flight snapshot are empty.
 ```
 
-- [ ] **Step 4: Verify and document the scope.**
+- [x] **Step 4: Verify and document the scope.**
 
 Run all Web tests, 8 Node asset/security checks, TypeScript and full Web build. Expected: existing tests plus all project tests pass; no other dependency records upgraded; build succeeds. Record RED/GREEN evidence, all counts, commit range, known IndexedDB performance/real-browser limits and full M2 requirements still pending. Update only achieved parts of release ledger; no checkpoint/UI/archive claims.
 
-- [ ] **Step 5: Commit.**
+- [x] **Step 5: Commit.**
 
 ```text
 git add web/src/project/autosave.ts web/src/project/autosave.test.ts docs/release-progress.md docs/superpowers/reports/2026-10-07-studio-storage.md

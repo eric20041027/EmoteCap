@@ -6,7 +6,7 @@ Authoritative product requirements: [product design](superpowers/specs/2026-10-0
 
 ## Current work
 
-- Active: M1 implemented, independently reviewed and qualified on all three CI platforms. M2 design is saved in [Studio projects and recovery](superpowers/specs/2026-10-06-studio-projects-design.md); implementation is next on local branch `feat/studio-projects`.
+- Active: M2 storage foundation implemented and locally qualified on `feat/studio-projects`, independent review next; then portable archive and Studio/browser integration. [M2 spec](superpowers/specs/2026-10-06-studio-projects-design.md), [storage report](superpowers/reports/2026-10-07-studio-storage.md). M1 remains qualified.
 - Execution: main agent implements each stage; a fresh independent reviewer checks each completed implementation plan. Do not reopen the already-approved execution-method question.
 - Workspace: reuse the existing linked worktree `EmoteCap-release-foundation`; do not touch unrelated workspaces or delete earlier policy-blocked scratch.
 - Keep each stage in committed, testable increments. No force-push or history rewrite.
@@ -20,8 +20,8 @@ Authoritative product requirements: [product design](superpowers/specs/2026-10-0
 | M1.1 | Cross-platform subprocess tests, contract parity, motion validation, verified model cache | Implemented and reviewed in main ef7a76c; 380 backend + 226 app + 6 assets pass locally |
 | M1.2 | Resolve known vulnerable build dependency and guard against regression | Local fix 99a0434: only source-map-js 1.2.1 → 1.2.2; regression 2/2 and npm audit 0 vulnerabilities; independent review passed (0 findings) |
 | M1.3 | Actual Windows/macOS/Linux unit + Web build CI passes | All three PR jobs passed again at final M1 HEAD 25c6cbe in [run 37569490306](https://github.com/eric20041027/EmoteCap/actions/runs/37569490306); original code qualification at 663cd33 is in the [hosted report](superpowers/reports/2026-10-06-hosted-python.md); draft [PR #1](https://github.com/eric20041027/EmoteCap/pull/1) remains unmerged |
-| M2.1 | Project/Take/Clip identity and immutable original take | Implementation pending |
-| M2.2 | IndexedDB autosave, restore after refresh, recording checkpoint every 5 seconds | Implementation pending |
+| M2.1 | Project/Take/Clip identity and immutable original take | Domain implemented, frozen original/provenance and bounded undo; 68 storage/domain/autosave tests pass; independent review and UI wiring pending |
+| M2.2 | IndexedDB autosave, restore after refresh, recording checkpoint every 5 seconds | Atomic repository and ordered autosave implemented, including stale-tab/rollback/quota preservation; UI restore and 5-second capture wiring pending |
 | M2.3 | Portable .emotecap import/export, version and size validation, optional source media | Implementation pending |
 | M2.4 | Setup diagnostics, sample project, keyboard-accessible review and error recovery | Implementation pending |
 | M2.5 | Real browser record/import → save → reload → restore → edit, quota-failure preservation | Browser evidence pending |
