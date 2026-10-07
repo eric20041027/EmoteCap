@@ -14,12 +14,14 @@ The job panel shows phase/progress, submitted revision, errors/warnings and Canc
 
 - Watched same-name overwrite and case-only collisions; owned-runner characterization lacked progress/cancel/timeout/errors. New regressions pass. Actual owned Python children test cancellation, deadline cleanup and bounded output, including multibyte UTF8 and progress-persistence failure.
 - Watched19repository/service failures and10API404/legacy-lane failures. Durable restoration, digest-preserving retry, active/queued cancel, final-boundary cancel, queue/history capacity, parallel admission/single worker, corrupt/missing input, persistence failure/orphan cleanup and safe terminal deletion now pass.
-- Backend whole fast suite **423pass/2real-Blender cases deselected**. No actual Blender/Unity/provider/camera used. Existing Starlette TestClient/httpx deprecation warning remains; no dependency was changed to suppress it.
-- Web whole suite **409pass/44files**, Node8asset/security, TypeScript,3model SHA256 checks and production build174modules pass.25newjob API/controller cases include malformed metadata/unsafe links, eagerly fixed bytes, queue failure,9MiBresponse cap,15sdeadline, serial/no-late polls, immutable retry identity, stale-delete response and effect-replay action release.
+- Backend whole fast suite **425pass/2real-Blender cases deselected**. No actual Blender/Unity/provider/camera used. Existing Starlette TestClient/httpx deprecation warning remains; no dependency was changed to suppress it.
+- Web whole suite **412pass/44files**, Node8asset/security, TypeScript,3model SHA256 checks and production build174modules pass.28newjob API/controller cases include malformed metadata/unsafe links, eagerly fixed bytes, queue failure,64MiBresponse cap/full escaped history,15sdeadline, serial/no-late polls, immutable retry identity, stale-delete orderings and effect-replay action release.
 - **15/15actual Edge154.0.4258.62 browser cases passed together**, including the built application and the existing Studio/capture recovery suite. The new job workflow passes sample→export→edit while queued→cancel→retry original revision→refresh→paired downloads. Job HTTP responses are deterministic test routes, and do not claim real Blender execution. Existing synthetic/injected physical-camera/storage evidence boundaries still apply.
 - No new runtime or development dependency. Existing main-bundle>500kB and Three.js shadow fallback warnings remain; this work makes no performance/quality-improvement claim.
 
-Final independent Native review is pending. M3 media/provider consent and Live Link controls are separate required plans. Physical camera/storage, actual Blender/Unity on two rigs, target-laptop performance, clean-machine/beginner acceptance and licensing/public-release gates remain pending in the full goal. No M3 public push/main merge/tag/release occurred.
+Final independent Native review at e6e631f..2d30d92 found Critical0/Important3/Minor0 and independently passed46backend/25jobWeb cases. All Important findings entered one TDD fix pass: legal128-record escaped history now fits a64MiBbounded response; action settlement invalidates polls started during DELETE; legacy waiting includes queued process budgets and returns an accepted jobId/statusUrl if confirmation is unavailable. Three reproductions failed before fixes; the full425Python/412Web/8Node and15Edge gates passed afterward. The legacy regression simulates three100second jobs through Events/clock, without a300second sleep. No re-review was dispatched under Native rules.
+
+M3 media/provider consent and Live Link controls are separate required plans. Physical camera/storage, actual Blender/Unity on two rigs, target-laptop performance, clean-machine/beginner acceptance and licensing/public-release gates remain pending in the full goal. No M3 public push/main merge/tag/release occurred.
 
 ## Rulings made
 
@@ -37,5 +39,13 @@ Final independent Native review is pending. M3 media/provider consent and Live L
 12. Export the frozen take's skeleton provenance; keep legacy helpers on the compatibility adapter. Cost if wrong: later global skeleton changes apply to new takes rather than an old snapshot.
 13. Delete service input/downloads only, retaining user-project Unity copies. Cost if wrong: users decide separately when deleting Unity assets.
 14. Scope project recovery assertions to their unchanged expected alert text when independent jobs also reports offline. Cost if wrong: tests verify their required error without assuming exactly one global alert; data-preservation checks remain intact.
+15. Bound response at64MiB to accommodate128tails with worst sixfold JSON control escaping plus result metadata. Cost if wrong: a maximal diagnostic refresh needs additional browser memory and M4 performance measurement.
+16. Legacy waiting includes all admitted process budgets plus10seconds/job allowance; unconfirmed503 carries job identity/recovery URL. Cost if wrong: exceptionally slow disk publication can exceed the finite wait, while the accepted job remains recoverable.
+17. Keep actual Blender/Unity/two-rig animation qualification in M4. Cost if wrong: Python children/fixture files prove lifecycle rather than motion correctness.
+18. Keep physical camera/storage, target-laptop and clean-machine/beginner gates pending. Cost if wrong: synthetic/injected/unit behavior can differ on users' machines.
+19. Continue separate provider/Live Link plans before declaring M3 complete. Cost if wrong: an export-only increment could be mistaken for all M3.
+20. Keep M5 licensing/notices/release checklist and owner approval pending. Cost if wrong: source visibility could be mistaken for distribution rights.
+21. Preserve existing M1/M2 independent reviews and qualify new interactions here. Cost if wrong: an additional boundary regression may still be needed.
+22. Prohibit independent browser rerun to preserve current artifacts; reviewer inspected code/evidence, author reran15cases after fixes. Cost if wrong: no second-party browser execution is claimed.
 
-Deferred minors: none before final review. Logs/ledger are retained; browser output is the latest run rather than a permanent history of earlier failure traces.
+Deferred minors: none. Logs/ledger are retained; browser output is the latest run rather than a permanent history of earlier failure traces. Narrow390px build screenshot was inspected and has no horizontal overflow.
