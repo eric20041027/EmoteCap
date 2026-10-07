@@ -11,6 +11,7 @@ import argparse
 import json
 import math
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 
 import bpy
@@ -135,7 +136,61 @@ def key_clip(obj: bpy.types.Object, contract: dict, clip: dict) -> None:
             if parent is None:
                 pose_bone.location = basis.translation
                 pose_bone.keyframe_insert("location", frame=key_time)
+    expected_keys = len(clip['frames']) + 1
+    for curve in obj.animation_data.action.fcurves:
+        if curve.data_path.endswith('rotation_quaternion') and len(curve.keyframe_points) != expected_keys:
+            raise ValueError('Source timestamps are too close for Blender to preserve every sample')
     bpy.context.scene.frame_set(-1)
+
+
+class _ScheduledNumpy:
+    """Supply a bounded union of source and regular samples to the FBX baker.
+
+    Only the add-on's local numpy binding changes; numpy itself is untouched.
+    The supported add-on must request this exact scene sampling range once.
+    """
+    def __init__(self, numpy, clip: dict):
+        self.numpy = numpy
+        self.calls = 0
+        frames = clip['frames']
+        fps = clip['fps']
+        end = frames[-1]['t']
+        if not 1 <= fps <= 120 or len(frames) > 21601 or not math.isfinite(end) or not 0 <= end <= 180:
+            raise ValueError('FBX sampling exceeds motion limits')
+        times = [frame['t'] * fps for frame in frames]
+        if any(not math.isfinite(t) or t < 0 for t in times) or times[0] != 0:
+            raise ValueError('FBX timestamps must be finite and start at zero')
+        if any(a >= b for a, b in zip(times, times[1:])):
+            raise ValueError('FBX timestamps must increase')
+        self.end = math.ceil(end * fps)
+        self.stop = numpy.nextafter(self.end, numpy.inf)
+        # Never choose a uniform step from the smallest input gap.
+        self.samples = numpy.array(sorted(set(range(self.end + 1)).union(times)), dtype=float)
+        if len(self.samples) > 43202:
+            raise ValueError('FBX sampling exceeds its finite budget')
+
+    def __getattr__(self, name):
+        return getattr(self.numpy, name)
+
+    def arange(self, *args, **kwargs):
+        if args == (0, self.stop) and kwargs == {'step': 1.0}:
+            self.calls += 1
+            return self.samples
+        return self.numpy.arange(*args, **kwargs)
+
+
+@contextmanager
+def source_samples(clip: dict):
+    from io_scene_fbx import export_fbx_bin
+    original = export_fbx_bin.np
+    schedule = _ScheduledNumpy(original, clip)
+    export_fbx_bin.np = schedule
+    try:
+        yield
+        if schedule.calls != 1:
+            raise RuntimeError('This Blender FBX add-on does not support source-time sampling')
+    finally:
+        export_fbx_bin.np = original
 
 
 def export_fbx(path: Path) -> None:
@@ -173,7 +228,8 @@ def main() -> None:
         armature = build_armature(clip_contract["skeleton"])
         key_clip(armature, clip_contract, clip)
         armature.animation_data.action.name = clip["name"]
-        export_fbx(out_dir / f"{clip['name']}.fbx")
+        with source_samples(clip):
+            export_fbx(out_dir / f"{clip['name']}.fbx")
         sidecar = {"name": clip["name"], "loop": clip["loop"], "fps": clip["fps"]}
         (out_dir / f"{clip['name']}.emotecap.json").write_text(json.dumps(sidecar))
         print(f"EMOTECAP exported {clip['name']} ({len(clip['frames'])} frames)")

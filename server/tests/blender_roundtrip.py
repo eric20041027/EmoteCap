@@ -18,14 +18,31 @@ def main():
     if len(armatures)!=1:raise RuntimeError('Expected one imported armature')
     obj=armatures[0];action=obj.animation_data.action
     if action is None:raise RuntimeError('Imported animation is missing')
-    skeleton=[b for b in contract['skeleton'] if b['fbx'] in obj.data.bones]
-    rest={b['name']:obj.matrix_world@obj.data.bones[b['fbx']].matrix_local for b in skeleton}
+    fingers=set(contract['driven'][18:]) if clip.get('skeleton')=='body' else set()
+    skeleton=[b for b in contract['skeleton'] if b['name'] not in fingers]
+    if {b.name for b in obj.data.bones}!={b['fbx'] for b in skeleton}:
+        raise RuntimeError('Imported bone names do not match the required skeleton')
     driven={name:i for i,name in enumerate(contract['driven'])}
     vector=lambda xyz:Vector((xyz[0],-xyz[2],xyz[1]))
-    bind_errors=[(rest[b['name']].translation-vector(b['head'])).length for b in skeleton]
+    rest={};bind_errors=[];bind_rotations=[];bind_scales=[]
+    names={b['name']:b['fbx'] for b in skeleton}
+    for bone in skeleton:
+        imported=obj.data.bones[bone['fbx']]
+        parent=names[bone['parent']] if bone['parent'] else None
+        if (imported.parent.name if imported.parent else None)!=parent:
+            raise RuntimeError('Imported bone hierarchy differs from the contract')
+        head,tail=vector(bone['head']),vector(bone['tail'])
+        rotation=bpy.types.Bone.MatrixFromAxisRoll((tail-head).normalized(),0).to_quaternion()
+        reference=Matrix.LocRotScale(head,rotation,Vector((1,1,1)))
+        actual=obj.matrix_world@imported.matrix_local
+        rest[bone['name']]=reference
+        bind_errors.append((actual.translation-head).length)
+        difference=actual.to_quaternion().rotation_difference(rotation).angle
+        bind_rotations.append(math.degrees(min(difference,2*math.pi-difference)))
+        bind_scales.append(max(abs(value-1) for value in actual.to_scale()))
     results=[]
-    for index in sorted({0,len(clip['frames'])//2,len(clip['frames'])-1}):
-        frame=clip['frames'][index];time=frame['t']*clip['fps'];scene.frame_set(math.floor(time),subframe=time%1)
+    for frame in clip['frames']:
+        time=frame['t']*clip['fps'];scene.frame_set(math.floor(time),subframe=time%1)
         expected={};angles=[];positions=[];world={}
         for bone in skeleton:
             name,parent=bone['name'],bone['parent'];bind=rest[name]
@@ -43,7 +60,8 @@ def main():
         results.append({'t':frame['t'],'maxAngleDegrees':max(angles),'maxPositionMeters':max(positions),
                         'hips':world['Hips'],'head':world['Head'],'rightHand':world['RightHand'],'leftHand':world['LeftHand']})
     result={'durationSeconds':float(action.frame_range[1]-action.frame_range[0])/clip['fps'],
-            'bones':len(skeleton),'bindErrorMeters':max(bind_errors),'samples':results,
+            'bones':len(skeleton),'bindErrorMeters':max(bind_errors),
+            'bindRotationErrorDegrees':max(bind_rotations),'bindScaleError':max(bind_scales),'samples':results,
             'blenderVersion':bpy.app.version_string}
     Path(args.result).write_text(json.dumps(result,allow_nan=False),encoding='utf-8')
 if __name__=='__main__':main()
