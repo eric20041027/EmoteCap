@@ -85,6 +85,15 @@ def test_archive_inside_payload_is_rejected(build_inputs,tmp_path):
     repo,prepared=build_inputs
     with pytest.raises(files.PackageError): builder.build(repo,prepared,tmp_path/'output',tmp_path/'output/result.zip')
 
+def test_development_contract_fixtures_are_not_runtime_payload(build_inputs,tmp_path):
+    repo,prepared=build_inputs;fixture=repo/'contracts/fixtures';fixture.mkdir()
+    (fixture/'make_fixtures.py').write_text('developer fixture generator')
+    (fixture/'sample-project.emotecap').write_bytes(b'synthetic development fixture')
+    git(repo,'add','.');git(repo,'commit','-qm','development fixtures')
+    builder.build(repo,prepared,tmp_path/'output',tmp_path/'output.zip')
+    assert (tmp_path/'output/app/contracts/bones.json').exists()
+    assert not (tmp_path/'output/app/contracts/fixtures').exists()
+
 def test_zip_uses_fixed_level_nine(tmp_path,monkeypatch):
     import zlib
     source=tmp_path/'source';source.mkdir();(source/'normal').write_bytes(b'normal'*100)

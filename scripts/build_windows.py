@@ -16,7 +16,7 @@ PENDING_GATES = ['Owner MIT/contributor/image rights','Complete native/vendor re
     'Actual Unity receiver compilation and two redistributable rigs','Authorized physical capture qualification',
     'Target-laptop performance qualification','Actual clean-machine startup','Five new Unity users acceptance',
     'Owner-approved public source/tag/release']
-ARCHIVE_PATHS = ['server/emotecap_server','server/blender','contracts','packaging/windows',
+ARCHIVE_PATHS = ['server/emotecap_server','server/blender','contracts/bones.json','packaging/windows',
     'packaging/python-runtime.json','server/uv.lock','server/pyproject.toml','web/package-lock.json',
     'web/scripts/mediapipe-assets.json']
 PUBLIC_PREFIXES = {'assets','models','mediapipe','samples'}

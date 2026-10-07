@@ -18,6 +18,8 @@ Task2initial11failures/13fixture errors came from the loadable builder/bootstrap
 
 All26Task2cases then passed23.41seconds; whole fast backend692passed/18slow deselected50.59seconds. Frozen production Web was rebuilt:181modules, all three model SHA256pins checked, TypeScript/build successful. The existing bundle-size warning is unchanged; no claim of a new performance result.
 
+The first actual build atb376c64stopped before writing a candidate manifest: contract source includes a developer generator and sample archive outside the runtime allowlist. Its unique source snapshot/attempt is preserved. A watched regression now narrows the archived runtime contract to bones.json only; source developer fixtures remain intact and the public built sample stays included. No failed attempt is counted as a packaged success.
+
 ## Rulings made
 
 1. Continue authorized Native without another plan/method prompt. Cost if wrong: local reviewable work only; public operations require their own authorization.
@@ -30,5 +32,6 @@ All26Task2cases then passed23.41seconds; whole fast backend692passed/18slow dese
 8. Require selected private paths outside the whole verified package before application import. Cost if wrong: users cannot store mutable data/settings inside the package; defaults remain their private user directory.
 9. User entry is start.cmdwith -I -B; direct nonisolated Python embedding is unsupported. Cost if wrong: custom hosts need their own isolation; the delivered entry does not depend on user Python/site packages.
 10. Preserve actual built Web byte/lock/model receipts without pretending an arbitrary dist was regenerated from HEAD. Cost if wrong: source rebuild qualification remains separately necessary and traceable.
+11. Package only the runtime bones.jsoncontract from the committed source; exclude development generators/fixture archives. Cost if wrong: developer contract docs/fixtures are obtained from source, not the runtime payload; the built public sample is unaffected.
 
 Deferred minors:none before final review. Unity activation/receiver/two rigs, physical/laptop, owner MIT/contributors/images, complete vendor notices, clean-machine/five-user and publication gates remain pending.
