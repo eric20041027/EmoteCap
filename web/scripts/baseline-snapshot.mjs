@@ -60,7 +60,7 @@ function readBounded(target,limit){
 }
 function git(repository,args,maxBuffer=MAX_FILE+1){
   try{return execFileSync('git',['--no-replace-objects',...args],{cwd:repository,timeout:10000,maxBuffer,
-    env:{...process.env,GIT_NO_REPLACE_OBJECTS:'1',GIT_OPTIONAL_LOCKS:'0'},stdio:['ignore','pipe','pipe']});}
+    env:{...process.env,GIT_NO_REPLACE_OBJECTS:'1',GIT_NO_LAZY_FETCH:'1',GIT_OPTIONAL_LOCKS:'0'},stdio:['ignore','pipe','pipe']});}
   catch{fail();}
 }
 function context(repository,value){

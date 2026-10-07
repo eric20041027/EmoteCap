@@ -73,6 +73,21 @@ test('ignores Git replacement objects and retains the actual original commit byt
   const other=commit(input.repository);git(input.repository,'replace',input.index.sourceCommit,other);
   const output=prepareBaseline(input.repository,input.index);assert.deepEqual(fs.readFileSync(path.join(output.directory,'web/src/source.ts')),input.files[1][1]);
 });
+test('missing promised blobs fail locally without lazy fetching or completing a snapshot',()=>{
+  const input=fixture();git(input.repository,'config','uploadpack.allowFilter','true');
+  const repository=path.join(root,`promisor-${randomUUID()}`);
+  // The owned local-file remote exercises lazy fetching without external networking.
+  git(input.repository,'clone','--quiet','--no-local','--filter=blob:none','--no-checkout',input.repository,repository);
+  fs.mkdirSync(path.join(repository,'web'));
+  assert.equal(git(repository,'config','remote.origin.promisor').toString().trim(),'true');
+  assert.throws(()=>git(repository,'--no-lazy-fetch','cat-file','-e',input.index.files[0].blob));
+  const pack=path.join(repository,'.git/objects/pack'),before=fs.readdirSync(pack).sort();
+  const inherited=process.env.GIT_NO_LAZY_FETCH;process.env.GIT_NO_LAZY_FETCH='0';
+  try{assert.throws(()=>prepareBaseline(repository,input.index),BaselineError);}
+  finally{if(inherited===undefined)delete process.env.GIT_NO_LAZY_FETCH;else process.env.GIT_NO_LAZY_FETCH=inherited;}
+  assert.deepEqual(fs.readdirSync(pack).sort(),before);
+  assert.equal(fs.existsSync(path.join(repository,'web/.measurement-baseline',input.index.sourceCommit)),false);
+});
 test('refuses an unavailable commit before creating snapshot output',()=>{const input=fixture();input.index.sourceCommit='a'.repeat(40);input.directory=path.join(path.dirname(input.directory),input.index.sourceCommit);rejected(input);});
 test('refuses a nonregular Git tree mode even when its blob matches the index',()=>{
   const input=fixture();git(input.repository,'update-index','--cacheinfo',`120000,${input.index.files[1].blob},web/src/source.ts`);
