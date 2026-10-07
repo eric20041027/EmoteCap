@@ -31,7 +31,7 @@
 
 ### Task 1: Versioned bounded ZIP export and decode
 
-**Files:** Create `web/src/project/archive/limits.ts`, `zip.ts`, `manifest.ts`, `codec.ts`, `codec.test.ts`; modify `web/package.json`, `web/package-lock.json`.
+**Files:** Create `web/src/project/archive/limits.ts`, `operation.ts`, `json.ts`, `zip.ts`, `manifest.ts`, `codec.ts`, `codec.test.ts`; modify `web/package.json`, `web/package-lock.json`.
 
 **Interfaces:**
 - Consumes `parseProject`, `recoverProject`, frozen ProjectDocument, and MediaDescriptor from the approved storage foundation.
@@ -44,11 +44,11 @@
 - `decodeProject(blob,{signal?:AbortSignal,limits?:Partial<ArchiveLimits>}={}):Promise<{project:ProjectDocument;media:ReadonlyMap<string,ArchiveMediaSource>}>` creates a new namespace, recovers checkpoints and clears retention flags.
 - `ProjectArchiveError` distinguishes invalid/corrupt/limit/cancelled/missing-media without exposing raw payloads.
 
-- [ ] **Step 1: Add the pinned runtime dependency and inspect its real APIs.**
+- [x] **Step 1: Add the pinned runtime dependency and inspect its real APIs.**
 
 Run `npm install --save --save-exact @zip.js/zip.js@2.23.0 --ignore-scripts` in web. Expected: only this new runtime package record added; audit clean. Read its installed declaration/source for BlobReader.readUint8Array, ZipReader.getEntriesGenerator, FileEntry.getData WritableStream support, strict checks, chunk size and native compression configuration. Rule on any documented API drift before coding.
 
-- [ ] **Step 2: Write failing portable behavior tests.**
+- [x] **Step 2: Write failing portable behavior tests.**
 
 Initial characterization:
 
@@ -63,7 +63,7 @@ expect(restored.media.size).toBe(0);
 
 Use actual zip.js fixtures, not a mocked codec. Test explicit media on/off and zero loader calls when excluded; in-memory source with retention off; missing retained video error; imported media in memory with null retention; recording recovery; Unicode names; corrupt/unsupported manifest/project, unknown credential fields, missing/extra/duplicate/traversal/case filenames, invalid UTF-8, unsupported compression/encryption; CRC/local-header tampering; lower input/JSON/decoded/entry/read limits; pre-abort and abort during source load. A forged compressed project entry with a tiny claimed size must fail against actual byte counts. Test an entry larger than 128 KiB to confirm payload reads remain streamed despite the metadata read cap.
 
-- [ ] **Step 3: Observe RED, then implement strict helpers.**
+- [x] **Step 3: Observe RED, then implement strict helpers.**
 
 Run `node node_modules/vitest/vitest.mjs run src/project/archive/codec.test.ts`; use a minimal loaded codec if necessary to obtain a clean failed roundtrip assertion rather than counting a missing module as RED.
 
@@ -79,7 +79,7 @@ override async readUint8Array(index:number,length:number) {
 
 Use the entries generator, reject forbidden names/duplicates/counts and declared limits before extracting. Stream each entry into Blob parts with an independent running byte count, expected-size check and global total; throw before retaining a chunk that exceeds a cap. Use CRC32, local filename/structure/overlap and strictness options actually available in the installed package. Cleanup/abort on every failure, including malformed archive detection.
 
-- [ ] **Step 4: Implement pure project encode/decode.**
+- [x] **Step 4: Implement pure project encode/decode.**
 
 Encode builds a validated copy; excluding media clears its references without calling readMedia. Including media uses matching retained or in-memory sources, adds descriptors only to the export copy, checks totals and writes manifest/project/media entries in deterministic order. Decode validates ZIP then strict UTF-8/JSON/manifest/project, verifies exact media references/sizes and returns separate media sources. Use a new project UUID (avoid collisions with its existing take/clip IDs), recover recording takes and clear browser media retention in the returned document.
 
@@ -91,7 +91,7 @@ const project = recoverProject(newDocument);
 
 Use AbortSignal plus a 30-second deadline for reading/writing; if loading a source ignores the signal, race it against abort so the codec still terminates. Never change a caller document or publish partial results.
 
-- [ ] **Step 5: Verify codec, all project tests, types and locks, then commit.**
+- [x] **Step 5: Verify codec, all project tests, types and locks, then commit.**
 
 Run all src/project tests and TypeScript. Expected: all cases pass; explicit source decisions honored, metadata allocation bounded, cancellation terminates, no repository changes during a failed import. Compare parsed dependency records to the baseline; only the new package allowed.
 
@@ -114,7 +114,7 @@ Test reads the committed binary via Node file tools, wraps in Blob, decodes with
 
 - [ ] **Step 2: Generate a reproducible fixture.**
 
-The script imports `encodeProject`, current raise-right-arm.clip.json and schema types, uses fixed UUIDs/timestamps and synthetic provenance (models empty, quality fixture, calibration synthetic), then writes the Blob bytes to contracts/fixtures/sample-project.emotecap. Run with pinned Node's TypeScript stripping. Generate twice into memory/files and compare SHA256; exact ZIP dates and entry ordering must make them identical. Commit only the synthetic portable file; no raw personal recording.
+The script imports `encodeProject`, current raise-right-arm.clip.json and schema types, uses fixed UUIDs/timestamps and synthetic provenance (models empty, quality fixture, calibration synthetic), then writes the Blob bytes to contracts/fixtures/sample-project.emotecap. Run through the existing Vitest/Vite TypeScript runtime with EMOTECAP_GENERATE_FIXTURE=1, so frontend extensionless/JSON imports use their normal resolver. Generate twice into memory/files and compare SHA256; exact ZIP dates and entry ordering must make them identical. Commit only the synthetic portable file; no raw personal recording.
 
 - [ ] **Step 3: Document the format and actual limits.**
 

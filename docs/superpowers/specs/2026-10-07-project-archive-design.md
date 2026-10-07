@@ -23,6 +23,7 @@ Use exact runtime dependency `@zip.js/zip.js@2.23.0` (BSD-3-Clause), verified fr
 - Use streaming output into bounded Blob parts with signature checks, native compression streams and no web workers/network codec loading. Inspect fallback behavior and test compressed input on the pinned runtime. JSON bytes are materialized only inside the explicit JSON cap.
 - Accept a caller AbortSignal and a 30-second operation timeout; cancel streaming work and release references on failure. No partial archive or imported project is published after failure.
 - Limits may be lowered for callers/tests, never raised beyond the hard caps. Error messages explain unsupported version, corruption, missing source, size limit or cancellation.
+- Before JSON object construction, cap nesting at 8, fields per object at 16, encoded string literals at 4096 characters, and structural values at 10 million. These exceed every allowed schema1 shape while bounding hostile JSON allocations. Long scans yield every MiB to honor cancellation/deadlines.
 
 ## Deliverables and acceptance
 

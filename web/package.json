@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^1.0.1",
+    "@zip.js/zip.js": "2.23.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "three": "^0.186.1"
