@@ -34,7 +34,7 @@
 
 ## 開工與檔案責任
 
-目前僅計畫已建立，以下 checkbox 全部代表未執行工作。先檢閱規格並選定執行方式，再開始改程式。下列步驟以 repository root 為基準；標示 `web/` 或 `server/` 的命令要在該目錄執行。每個 step 是一次可驗證的編輯或執行動作。
+已依使用者選擇採 Native 執行，五個本機實作任務已完成，正在進行獨立審查。勾選代表本機步驟完成；三平台遠端 CI 尚未執行，M1 出口仍待該證據。執行差異與完整結果見 [交付記錄](../reports/2026-10-06-release-foundation.md)。原始步驟與範例保留供對照；有衝突時以交付記錄中的裁定及目前原始碼為準。下列步驟以 repository root 為基準；標示 `web/` 或 `server/` 的命令要在該目錄執行。每個 step 是一次可驗證的編輯或執行動作。
 
 | Task | 寫入範圍 | 可獨立審查的成果 |
 |---|---|---|
@@ -56,7 +56,7 @@
 - Consumes: `run_blender(settings: Settings, job_json: Path, out_dir: Path) -> None`、`ExportError.stderr_tail`。
 - Produces: 測試輔助 `write_fake_blender(tmp_path: Path, python_body: str, monkeypatch: pytest.MonkeyPatch) -> str`；只作用於目前測試。
 
-- [ ] **Step 1: 重現紅燈。** 在 `server/` 執行：
+- [x] **Step 1: 重現紅燈。** 在 `server/` 執行：
 
 ```text
 uv run --frozen --python 3.12.14 pytest tests/test_exporter.py -q
@@ -64,7 +64,7 @@ uv run --frozen --python 3.12.14 pytest tests/test_exporter.py -q
 
 Windows 預期兩個失敗訊息包含 `WinError 193`。其他系統原測試可能通過；仍須保留下一步的空白／中文路徑案例。
 
-- [ ] **Step 2: 先把兩個行為測試改成 Python 程序輸入。** 用下列函式取代同名測試；舊 helper 尚不接受第三個參數，先得到明確失敗。
+- [x] **Step 2: 先把兩個行為測試改成 Python 程序輸入。** 用下列函式取代同名測試；舊 helper 尚不接受第三個參數，先得到明確失敗。
 
 ```python
 def test_run_blender_raises_with_last_20_output_lines_on_nonzero_exit(
@@ -97,9 +97,9 @@ def test_run_blender_raises_export_error_on_timeout(
     assert "started" in excinfo.value.stderr_tail
 ```
 
-- [ ] **Step 3: 再跑 Step 1 命令。** 預期 `write_fake_blender` 的參數不合；避免新測試意外沒被收集。
+- [x] **Step 3: 再跑 Step 1 命令。** 預期 `write_fake_blender` 的參數不合；避免新測試意外沒被收集。
 
-- [ ] **Step 4: 替換 helper，增加 `import subprocess` 與 `import sys`。** 保存真實 `subprocess.run` 再 patch，確保仍實際啟動與終止子程序。
+- [x] **Step 4: 替換 helper，增加 `import subprocess` 與 `import sys`。** 保存真實 `subprocess.run` 再 patch，確保仍實際啟動與終止子程序。
 
 ```python
 def write_fake_blender(
@@ -122,7 +122,7 @@ def write_fake_blender(
     return str(script)
 ```
 
-- [ ] **Step 5: 跑聚焦測試及後端完整非實機測試。**
+- [x] **Step 5: 跑聚焦測試及後端完整非實機測試。**
 
 ```text
 uv run --frozen --python 3.12.14 pytest tests/test_exporter.py -q
@@ -131,7 +131,7 @@ uv run --frozen --python 3.12.14 pytest -q -m "not slow"
 
 在未新增其他測試時預期 `354 passed, 2 deselected`；不是把兩項 failure 改成 skip。
 
-- [ ] **Step 6: 檢查只改測試後提交。**
+- [x] **Step 6: 檢查只改測試後提交。**
 
 ```text
 git add server/tests/test_exporter.py
@@ -149,7 +149,7 @@ git commit -m "test: make Blender failure tests portable"
 - Consumes: `contracts/bones.json` 的 `version`、`driven`、`skeleton`、`hipsRestHeight`；TS `CONTRACT_VERSION`、`DRIVEN_BONES`、`SKELETON`；C# `EmoteCapContract.Version`、`DrivenBones`。
 - Produces: 無新 runtime API；新增對現行公開資料格式的 drift guard。
 
-- [ ] **Step 1: 新增跨語言／文件一致性測試。** 完整建立：
+- [x] **Step 1: 新增跨語言／文件一致性測試。** 完整建立：
 
 ```python
 import json
@@ -177,7 +177,7 @@ def test_v2_contract_matches_unity_and_documentation():
     assert "192" in doc
 ```
 
-- [ ] **Step 2: 執行紅燈測試。** `server/`：
+- [x] **Step 2: 執行紅燈測試。** `server/`：
 
 ```text
 uv run --frozen --python 3.12.14 pytest tests/test_contract_parity.py -q
@@ -185,7 +185,7 @@ uv run --frozen --python 3.12.14 pytest tests/test_contract_parity.py -q
 
 預期在文件標題失敗；這證明本次修正對應既有 drift。
 
-- [ ] **Step 3: 在既有 TS 測試加入版本／fixture 保護。** 原有 imports 加入 `CONTRACT_VERSION`；另加入兩個 JSON import，再把下列測試放進現有 `describe('contract', ...)`。
+- [x] **Step 3: 在既有 TS 測試加入版本／fixture 保護。** 原有 imports 加入 `CONTRACT_VERSION`；另加入兩個 JSON import，再把下列測試放進現有 `describe('contract', ...)`。
 
 ```typescript
 import tposeClip from '../../../contracts/fixtures/tpose.clip.json';
@@ -205,7 +205,7 @@ it('keeps v2 fixtures readable without changing the wire shape', () => {
 });
 ```
 
-- [ ] **Step 4: 以以下完整內容更新 `contracts/motion-v1.md`。** 保留檔名，不改 JSON 骨架或 fixture。
+- [x] **Step 4: 以以下完整內容更新 `contracts/motion-v1.md`。** 保留檔名，不改 JSON 骨架或 fixture。
 
 ````markdown
 # EmoteCap motion contract v2
@@ -310,9 +310,9 @@ head up in the browser, exported FBX, and Unity. Source parity tests are only
 one part of that check; real Blender/Unity playback must also be verified.
 ````
 
-- [ ] **Step 5: 執行驗證。** 在 `server/` 跑 `uv run --frozen --python 3.12.14 pytest tests/test_contract.py tests/test_contract_parity.py -q`；在 `web/` 跑 `npm test -- src/motion/contract.test.ts`。兩者應全通過；確認 `bones.json` 與 Unity runtime 無 diff。
+- [x] **Step 5: 執行驗證。** 在 `server/` 跑 `uv run --frozen --python 3.12.14 pytest tests/test_contract.py tests/test_contract_parity.py -q`；在 `web/` 跑 `npm test -- src/motion/contract.test.ts`。兩者應全通過；確認 `bones.json` 與 Unity runtime 無 diff。
 
-- [ ] **Step 6: 提交此邊界修正。**
+- [x] **Step 6: 提交此邊界修正。**
 
 ```text
 git add contracts/motion-v1.md server/tests/test_contract_parity.py web/src/motion/contract.test.ts
@@ -331,7 +331,7 @@ git commit -m "test: align motion contract documentation and consumers on v2"
 - Consumes: 現有 `MotionFrame`、`Clip`、`ExportRequest`；`POST /api/export`。
 - Produces: 相同 models 與 wire 欄位，新增數值／時序約束。422 的 `detail` 為 `{loc: list, msg: str, type: str}[]`；不含原始 `input` 或 exception `ctx`。
 
-- [ ] **Step 1: 建立完整 model 行為測試。**
+- [x] **Step 1: 建立完整 model 行為測試。**
 
 ```python
 import copy
@@ -407,7 +407,7 @@ def test_accepts_inclusive_180_second_120_fps_boundary():
     assert result.frames[-1].t == 180
 ```
 
-- [ ] **Step 2: 在既有 API 測試加入 422 與禁止啟動 exporter 的案例。** 沿用該檔現有 `fixture_clip`、`client`、`export_calls`。
+- [x] **Step 2: 在既有 API 測試加入 422 與禁止啟動 exporter 的案例。** 沿用該檔現有 `fixture_clip`、`client`、`export_calls`。
 
 ```python
 @pytest.mark.parametrize("overflow", [False, True])
@@ -429,7 +429,7 @@ def test_bad_motion_returns_json_422_without_starting_export(
     assert detail and all(set(item) == {"loc", "msg", "type"} for item in detail)
 ```
 
-- [ ] **Step 3: 執行紅燈。** `server/`：
+- [x] **Step 3: 執行紅燈。** `server/`：
 
 ```text
 uv run --frozen --python 3.12.14 pytest tests/test_motion_validation.py tests/test_export_api.py -q
@@ -437,7 +437,7 @@ uv run --frozen --python 3.12.14 pytest tests/test_motion_validation.py tests/te
 
 預期多個 invalid input 未被拒，以及合法 21601 frames 被舊長度上限拒絕。
 
-- [ ] **Step 4: 修改 model。** 在 `contract.py` 加入 `import math`、`Self`、`ConfigDict`、`model_validator` imports；以以下完整定義取代 `MotionFrame`、`Clip`，其他 models 保留。
+- [x] **Step 4: 修改 model。** 在 `contract.py` 加入 `import math`、`Self`、`ConfigDict`、`model_validator` imports；以以下完整定義取代 `MotionFrame`、`Clip`，其他 models 保留。
 
 ```python
 class MotionFrame(BaseModel):
@@ -475,7 +475,7 @@ class Clip(BaseModel):
         return self
 ```
 
-- [ ] **Step 5: 加入可 JSON 序列化的驗證錯誤 handler。** 在 `main.py` imports 加 `Request`、`from fastapi.exceptions import RequestValidationError`、`from fastapi.responses import JSONResponse`；在 `app = FastAPI(...)` 後加入：
+- [x] **Step 5: 加入可 JSON 序列化的驗證錯誤 handler。** 在 `main.py` imports 加 `Request`、`from fastapi.exceptions import RequestValidationError`、`from fastapi.responses import JSONResponse`；在 `app = FastAPI(...)` 後加入：
 
 ```python
 @app.exception_handler(RequestValidationError)
@@ -489,9 +489,9 @@ async def invalid_request(_: Request, exc: RequestValidationError) -> JSONRespon
 
 移除 input／ctx 也避免把整段動作或不合法浮點數帶進錯誤回應；不捕捉所有 Exception，不把 exporter 的 500 改成成功。
 
-- [ ] **Step 6: 跑 Step 3 聚焦測試，再跑 `uv run --frozen --python 3.12.14 pytest -q -m "not slow"`。** 全部應通過；既有兩個 fixture 應仍能建立 `Clip`。不可為了通過而放寬到接受非有限值。
+- [x] **Step 6: 跑 Step 3 聚焦測試，再跑 `uv run --frozen --python 3.12.14 pytest -q -m "not slow"`。** 全部應通過；既有兩個 fixture 應仍能建立 `Clip`。不可為了通過而放寬到接受非有限值。
 
-- [ ] **Step 7: 提交。**
+- [x] **Step 7: 提交。**
 
 ```text
 git add server/emotecap_server/contract.py server/emotecap_server/main.py server/tests/test_motion_validation.py server/tests/test_export_api.py
@@ -512,7 +512,7 @@ git commit -m "fix: validate motion values and clip timelines before export"
 - Produces: `digest(bytes) -> string`、`sameContents(sourcePath, destPath) -> boolean`、`ensureAsset(asset, fetchFn = fetch) -> Promise<'cached' | 'downloaded'>`。
 - 安裝入口與 public 路徑保持相同；不修改 capture 模型呼叫端。
 
-- [ ] **Step 1: 寫 Node 內建行為測試。** 完整建立以下檔案；只使用合成 bytes 與假 fetch，不上網。
+- [x] **Step 1: 寫 Node 內建行為測試。** 完整建立以下檔案；只使用合成 bytes 與假 fetch，不上網。
 
 ```javascript
 import test from 'node:test';
@@ -582,9 +582,9 @@ test('WASM equality compares content, including same-size changes', (t) => {
 });
 ```
 
-- [ ] **Step 2: 在 `web/` 執行 `node --test scripts/asset-integrity.test.mjs`。** 預期缺少 `asset-integrity.mjs`，不是沒有找到測試。
+- [x] **Step 2: 在 `web/` 執行 `node --test scripts/asset-integrity.test.mjs`。** 預期缺少 `asset-integrity.mjs`，不是沒有找到測試。
 
-- [ ] **Step 3: 實作完整驗證 helper。**
+- [x] **Step 3: 實作完整驗證 helper。**
 
 ```javascript
 import { createHash, randomUUID } from 'node:crypto';
@@ -617,7 +617,7 @@ export async function ensureAsset({ url, dest, sha256 }, fetchFn = fetch) {
 }
 ```
 
-- [ ] **Step 4: 建立完整模型清冊。** Hash 與本輪實際下載的檔案一致；不能為了讓失敗消失而在下載時自動重寫 hash。
+- [x] **Step 4: 建立完整模型清冊。** Hash 與本輪實際下載的檔案一致；不能為了讓失敗消失而在下載時自動重寫 hash。
 
 ```json
 [
@@ -639,7 +639,7 @@ export async function ensureAsset({ url, dest, sha256 }, fetchFn = fetch) {
 ]
 ```
 
-- [ ] **Step 5: 用以下完整內容取代 downloader。** WASM 來源仍是 lockfile 安裝出的 npm package，變更由 byte digest 判斷。
+- [x] **Step 5: 用以下完整內容取代 downloader。** WASM 來源仍是 lockfile 安裝出的 npm package，變更由 byte digest 判斷。
 
 ```javascript
 #!/usr/bin/env node
@@ -674,7 +674,7 @@ try {
 }
 ```
 
-- [ ] **Step 6: 更新 package scripts。** 只替換下列三項並新增 `test:assets`，其他 scripts 不變。
+- [x] **Step 6: 更新 package scripts。** 只替換下列三項並新增 `test:assets`，其他 scripts 不變。
 
 ```json
 {
@@ -685,9 +685,9 @@ try {
 }
 ```
 
-- [ ] **Step 7: 在 `web/` 依序執行 `npm run test:assets`、`npm test`、`npm run fetch-assets`、`npm run build`。** 六個 assets 行為測試通過；真實模型需逐一顯示 SHA256 verified；任何 digest mismatch 都使流程失敗。既有有效快取的離線行為由測試證明，不需要關閉整台機器的網路。
+- [x] **Step 7: 在 `web/` 依序執行 `npm run test:assets`、`npm test`、`npm run fetch-assets`、`npm run build`。** 六個 assets 行為測試通過；真實模型需逐一顯示 SHA256 verified；任何 digest mismatch 都使流程失敗。既有有效快取的離線行為由測試證明，不需要關閉整台機器的網路。
 
-- [ ] **Step 8: 提交。** 不加入下載的模型／WASM／node_modules。
+- [x] **Step 8: 提交。** 不加入下載的模型／WASM／node_modules。
 
 ```text
 git add web/scripts/asset-integrity.mjs web/scripts/asset-integrity.test.mjs web/scripts/mediapipe-assets.json web/scripts/fetch-mediapipe.mjs web/package.json
@@ -704,7 +704,7 @@ git commit -m "build: verify MediaPipe assets before use"
 - Consumes: Task 1–4 的 `npm test`、`npm run test:assets`、`npm run build`、`uv run --frozen pytest -m "not slow"`。
 - Produces: 每個 OS 的 `unit-and-web-build` 檢查。它不表示 Blender/Unity/真實鏡頭已通過。
 
-- [ ] **Step 1: 建立工具檔與 package metadata。** `.node-version` 全文是 `24.19.0` 加換行；`server/.python-version` 全文是 `3.12.14` 加換行。在 `web/package.json` 頂層加入：
+- [x] **Step 1: 建立工具檔與 package metadata。** `.node-version` 全文是 `24.19.0` 加換行；`server/.python-version` 全文是 `3.12.14` 加換行。在 `web/package.json` 頂層加入：
 
 ```json
 {
@@ -715,7 +715,7 @@ git commit -m "build: verify MediaPipe assets before use"
 
 在 `web/` 用 npm `11.21.0` 跑 `npm install --package-lock-only --ignore-scripts` 以同步 root metadata。檢查 `git diff -- web/package-lock.json server/uv.lock`：不得更新 dependency 版本、integrity 或 uv lock。
 
-- [ ] **Step 2: 建立完整 CI workflow。** 三個 action SHA 在規劃當日由其官方 repository 的 `refs/tags/v6` 查得；重跑前可驗證，但不自行漂移到其他版本。
+- [x] **Step 2: 建立完整 CI workflow。** 三個 action SHA 在規劃當日由其官方 repository 的 `refs/tags/v6` 查得；重跑前可驗證，但不自行漂移到其他版本。
 
 ```yaml
 name: unit-and-web-build
@@ -759,7 +759,7 @@ jobs:
         working-directory: server
 ```
 
-- [ ] **Step 3: 建立以下完整開發指南。**
+- [x] **Step 3: 建立以下完整開發指南。**
 
 ````markdown
 # Development
@@ -824,7 +824,7 @@ runtime exports, or dependency directories. Release packaging and licensing
 have their own acceptance criteria in the product plan.
 ````
 
-- [ ] **Step 4: 更新 README 的工具與測試說明。** 將 Node 工具欄改為 `24.19.0 (npm 11.21.0)`，uv 欄改為 `0.12.6 (Python 3.12.14)`，初次依賴安裝改 `npm ci`，server 同步改 `uv sync --frozen --python 3.12.14`。將 Tests 段落完整換成：
+- [x] **Step 4: 更新 README 的工具與測試說明。** 將 Node 工具欄改為 `24.19.0 (npm 11.21.0)`，uv 欄改為 `0.12.6 (Python 3.12.14)`，初次依賴安裝改 `npm ci`，server 同步改 `uv sync --frozen --python 3.12.14`。將 Tests 段落完整換成：
 
 ```markdown
 Run `npm run test:assets`, `npm test`, and `npm run build` in `web/`.
@@ -836,7 +836,7 @@ for the pinned tools, network setup, and what each check proves.
 
 保留得獎資訊、功能介紹與 demo；不增加未實測的平台／動作品質宣稱。
 
-- [ ] **Step 5: 用以下完整內容更新持續有效的協作規則。** 舊的時間表與 lane 名稱保留在既有歷史規格，不繼續限制目前的 Windows 開發者。
+- [x] **Step 5: 用以下完整內容更新持續有效的協作規則。** 舊的時間表與 lane 名稱保留在既有歷史規格，不繼續限制目前的 Windows 開發者。
 
 ```markdown
 # EmoteCap — project instructions
@@ -862,9 +862,9 @@ characters. New settings belong in `.env.example` without real values.
 Preserve project history and require the release checklist before publishing.
 ```
 
-- [ ] **Step 6: 在目前環境跑完整入口一次。** `web/`：`npm ci` → `npm run test:assets` → `npm test` → `npm run build`；`server/`：`uv sync --frozen --python 3.12.14` → `uv run --frozen --python 3.12.14 pytest -q -m "not slow"`。記錄實際計數、版本及任何 warning。檢查 `git diff --check` 與 `git status --short`。
+- [x] **Step 6: 在目前環境跑完整入口一次。** `web/`：`npm ci` → `npm run test:assets` → `npm test` → `npm run build`；`server/`：`uv sync --frozen --python 3.12.14` → `uv run --frozen --python 3.12.14 pytest -q -m "not slow"`。記錄實際計數、版本及任何 warning。檢查 `git diff --check` 與 `git status --short`。
 
-- [ ] **Step 7: 提交並交付檢閱。**
+- [x] **Step 7: 提交並交付檢閱。**
 
 ```text
 git add .node-version server/.python-version .github/workflows/ci.yml docs/development.md web/package.json web/package-lock.json README.md CLAUDE.md

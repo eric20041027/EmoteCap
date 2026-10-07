@@ -1,7 +1,7 @@
 # EmoteCap M1：正式發布基礎規格
 
 日期：2026-10-06（America/New_York）  
-狀態：待使用者檢閱的 M1 規格；不是已完成的改版。  
+狀態：已授權 Native 執行；本機實作完成、獨立審查進行中。三平台 CI 尚待遠端執行，並非正式產品已完成。
 產品背景：[開源產品提案](2026-10-06-open-source-product-design.md)
 
 ## Goal

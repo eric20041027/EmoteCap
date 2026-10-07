@@ -1,7 +1,7 @@
 # EmoteCap：從 Hackathon MVP 到正式開源產品
 
 日期：2026-10-06（America/New_York）  
-狀態：供討論的產品提案；尚未開始改寫產品程式。  
+狀態：產品方向仍為提案；M1 已採 Native 實作，結果見 [M1 交付記錄](../reports/2026-10-06-release-foundation.md)。以下盤點保留初始基準，尚未完成 M2–M5。
 檢查基準：`main` / `713d349df05aa26b6b95a1b7974f7f3d8e574149`  
 本機：`C:\Users\smallfire123123\Desktop\EmoteCap`
 
