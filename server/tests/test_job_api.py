@@ -8,6 +8,7 @@ from job_support import settings_at,submission,write_outputs
 
 @pytest.fixture
 def client(tmp_path,monkeypatch):
+    monkeypatch.setattr(main,'settings',settings_at(tmp_path))
     monkeypatch.setattr(main,'JobService',lambda _:JobService(settings_at(tmp_path),runner=write_outputs),raising=False)
     with TestClient(main.app) as browser:yield browser
 

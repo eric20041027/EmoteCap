@@ -2,21 +2,20 @@
 import logging
 import shutil
 from contextlib import asynccontextmanager
-from typing import Annotated
 
-from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket
+from fastapi import FastAPI, HTTPException, Request, WebSocket
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
-from . import exporter, gemini, takes
 from .config import load_settings
-from .contract import ExportedFile, ExportResponse, TakeResponse
+from .contract import ExportedFile, ExportResponse
 from .jobs.api import router as jobs_router,get_service,invoke,read_submission
 from .jobs.service import JobService,ServiceUnavailable
 from .jobs.runner import TIMEOUT_SECONDS
+from .media.api import MediaService,router as media_router
 from .relay import LiveRelay
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s - %(message)s")
@@ -34,14 +33,18 @@ relay = LiveRelay()
 async def lifespan(application:FastAPI):
     service=JobService(settings)
     service.start();application.state.jobs=service
-    try:yield
+    try:
+        application.state.media=MediaService(settings)
+        yield
     finally:
         service.close()
         del application.state.jobs
+        if hasattr(application.state,'media'):del application.state.media
 
 
 app = FastAPI(title="EmoteCap",lifespan=lifespan)
 app.include_router(jobs_router)
+app.include_router(media_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -86,42 +89,6 @@ async def export(request: Request) -> ExportResponse:
         raise HTTPException(500 if result.state=='failed' else 409,detail={
             'message':error.message if error else result.phase,'stderr':error.details if error else ''})
     return ExportResponse(files=[ExportedFile(name=file.name,url=file.url) for file in result.files])
-
-
-@app.post("/api/takes")
-def create_take(
-    video: Annotated[UploadFile, File(description="The recorded take (webm)")],
-    duration: Annotated[float, Form(gt=0, allow_inf_nan=False, description="Take length in seconds")],
-) -> TakeResponse:
-    """Phase 3: store the take's video and let Gemini split it into named segments.
-
-    Sync on purpose: FastAPI runs it in a threadpool while Gemini works (up to 30 s).
-    """
-    api_key = settings.gemini_api_key
-    if api_key is None:
-        raise HTTPException(status_code=503, detail=GEMINI_NOT_CONFIGURED)
-    mime_type = gemini.video_mime_type(video.content_type)
-    if mime_type is None:
-        raise HTTPException(status_code=415, detail="The upload must be a video (video/webm)")
-    if duration > takes.MAX_TAKE_SECONDS:
-        raise HTTPException(
-            status_code=413, detail=f"The take is longer than {takes.MAX_TAKE_SECONDS:g} s"
-        )
-    take_id = takes.new_take_id()
-    try:
-        video_path = takes.store_upload(video.file, settings.data_dir / "takes", take_id)
-    except takes.TakeTooLargeError as exc:
-        raise HTTPException(status_code=413, detail=str(exc)) from exc
-    try:
-        segments = gemini.slice_take(
-            video_path, mime_type, duration, api_key=api_key, model=settings.gemini_model
-        )
-    except gemini.GeminiError as exc:
-        logger.warning("Take %s: Gemini slicing failed, web app falls back: %s", take_id, exc)
-        raise HTTPException(
-            status_code=502, detail={"message": str(exc), "fallback": MOTION_ENERGY_FALLBACK}
-        ) from exc
-    return TakeResponse(takeId=take_id, segments=segments)
 
 
 @app.websocket("/ws/live")

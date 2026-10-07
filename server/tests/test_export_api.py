@@ -21,6 +21,7 @@ def fixture_clip(**changes: Any) -> dict[str, Any]:
 
 @pytest.fixture
 def client(tmp_path,monkeypatch) -> TestClient:
+    monkeypatch.setattr(main,'settings',settings_at(tmp_path))
     monkeypatch.setattr(main,'JobService',lambda _:JobService(settings_at(tmp_path),runner=write_outputs))
     with TestClient(app) as browser:yield browser
 

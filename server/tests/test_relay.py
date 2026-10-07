@@ -40,6 +40,7 @@ def relay(monkeypatch: pytest.MonkeyPatch) -> LiveRelay:
 @pytest.fixture
 def client(relay: LiveRelay,tmp_path,monkeypatch) -> Iterator[TestClient]:
     # As a context manager, TestClient runs every websocket session on one event loop, as uvicorn does.
+    monkeypatch.setattr(main,'settings',settings_at(tmp_path))
     monkeypatch.setattr(main,'JobService',lambda _:JobService(settings_at(tmp_path),runner=write_outputs))
     with TestClient(main.app) as test_client:
         yield test_client
