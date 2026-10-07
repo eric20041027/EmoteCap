@@ -1,7 +1,7 @@
 # M1 security follow-up verification
 
 Date: 2026-10-06. Base: ef7a76c. Implementation: 99a0434.
-Status: local verification passed; independent review and hosted CI pending.
+Status: local verification and independent review passed; hosted CI pending.
 
 ## Change
 
@@ -22,7 +22,7 @@ Primary sources: [maintainer fix](https://github.com/7rulnik/source-map-js/pull/
 
 ## Review and remote integration
 
-Independent review is pending. The candidate PR includes the previously reviewed foundation commits because remote main has not received those local commits. Its title and body describe the full foundation plus security patch.
+Independent fresh-context review (gpt-6-astra, range ef7a76c..6b6bd05) approved the candidate with zero Critical, Important or Minor findings. It independently reran all 8 Node asset/security tests and verified the sole-package lock diff and clean working state. No fix pass is required. The candidate PR includes the previously reviewed foundation commits because remote main has not received those local commits. Its title and body describe the full foundation plus security patch.
 
 No remote push, PR, tag or release has been performed for this follow-up. Actual Windows/macOS/Linux job URLs and outcomes must be recorded before M1 is called complete.
 
@@ -35,3 +35,14 @@ No remote push, PR, tag or release has been performed for this follow-up. Actual
 ## Remaining product gates
 
 Camera, paid Gemini service, real Blender export, Unity playback and clean-machine/user acceptance are unchanged pending gates. Track the entire objective in [release progress](../../release-progress.md).
+
+## Review acceptance boundaries
+
+- Hosted jobs remain pending until an authorized push runs them; otherwise cross-platform failures can remain undiscovered.
+- The foundation before ef7a76c retains its earlier independent review; this patch review does not supersede that evidence. Pre-existing product limitations remain visible.
+- The bounded constructor characterization guards the known dependency regression, not every malicious-map variant; a broader upstream defect may still exist.
+- The successful registry audit and inspected maintainer fix are dated evidence, not a guarantee of future advisory completeness; rescan before release.
+- Real camera/Gemini/Blender/Unity/hardware/clean-machine acceptance remains explicit pending work; no unit test substitutes for it.
+- All M2–M5 implementation, licensing and publication requirements remain in the full active goal; this candidate is not a released product.
+
+Deferred minor findings: none.
