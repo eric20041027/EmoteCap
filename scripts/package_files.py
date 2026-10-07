@@ -263,6 +263,7 @@ def zip_payload(root: Path, output: Path) -> str:
                     info.create_system = 3
                     info.external_attr = (stat.S_IFREG | 0o644) << 16
                     info.compress_type = zipfile.ZIP_DEFLATED
+                    info._compresslevel = 9  # Pinned CPython3.12 ZipInfo owns the streaming compression level.
                     with (root / entry['path']).open('rb') as incoming, archive.open(info, 'w') as outgoing:
                         count = 0
                         digest = hashlib.sha256()
