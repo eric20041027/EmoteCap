@@ -40,12 +40,12 @@
 - Consumes: existing `npm ci`, `test:assets`, `test:security`, `audit:deps`, `npm test`, `npm run build`, `uv sync --frozen --python 3.12.14`, and `uv run --frozen --python 3.12.14 pytest -q -m "not slow"`.
 - Produces: verified per-OS job URLs and exact tested commit in the release ledger.
 
-- [ ] **Step 1: Confirm the observed hosted failure**
+- [x] **Step 1: Confirm the observed hosted failure**
 
 Run: `gh run view 37568728873 --repo eric20041027/EmoteCap --log-failed`
 Expected: Windows x64 and macOS arm64 report missing Python 3.12.14 before any application tests. The observed run is the failing regression evidence for this configuration repair.
 
-- [ ] **Step 2: Replace the bootstrap and document why**
+- [x] **Step 2: Replace the bootstrap and document why**
 
 Replace actions/setup-python and the following pip installation step with:
 
@@ -59,7 +59,7 @@ Replace actions/setup-python and the following pip installation step with:
 
 Add to development documentation: CI installs uv directly, then the pinned managed Python; actions/setup-python does not provide this Python build on every target runner. All dependency versions and test commands remain unchanged.
 
-- [ ] **Step 3: Check the diff, commit, and update the authorized draft PR**
+- [x] **Step 3: Check the diff, commit, and update the authorized draft PR**
 
 Run: `git diff --check` and inspect `git diff -- .github/workflows/ci.yml`.
 Expected: no whitespace errors; only the bootstrap changes in the workflow.
@@ -72,7 +72,7 @@ git push origin fix/dependency-security
 
 Expected: a normal fast-forward push creates a new PR CI run; record its ID by querying the exact HEAD with `gh run list --branch fix/dependency-security --commit <verified HEAD> --json databaseId,event,status,conclusion,headSha,url`.
 
-- [ ] **Step 4: Verify actual jobs and record their evidence**
+- [x] **Step 4: Verify actual jobs and record their evidence**
 
 Run `gh run view <observed PR run ID> --repo eric20041027/EmoteCap --json status,conclusion,headSha,jobs,url`.
 Expected: status completed, conclusion success, and all three operating-system jobs successful at the repaired commit. Check logs for interpreter version and successful unit/build gates. If a job fails, diagnose its actual log; keep the gate pending until corrected.

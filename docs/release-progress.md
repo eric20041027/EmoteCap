@@ -6,7 +6,7 @@ Authoritative product requirements: [product design](superpowers/specs/2026-10-0
 
 ## Current work
 
-- Active: M1 security follow-up, then M2 Studio persistence.
+- Active: M1 hosted qualification passed; finish the focused CI repair review, then M2 Studio persistence.
 - Execution: main agent implements each stage; a fresh independent reviewer checks each completed implementation plan. Do not reopen the already-approved execution-method question.
 - Workspace: reuse the existing linked worktree `EmoteCap-release-foundation`; do not touch unrelated workspaces or delete earlier policy-blocked scratch.
 - Keep each stage in committed, testable increments. No force-push or history rewrite.
@@ -19,7 +19,7 @@ Authoritative product requirements: [product design](superpowers/specs/2026-10-0
 |---|---|---|
 | M1.1 | Cross-platform subprocess tests, contract parity, motion validation, verified model cache | Implemented and reviewed in main ef7a76c; 380 backend + 226 app + 6 assets pass locally |
 | M1.2 | Resolve known vulnerable build dependency and guard against regression | Local fix 99a0434: only source-map-js 1.2.1 → 1.2.2; regression 2/2 and npm audit 0 vulnerabilities; independent review passed (0 findings) |
-| M1.3 | Actual Windows/macOS/Linux unit + Web build CI passes | Workflow exists; remote runs not yet performed |
+| M1.3 | Actual Windows/macOS/Linux unit + Web build CI passes | All three PR jobs passed at 663cd33 in [run 37568993517](https://github.com/eric20041027/EmoteCap/actions/runs/37568993517); [hosted report](superpowers/reports/2026-10-06-hosted-python.md); draft [PR #1](https://github.com/eric20041027/EmoteCap/pull/1) remains unmerged |
 | M2.1 | Project/Take/Clip identity and immutable original take | Implementation pending |
 | M2.2 | IndexedDB autosave, restore after refresh, recording checkpoint every 5 seconds | Implementation pending |
 | M2.3 | Portable .emotecap import/export, version and size validation, optional source media | Implementation pending |
@@ -46,3 +46,4 @@ Authoritative product requirements: [product design](superpowers/specs/2026-10-0
 - Primary target remains Unity independent/student developers on Windows with the system browser.
 - The earlier frozen dependency baseline was for the initial M1 task. The newly authorized M1–M5 work includes the documented priority security patch; permit only the targeted security dependency update in its own plan.
 - No blocker stops independent local implementation now. External CI, contributor authorization and human/hardware acceptance stay explicit pending gates.
+- The user approved pushing the reviewed M1 branch and creating its draft PR on 2026-10-06. Initial hosted Python setup failed on Windows/macOS; the uv bootstrap repair preserves all version pins and passes the actual three-OS matrix. No remote main merge, tag or release has occurred.
