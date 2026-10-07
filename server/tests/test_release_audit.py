@@ -11,8 +11,8 @@ import release_audit as audit
 
 GOOGLE='AI'+'za'+'A'*35
 
-def git(repo,*args):
-    result=subprocess.run(['git','-C',str(repo),*args],capture_output=True,timeout=15,check=True)
+def git(repo,*args,input=None):
+    result=subprocess.run(['git','-C',str(repo),*args],input=input,capture_output=True,timeout=15,check=True)
     return result.stdout
 
 def repository(tmp_path):
@@ -166,3 +166,32 @@ def test_clean_cli_returns_zero_and_records_scope(tmp_path):
     report=json.loads(output.read_text())
     assert report['schema']=='emotecap-release-scan-v1' and not report['findings']
     assert len(report['head'])==40 and 'ignored' in report['scope']
+
+def test_grafts_cannot_hide_removed_history(tmp_path):
+    repo=repository(tmp_path);(repo/'old.txt').write_text(GOOGLE);commit(repo)
+    git(repo,'rm','old.txt');commit(repo)
+    (repo/'.git/info/grafts').write_bytes(git(repo,'rev-parse','HEAD'))
+    with pytest.raises(audit.AuditIncomplete,match='graft'):audit.audit_repository(repo)
+
+@pytest.mark.parametrize('target',['blob','tree'])
+@pytest.mark.parametrize('annotated',[False,True])
+def test_noncommit_ref_targets_cannot_be_silently_omitted(tmp_path,target,annotated):
+    repo=repository(tmp_path);git(repo,'config','tag.gpgsign','false')
+    oid=git(repo,'hash-object','-w','--stdin',input=GOOGLE.encode()).decode().strip()
+    if target=='tree':
+        oid=git(repo,'mktree',input=f'100644 blob {oid}\tcredential.txt\n'.encode()).decode().strip()
+    if annotated:git(repo,'tag','-a','synthetic','-m','ordinary tag',oid)
+    else:git(repo,'tag','synthetic',oid)
+    with pytest.raises(audit.AuditIncomplete):audit.audit_repository(repo)
+
+def test_child_directory_input_scans_the_entire_worktree(tmp_path):
+    repo=repository(tmp_path);child=repo/'child';child.mkdir()
+    (repo/'root-candidate.txt').write_text(GOOGLE)
+    report=audit.audit_repository(child)
+    assert any(f['kind']=='current' and f['path']=='root-candidate.txt' for f in report['findings'])
+    assert report['currentFiles']==2
+
+@pytest.mark.parametrize('ending',['\n','\r\n',''])
+def test_dotenv_literal_detection_is_independent_of_windows_line_endings(ending):
+    data=('API_KEY='+'aB9zC4wE1vF7xH2pT8rY5qN'+ending).encode()
+    assert any(f['rule']=='credential-assignment' for f in audit.scan_bytes(data,{'kind':'current'}))

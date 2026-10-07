@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 import math
+import os
 import re
 import subprocess
 import sys
@@ -28,7 +29,7 @@ RULES = (
     ('openai-key', rb'\bsk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{32,255}\b'),
     ('private-key', rb'-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----'),
     ('credential-assignment', rb'(?i)\b(?:gemini_api_key|api[_-]?key|access_token|password|client_secret|secret[_-]?key)\b["\']?\s*[:=]\s*(?P<quote>["\'])(?P<value>[A-Za-z0-9_./+=-]{16,512})(?P=quote)'),
-    ('credential-assignment', rb'(?m)^[ \t]*(?:export[ \t]+)?(?:GEMINI_API_KEY|API_KEY|ACCESS_TOKEN|PASSWORD|CLIENT_SECRET|SECRET_KEY)[ \t]*=[ \t]*(?P<value>[A-Za-z0-9_./+=-]{16,512})[ \t]*$'),
+    ('credential-assignment', rb'(?m)^[ \t]*(?:export[ \t]+)?(?:GEMINI_API_KEY|API_KEY|ACCESS_TOKEN|PASSWORD|CLIENT_SECRET|SECRET_KEY)[ \t]*=[ \t]*(?P<value>[A-Za-z0-9_./+=-]{16,512})[ \t]*\r?$'),
 )
 PATTERNS = [(name, re.compile(pattern)) for name, pattern in RULES]
 PLACEHOLDERS = {b'replace_with_your_key', b'your_gemini_api_key', b'your_api_key', b'gemini_api_key'}
@@ -96,12 +97,30 @@ def checked_oid(value: bytes) -> str:
     return value.decode('ascii')
 
 
+def git_path(value: bytes) -> Path:
+    if not value.endswith(b'\n') or b'\0' in value:
+        raise AuditIncomplete('Unexpected Git path; scan is incomplete')
+    value = value[:-1]
+    if os.name == 'nt' and value.endswith(b'\r'):
+        value = value[:-1]
+    return Path(value.decode('utf-8', errors='surrogateescape')).resolve()
+
+
 def audit_repository(repo: Path, *, max_blob_bytes: int = MAX_BLOB_BYTES,
                      max_total_bytes: int = MAX_TOTAL_BYTES) -> dict:
     repo = Path(repo).resolve()
     if (max_blob_bytes <= 0 or max_blob_bytes > MAX_BLOB_BYTES
             or max_total_bytes <= 0 or max_total_bytes > MAX_TOTAL_BYTES):
         raise AuditIncomplete('Invalid scan budget')
+    if any(os.environ.get(name) for name in ('GIT_GRAFT_FILE','GIT_DIR','GIT_WORK_TREE','GIT_COMMON_DIR','GIT_INDEX_FILE')):
+        raise AuditIncomplete('Git source/graft overrides require separate assessment')
+    repo = git_path(checked_git(repo, ['rev-parse', '--show-toplevel']))
+    grafts = git_path(checked_git(repo, ['rev-parse', '--path-format=absolute', '--git-path', 'info/grafts']))
+    try:
+        if grafts.is_symlink() or (grafts.exists() and (not grafts.is_file() or grafts.stat().st_size)):
+            raise AuditIncomplete('Active Git graft configuration makes history incomplete')
+    except OSError:
+        raise AuditIncomplete('Git graft configuration could not be assessed') from None
     if checked_git(repo, ['rev-parse', '--is-shallow-repository']).strip() != b'false':
         raise AuditIncomplete('Shallow history is incomplete; obtain the full history first')
     head = checked_oid(checked_git(repo, ['rev-parse', '--verify', 'HEAD^{commit}']).strip())
@@ -161,10 +180,12 @@ def audit_repository(repo: Path, *, max_blob_bytes: int = MAX_BLOB_BYTES,
 
     tags = set()
     pending_tags = []
-    for line in checked_git(repo, ['for-each-ref', '--format=%(objecttype) %(objectname)', 'refs/tags']).splitlines():
+    for line in checked_git(repo, ['for-each-ref', '--format=%(objecttype) %(objectname)']).splitlines():
         fields = line.split()
         if len(fields) != 2:
             raise AuditIncomplete('Malformed tag reference; scan is incomplete')
+        if fields[0] not in (b'commit',b'tag'):
+            raise AuditIncomplete('Non-commit reference target requires a separate scan')
         if fields[0] == b'tag':
             oid = checked_oid(fields[1])
             if oid not in tags:
@@ -179,6 +200,8 @@ def audit_repository(repo: Path, *, max_blob_bytes: int = MAX_BLOB_BYTES,
         headers = data.partition(b'\n\n')[0].splitlines()
         if len(headers) < 2 or not headers[0].startswith(b'object ') or not headers[1].startswith(b'type '):
             raise AuditIncomplete('Malformed tag object; scan is incomplete')
+        if headers[1] not in (b'type commit',b'type tag'):
+            raise AuditIncomplete('Non-commit annotated tag target requires a separate scan')
         if headers[1] == b'type tag':
             target = checked_oid(headers[0][7:])
             if target not in tags:

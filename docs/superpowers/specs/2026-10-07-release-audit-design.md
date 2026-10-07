@@ -10,6 +10,8 @@ The invocation is incomplete rather than clean when Git/file access fails, histo
 
 Generic assignment detection recognizes quoted literals and uppercase dotenv assignments, not unquoted Python attribute references. Four explicit symbolic placeholders are excluded only from that heuristic; recognizable provider/private-key rules are never suppressed. Other formats and unknown secret shapes remain a documented heuristic limit. Credential-shaped diagnostic paths are redacted too.
 
+Final accepted boundary rulings: normalize a child input to its Git worktree root; reject active legacy graft/source-redirecting Git overrides and unsupported blob/tree direct-reference or tag targets as incomplete. No Git refs/configuration are modified to make a scan pass. Quoted/dotenv literal detection supports LF,CRLFand final lines without a newline.
+
 `audit_repository(repo, *, max_blob_bytes=16777216, max_total_bytes=536870912)` returns a JSON-compatible report. `scan_bytes(data, source)` returns redacted findings. CLI `python scripts/release_audit.py --repo PATH --output PATH` writes a new exclusive report; exit0means no detected credential,1means findings,2means incomplete/error. It never overwrites prior evidence or modifies Git, source files, processes or credentials. Human assessment is required for detections; no automatic false-positive suppression.
 
 Source licensing/contributor and image rights, exact runtime/package/model notices, clean-machine and Unity/hardware gates remain separate. A clean scan never sets release readiness.
