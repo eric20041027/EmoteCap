@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "test:assets": "node --test scripts/asset-integrity.test.mjs",
     "test:security": "node --test scripts/dependency-security.test.mjs",
+    "test:baselines": "node --test scripts/baseline-snapshot.test.mjs scripts/original-runner.test.mjs",
     "audit:deps": "npm audit --audit-level=high"
   },
   "dependencies": {

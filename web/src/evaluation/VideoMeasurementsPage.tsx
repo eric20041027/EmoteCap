@@ -5,6 +5,7 @@ import {ProcessingConsentPanel} from '../privacy/ProcessingConsentPanel';
 import {collectVideoMeasurements,MAX_SOURCE_BYTES,validCollectionMetadata,
   type MeasurementEnvironment,type VideoCollection} from './videoMeasurements';
 import type {SmoothingLevel} from '../motion/index';
+import {ORIGINAL_COMMIT} from './originalRunner';
 
 function browserDescription(){
   const match=navigator.userAgent.match(/(Edg|Chrome|Firefox)\/([\d.]+)/);
@@ -15,6 +16,7 @@ function VideoMeasurementsPage(){
   const active=useRef<AbortController|null>(null),mounted=useRef(true);
   const [allowed,setAllowed]=useState(false),[local,setLocal]=useState(false),[busy,setBusy]=useState(false);
   const [file,setFile]=useState<File|null>(null),[commit,setCommit]=useState(import.meta.env.VITE_EMOTECAP_SOURCE_COMMIT??'');
+  const [implementation,setImplementation]=useState<'current'|'original'>('current'),[originalBuildId,setOriginalBuildId]=useState('');
   const [environment,setEnvironment]=useState<MeasurementEnvironment>({kind:'desktop',os:'',cpu:'',gpu:'',browser:browserDescription()});
   const [classification,setClassification]=useState<'synthetic'|'observed'>('synthetic');
   const [skeleton,setSkeleton]=useState<'full'|'body'>('full'),[smoothing,setSmoothing]=useState<SmoothingLevel>('medium');
@@ -28,7 +30,8 @@ function VideoMeasurementsPage(){
     const packet=result.packet?URL.createObjectURL(new Blob([JSON.stringify(result.packet)],{type:'application/json'})):null;
     setLinks({raw,packet});return()=>{URL.revokeObjectURL(raw);if(packet)URL.revokeObjectURL(packet);};
   },[result]);
-  const metadata={sourceCommit:commit,environment,classification,skeleton,smoothing,warmupMs:warmup};
+  const metadata={sourceCommit:implementation==='original'?ORIGINAL_COMMIT:commit,environment,classification,skeleton,smoothing,warmupMs:warmup,
+    implementation,originalBuildId:implementation==='original'?originalBuildId:undefined};
   const ready=!!file&&file.size>0&&file.size<=MAX_SOURCE_BYTES&&allowed&&local&&validCollectionMetadata(metadata);
   const choose=(value:boolean)=>{
     consent.setAllowed(value);setAllowed(value);
@@ -53,7 +56,10 @@ function VideoMeasurementsPage(){
     <p>Preview timing covers detection through the preview solver. Throughput uses the whole file import; camera/Studio/laptop acceptance requires its own measurements. Retain the raw collection with its preview packet.</p>
     <fieldset disabled={busy} className="metadata"><legend>Source and declared conditions</legend>
       <label>Source video<input aria-label="Source video" type="file" accept="video/*,.mp4,.m4v,.mov,.webm,.mkv" onChange={event=>setFile(event.target.files?.[0]??null)} /></label>
-      <label>Source commit<input aria-label="Source commit" value={commit} maxLength={40} onChange={event=>setCommit(event.target.value)} /></label>
+      <label>Implementation<select aria-label="Implementation" value={implementation} onChange={event=>setImplementation(event.target.value as 'current'|'original')}>
+        <option value="current">Rebuilt source</option><option value="original">Original MVP converter and solver</option></select></label>
+      <label>Source commit<input aria-label="Source commit" value={metadata.sourceCommit} maxLength={40} readOnly={implementation==='original'} onChange={event=>setCommit(event.target.value)} /></label>
+      {implementation==='original'&&<label>Original build digest<input aria-label="Original build digest" value={originalBuildId} maxLength={64} onChange={event=>setOriginalBuildId(event.target.value)} /></label>}
       <label>Device kind<select value={environment.kind} onChange={event=>setEnvironment(previous=>({...previous,kind:event.target.value as 'desktop'|'laptop'}))}>
         <option value="desktop">Desktop</option><option value="laptop">Laptop</option></select></label>
       {(['os','cpu','gpu','browser'] as const).map(key=><label key={key}>{key==='os'?'Operating system':key==='browser'?'Browser':key.toUpperCase()}

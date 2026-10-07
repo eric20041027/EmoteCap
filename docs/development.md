@@ -16,6 +16,7 @@ In `web/`:
 npm ci
 npm run test:assets
 npm run test:security
+npm run test:baselines
 npm run audit:deps
 npm test
 npm run build

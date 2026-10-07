@@ -1,5 +1,5 @@
 import {createHash,randomUUID} from 'node:crypto';
-import {writeFileSync,mkdirSync} from 'node:fs';
+import {writeFileSync,mkdirSync,readFileSync} from 'node:fs';
 import path from 'node:path';
 import {expect,test,type Page} from '@playwright/test';
 import {tpose,toMediaPipe} from '../src/motion/poses.testutil';
@@ -149,4 +149,54 @@ test('long synthetic collection downloads stay within the compact diagnostic bud
     expect(bytes.toString()).toBe(JSON.stringify(decoded));
   }
   mkdirSync(root,{recursive:true});writeFileSync(path.join(root,'long-download-budget.json'),JSON.stringify({classification:'synthetic',frames:5400,...sizes}),{flag:'wx'});
+});
+
+test('actual original build and rebuilt code process the same retained synthetic file',async({page})=>{
+  const buildId=process.env.EMOTECAP_ORIGINAL_BUILD_ID;
+  if(!buildId){test.skip(true,'Requires an explicitly prepared original build; a skip is not original qualification.');return;}
+  expect(buildId).toMatch(/^[0-9a-f]{64}$/);
+  const selected={buildId,manifest:JSON.parse(readFileSync(path.join('.measurement-baseline/runners',buildId,'manifest.json'),'utf8'))};
+  await sdk(page);await page.goto('/measurements.html');const buffer=await source(page);await metadata(page);
+  await page.getByRole('checkbox',{name:'Allow MediaPipe performance and usage metrics'}).check();
+  const implementation=page.getByLabel('Implementation',{exact:true});await implementation.selectOption('original');
+  await expect(page.getByLabel('Source commit',{exact:true})).toHaveValue('713d349df05aa26b6b95a1b7974f7f3d8e574149');
+  await expect(page.getByLabel('Source commit',{exact:true})).toHaveAttribute('readonly','');
+  await page.getByLabel('Original build digest',{exact:true}).fill(selected.buildId);
+  const collections:Record<string,any>={};
+  for(const mode of ['original','current']){
+    if(mode==='current')await implementation.selectOption('current');
+    await page.getByRole('button',{name:'Run collection',exact:true}).click();
+    await expect(page.getByRole('status',{name:'Collection status'})).toContainText('completed',{timeout:15000});
+    for(const [kind,label] of [['preview','Download preview packet'],['raw','Download raw collection']] as const){
+      const pending=page.waitForEvent('download');await page.getByRole('link',{name:label,exact:true}).click();
+      const download=await pending,stream=await download.createReadStream(),parts:Buffer[]=[];for await(const part of stream!)parts.push(Buffer.from(part));
+      const bytes=Buffer.concat(parts),value=JSON.parse(bytes.toString());collections[`${mode}-${kind}`]=value;
+      mkdirSync(root,{recursive:true});writeFileSync(path.join(root,`${mode}-${kind}.json`),bytes,{flag:'wx'});
+    }
+  }
+  const before=collections['original-raw'],after=collections['current-raw'];
+  expect(before.metadata.originalRunner.buildId).toBe(selected.buildId);expect(before.metadata.originalRunner.manifest.bundleSha256).toBe(selected.manifest.bundleSha256);
+  expect(before.metadata.originalAdapterSha256).toMatch(/^[0-9a-f]{64}$/);
+  expect(before.metadata.implementation).toBe('original');expect(after.metadata.implementation).toBe('current');
+  expect(before.finalFrames).toEqual(after.finalFrames);expect(before.attempts.map((row:any)=>({status:row.status,frame:row.frame}))).toEqual(after.attempts.map((row:any)=>({status:row.status,frame:row.frame})));
+  for(const mode of ['original','current'])expect(collections[`${mode}-preview`].inputSha256).toBe(createHash('sha256').update(buffer).digest('hex'));
+  expect(await page.evaluate(()=>Number(Reflect.get(window,'measurementCloses')))).toBe(2);
+  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await page.screenshot({path:path.join(root,'original-comparison-narrow.png'),fullPage:true});
+});
+
+test('original selection and SDK grant alone do not fetch artifacts; withdrawal rejects late loading',async({page})=>{
+  await sdk(page);let artifactRequests=0;
+  await page.route('**/.measurement-baseline/runners/**',async route=>{artifactRequests++;await new Promise(resolve=>setTimeout(resolve,300));
+    await route.fulfill({contentType:'application/json',body:'{}'}).catch(()=>{});});
+  await page.goto('/measurements.html');await source(page);await metadata(page);
+  await page.getByLabel('Implementation',{exact:true}).selectOption('original');
+  await page.getByLabel('Original build digest',{exact:true}).fill('a'.repeat(64));
+  const grant=page.getByRole('checkbox',{name:'Allow MediaPipe performance and usage metrics'});await grant.check();
+  expect(artifactRequests).toBe(0);expect(await page.evaluate(()=>Number(Reflect.get(window,'measurementSetups')))).toBe(0);
+  await page.getByRole('button',{name:'Run collection',exact:true}).click();await expect.poll(()=>artifactRequests).toBe(1);
+  await grant.uncheck();await expect(page.getByRole('status',{name:'Collection status'})).toContainText('incomplete',{timeout:15000});
+  expect(await page.evaluate(()=>Number(Reflect.get(window,'measurementSetups')))).toBe(0);
+  await expect(page.getByRole('link',{name:'Download raw collection',exact:true})).toBeVisible();
+  await expect(page.getByRole('link',{name:'Download preview packet',exact:true})).toHaveCount(0);
 });

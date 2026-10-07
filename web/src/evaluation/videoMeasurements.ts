@@ -3,12 +3,15 @@ import lock from '../../package-lock.json';
 import modelPins from '../../scripts/mediapipe-assets.json';
 import {closeLandmarkers,createLandmarkers,type Landmarkers} from '../capture/landmarkers';
 import {createFrameDetector} from '../import/detectFrame';
-import {convertVideo,ImportError,NO_PERSON_MESSAGE,type ConversionAttempt} from '../import/convertVideo';
+import {convertVideo,ImportError,NO_PERSON_MESSAGE,type ConversionAttempt,type ConvertSteps} from '../import/convertVideo';
 import {sampleTimes} from '../import/frameTimes';
 import {closeVideoFile,openVideoFile,seekTo} from '../import/videoSource';
 import {createPoseSolver,type MotionFrame,type SmoothingLevel} from '../motion/index';
 import {ProcessingConsent,ProcessingConsentError} from '../privacy/processingConsent';
 import {parseFrames} from '../project/validation';
+import {loadOriginalRunner,ORIGINAL_COMMIT,type OriginalRunner} from './originalRunner';
+import {convertOriginalVideo} from './originalAdapter';
+import originalAdapterSource from './originalAdapter.ts?raw';
 
 export const MAX_SOURCE_BYTES=100*1024*1024;
 export const MAX_DIAGNOSTIC_BYTES=32*1024*1024;
@@ -26,6 +29,7 @@ export interface CollectionOptions {
   file:File;video:HTMLVideoElement;sourceCommit:string;environment:MeasurementEnvironment;
   classification:'synthetic'|'observed';skeleton:'full'|'body';smoothing:SmoothingLevel;
   warmupMs:number;localProcessingAuthorized:boolean;processingConsent:ProcessingConsent;signal?:AbortSignal;
+  implementation?:'current'|'original';originalBuildId?:string;
 }
 export interface MeasurementPacket {
   schema:'emotecap-measurement-v1';runId:string;sourceCommit:string;classification:'synthetic'|'observed';
@@ -52,10 +56,12 @@ function descriptor(value:unknown):value is string {
   return typeof value==='string'&&value.length>0&&value.length<=160&&!/[\x00-\x1f\/\\]/.test(value)
     &&!/(?<![A-Za-z])[A-Za-z]:/.test(value);
 }
-export function validCollectionMetadata(value:Pick<CollectionOptions,'sourceCommit'|'environment'|'classification'|'skeleton'|'smoothing'|'warmupMs'>):boolean {
+export function validCollectionMetadata(value:Pick<CollectionOptions,'sourceCommit'|'environment'|'classification'|'skeleton'|'smoothing'|'warmupMs'|'implementation'|'originalBuildId'>):boolean {
   const environment=value.environment;
   const environmentKeys=['kind','os','cpu','gpu','browser'];
   return typeof value.sourceCommit==='string'&&/^[0-9a-f]{40}$/.test(value.sourceCommit)
+    &&(value.implementation===undefined||value.implementation==='current'||value.implementation==='original')
+    &&(value.implementation==='original'?value.sourceCommit===ORIGINAL_COMMIT&&typeof value.originalBuildId==='string'&&/^[0-9a-f]{64}$/.test(value.originalBuildId):value.originalBuildId===undefined)
     &&['synthetic','observed'].includes(value.classification)&&['full','body'].includes(value.skeleton)
     &&['low','medium','high'].includes(value.smoothing)&&number(value.warmupMs,179999)
     &&!!environment&&!Array.isArray(environment)&&
@@ -88,7 +94,9 @@ export async function collectVideoMeasurements(options:CollectionOptions):Promis
     video.src||video.srcObject)throw new Error('Provide valid metadata and an idle owned video source.');
   const lease=processingConsent.lease();lease();signal?.throwIfAborted();
   const metadataOptions=structuredClone({sourceCommit:options.sourceCommit,environment:options.environment,
-    classification:options.classification,skeleton:options.skeleton,smoothing:options.smoothing,warmupMs:options.warmupMs});
+    classification:options.classification,skeleton:options.skeleton,smoothing:options.smoothing,warmupMs:options.warmupMs,
+    implementation:options.implementation??'current',originalBuildId:options.originalBuildId});
+  if(!validCollectionMetadata(metadataOptions))throw new Error('The selected implementation metadata is invalid.');
   const runId=crypto.randomUUID();collectorActive=true;
   const controller=new AbortController();
   const abort=()=>controller.abort(signal?.reason);
@@ -101,7 +109,7 @@ export async function collectVideoMeasurements(options:CollectionOptions):Promis
     previewMeaning:'Detection through preview solver; final calibrated motion is separate.',
     throughputMeaning:'Full offline import wall interval, not live camera or Studio FPS.',
   };
-  let models:Landmarkers|undefined,videoOwned=false,inputSha256:string|undefined;
+  let models:Landmarkers|undefined,videoOwned=false,inputSha256:string|undefined,original:OriginalRunner|undefined;
   let duration=0,startedMs=0,finishedMs=0,retainedBytes=0,diagnosticReason:string|null=null;
   let conversionStarted=false;
   let finalFrames:readonly MotionFrame[]=[],outcome:VideoCollection['outcome']='incomplete',reason:string|null=null;
@@ -130,6 +138,12 @@ export async function collectVideoMeasurements(options:CollectionOptions):Promis
   };
   try {
     inputSha256=await sourceHash(file,authorize);metadata.inputSha256=inputSha256;
+    if(metadataOptions.implementation==='original'){
+      stage='original-runner-unavailable';original=await loadOriginalRunner(metadataOptions.originalBuildId!,{authorize,signal:controller.signal});authorize();
+      metadata.originalRunner=structuredClone(original.provenance);
+      const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(originalAdapterSource));authorize();
+      metadata.originalAdapterSha256=Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');
+    }
     authorize();stage='video-read-failed';videoOwned=true;
     duration=await openVideoFile(file,video,controller.signal);authorize();
     const width=video.videoWidth,height=video.videoHeight;
@@ -147,12 +161,13 @@ export async function collectVideoMeasurements(options:CollectionOptions):Promis
     const detect=createFrameDetector(models,trackHands,authorize,true);
     stage='conversion-failed';startedMs=clock();conversionStarted=true;
     try {
-      const result=await convertVideo(duration,{
+      const conversionSteps:ConvertSteps={
         seek:async t=>{authorize();await seekTo(video,t,controller.signal);authorize();},
         detect:t=>{authorize();return detect(video,t);},
-        createSolver:()=>createPoseSolver({},metadataOptions.smoothing),aspect:width/height,
+        createSolver:()=>original?original.createPoseSolver({},metadataOptions.smoothing):createPoseSolver({},metadataOptions.smoothing),aspect:width/height,
         signal:controller.signal,now:clock,onAttempt:observe,
-      });
+      };
+      const result=original?await convertOriginalVideo(original,duration,conversionSteps):await convertVideo(duration,conversionSteps);
       authorize();finalFrames=parseFrames(result.frames);outcome='completed';
       if(result.measurementState!=='complete')diagnosticReason??='observer-failed';
       metadata.calibratedAt=result.calibratedAt;

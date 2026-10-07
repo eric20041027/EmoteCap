@@ -13,7 +13,7 @@ npm ci
 npm run dev -- --host 127.0.0.1
 ```
 
-Open [the private collection page](http://127.0.0.1:5173/measurements.html). This entry is available in developer Vite; the default production build and Windows candidate do not include it. Its displayed source commit is still an operator declaration: changing the field does not change the running converter, solver, SDK or build. Old/new comparisons require separately verified source/build/instrumentation evidence; an adapter for the original MVP has not been qualified by this increment.
+Open [the private collection page](http://127.0.0.1:5173/measurements.html). This entry is available in developer Vite; the default production build and Windows candidate do not include it. Rebuilt source commit remains an operator declaration; changing it does not change the code. Selecting **Original MVP converter and solver** with a verified [original build digest](original-runner.md) actually loads fixed713d349converter/solver, with a read-only original source commit. Retain source/build/wrapper evidence with each result; this is a shared-asset code comparison, not reconstruction of historical models or the entire old App.
 
 Select an authorized local video, enter the actual device/browser descriptions and classification, choose full/body/smoothing/warmup, and explicitly declare local processing authority. Choose the session SDK option and then Run collection. Granting it alone does not open media or initialize models. The page uses Accurate/Heavy import, its actual source dimensions, no crop, and hands on each import frame when available; it does not measure Fast720p camera performance.
 
@@ -21,7 +21,7 @@ The SDK disclosure and privacy link remain visible. SDK choice resets on reload;
 
 ## Downloaded data
 
-`emotecap-video-collection-v1` raw JSON retains source File SHA256, declared source/environment/classification, observed dimensions/duration, both model hashes, successful pose/hand delegate configurations, hand-model availability/policy and conversion outcome. These configurations report the successful SDK option paths, not independent hardware proof.
+`emotecap-video-collection-v1` raw JSON retains source File SHA256, actual selected implementation, declared environment/classification, observed dimensions/duration, both model hashes, successful pose/hand delegate configurations, hand-model availability/policy and conversion outcome. Original mode adds verified runner manifest/build ID and wrapper source SHA256. These configurations report the successful SDK option paths, not independent hardware proof. The wrapper digest is not an authenticated whole-application build.
 
 Each attempt includes source seconds, seek/detection/preview-finish monotonic milliseconds, ok/no-pose/detector-error/solver-error/seek-error status, copied preview frame/null, optional active/disabled/failed hand tracking and assigned hand sides. Assigned sides are not a count of every SDK hand detection or proof of correct fingers. Fatal tenth detector error is retained. All-no-person processing has a no-person outcome with an all-failed packet when the complete attempt set and clock are valid.
 

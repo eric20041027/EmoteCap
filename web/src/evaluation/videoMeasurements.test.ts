@@ -2,16 +2,19 @@ import {beforeEach,describe,expect,it,vi} from 'vitest';
 import {ProcessingConsent} from '../privacy/processingConsent';
 import {tposeFrame} from '../motion/index';
 import {collectVideoMeasurements,MAX_DIAGNOSTIC_BYTES,type VideoCollection} from './videoMeasurements';
+import {convertVideo,ImportError,type ConvertSteps} from '../import/convertVideo';
+import {ORIGINAL_COMMIT,ORIGINAL_INDEX_SHA256} from './originalRunner';
 
 function projected(output:VideoCollection){
   if(output.packet===null)throw new Error('Expected a comparable measurement packet');
   return output.packet;
 }
 
-const deps=vi.hoisted(()=>({open:vi.fn(),seek:vi.fn(),closeVideo:vi.fn(),create:vi.fn(),closeModels:vi.fn(),solver:vi.fn()}));
+const deps=vi.hoisted(()=>({open:vi.fn(),seek:vi.fn(),closeVideo:vi.fn(),create:vi.fn(),closeModels:vi.fn(),solver:vi.fn(),loadOriginal:vi.fn(),oldConvert:vi.fn(),oldSolver:vi.fn()}));
 vi.mock('../import/videoSource',()=>({openVideoFile:deps.open,seekTo:deps.seek,closeVideoFile:deps.closeVideo}));
 vi.mock('../capture/landmarkers',()=>({createLandmarkers:deps.create,closeLandmarkers:deps.closeModels}));
 vi.mock('../motion/index',async original=>({...await original<object>(),createPoseSolver:deps.solver}));
+vi.mock('./originalRunner',async original=>({...await original<object>(),loadOriginalRunner:deps.loadOriginal}));
 function pending<T>(){let resolve!:(value:T)=>void;const promise=new Promise<T>(yes=>{resolve=yes;});return{promise,resolve};}
 function options(){
   const processingConsent=new ProcessingConsent();processingConsent.setAllowed(true);
@@ -33,6 +36,12 @@ describe('owned video measurement collection',()=>{
     deps.create.mockResolvedValue(bundle());deps.solver.mockImplementation(()=>({
       solve:(world:unknown,t:number)=>world?tposeFrame(t):null,calibrate:()=>{},relaxFingers:()=>{},setSmoothing:()=>{},reset:()=>{},
     }));
+    deps.oldConvert.mockImplementation((duration:number,input:ConvertSteps)=>convertVideo(duration,{...input,onAttempt:undefined,now:undefined}));
+    deps.oldSolver.mockImplementation(()=>({solve:(world:unknown,t:number)=>world?{...tposeFrame(t),h:[0,1.5,0]}:null,
+      calibrate:()=>{},relaxFingers:()=>{},setSmoothing:()=>{},reset:()=>{}}));
+    deps.loadOriginal.mockResolvedValue({convertVideo:deps.oldConvert,createPoseSolver:deps.oldSolver,ImportError,NO_PERSON_MESSAGE:'No person found in this video. Use a clip where one whole body is visible.',
+      compiledSource:{sourceCommit:ORIGINAL_COMMIT,sourceIndexSha256:ORIGINAL_INDEX_SHA256},
+      provenance:{buildId:'a'.repeat(64),manifest:{sourceCommit:ORIGINAL_COMMIT,sourceIndexSha256:ORIGINAL_INDEX_SHA256}}});
   });
   it('hashes the actual selected bytes and retains failures separately from final motion',async()=>{
     const input=options(),output=await collectVideoMeasurements(input);
@@ -152,5 +161,39 @@ describe('owned video measurement collection',()=>{
     const output=await collectVideoMeasurements(options());expect(output.outcome).toBe('incomplete');
     expect(output.metadata.startedMs).toBeNull();expect(output.metadata.finishedMs).toBeNull();
     expect(output.metadata.conversionElapsedMs).toBeNull();
+  });
+  it('selects the loaded original converter and original solver with source/build provenance',async()=>{
+    const input={...options(),sourceCommit:ORIGINAL_COMMIT,implementation:'original' as const,originalBuildId:'a'.repeat(64)};
+    const output=await collectVideoMeasurements(input);
+    expect(output.outcome).toBe('completed');expect(deps.loadOriginal).toHaveBeenCalledTimes(1);expect(deps.oldConvert).toHaveBeenCalledTimes(1);
+    expect(deps.oldSolver).toHaveBeenCalledTimes(2);expect(deps.solver).not.toHaveBeenCalled();
+    expect(output.finalFrames.every(frame=>frame.h[1]===1.5)).toBe(true);expect(projected(output).sourceCommit).toBe(ORIGINAL_COMMIT);
+    expect(output.metadata).toMatchObject({implementation:'original',originalRunner:{buildId:'a'.repeat(64),manifest:{sourceIndexSha256:ORIGINAL_INDEX_SHA256}}});
+    expect(output.metadata.originalAdapterSha256).toMatch(/^[0-9a-f]{64}$/);
+  });
+  it('wrong original source, missing build and unknown implementation reject before effects',async()=>{
+    await expect(collectVideoMeasurements({...options(),implementation:'original',originalBuildId:'a'.repeat(64)} as any)).rejects.toThrow();
+    await expect(collectVideoMeasurements({...options(),sourceCommit:ORIGINAL_COMMIT,implementation:'original'} as any)).rejects.toThrow();
+    await expect(collectVideoMeasurements({...options(),implementation:'other'} as any)).rejects.toThrow();
+    expect(deps.open).not.toHaveBeenCalled();expect(deps.loadOriginal).not.toHaveBeenCalled();expect(deps.create).not.toHaveBeenCalled();
+  });
+  it('pins implementation and build ID before asynchronous source hashing',async()=>{
+    const input={...options(),sourceCommit:ORIGINAL_COMMIT,implementation:'original' as 'original'|'current',originalBuildId:'a'.repeat(64)};
+    const hash=pending<ArrayBuffer>();vi.spyOn(input.file,'arrayBuffer').mockReturnValue(hash.promise);const running=collectVideoMeasurements(input);
+    input.implementation='current';input.originalBuildId='b'.repeat(64);hash.resolve(new Uint8Array([1,2,3]).buffer);
+    const output=await running;expect(deps.loadOriginal.mock.calls[0][0]).toBe('a'.repeat(64));expect(deps.oldConvert).toHaveBeenCalledTimes(1);
+    expect(output.metadata.implementation).toBe('original');
+  });
+  it('original load failure retains explicit partial diagnostics without opening video or models',async()=>{
+    deps.loadOriginal.mockRejectedValue(new Error('Owned original load failure'));
+    const output=await collectVideoMeasurements({...options(),sourceCommit:ORIGINAL_COMMIT,implementation:'original',originalBuildId:'a'.repeat(64)} as any);
+    expect(output.outcome).toBe('incomplete');expect(output.reason).toBe('original-runner-unavailable');expect(output.packet).toBeNull();
+    expect(output.metadata.startedMs).toBeNull();expect(deps.open).not.toHaveBeenCalled();expect(deps.create).not.toHaveBeenCalled();
+  });
+  it('withdrawal during late original loading prevents video/model setup and inference',async()=>{
+    const input={...options(),sourceCommit:ORIGINAL_COMMIT,implementation:'original' as const,originalBuildId:'a'.repeat(64)};
+    const loaded=pending<unknown>();deps.loadOriginal.mockReturnValue(loaded.promise);const running=collectVideoMeasurements(input);
+    await vi.waitFor(()=>expect(deps.loadOriginal).toHaveBeenCalledTimes(1));input.processingConsent.setAllowed(false);loaded.resolve({});
+    const output=await running;expect(output.outcome).toBe('incomplete');expect(output.packet).toBeNull();expect(deps.create).not.toHaveBeenCalled();expect(deps.open).not.toHaveBeenCalled();
   });
 });
