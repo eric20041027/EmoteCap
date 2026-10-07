@@ -29,3 +29,13 @@ it('admitted ordinary hand failure still yields body-only detection',()=>{
   expect(detect(f.video,33)).toMatchObject({hands:{world:{},image:{}}});
   expect(f.hand).toHaveBeenCalledTimes(1);expect(f.pose).toHaveBeenCalledTimes(2);
 });
+
+it('opt-in metadata distinguishes active, disabled and persistent hand failure',()=>{
+  const f=fixture();const active=createFrameDetector(f.bundle,true,()=>{},true);
+  expect(active(f.video,0).handTracking).toBe('active');
+  f.hand.mockImplementation(()=>{throw new Error('Owned hand failure');});
+  expect(active(f.video,33).handTracking).toBe('failed');expect(active(f.video,66).handTracking).toBe('failed');
+  const disabled=createFrameDetector(f.bundle,false,()=>{},true);
+  expect(disabled(f.video,99).handTracking).toBe('disabled');
+  expect(createFrameDetector(f.bundle,false,()=>{})(f.video,132)).not.toHaveProperty('handTracking');
+});

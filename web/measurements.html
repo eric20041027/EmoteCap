@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>EmoteCap private video measurements</title>
+<style>
+body{margin:0;font:16px/1.5 system-ui,sans-serif;color:#17212b;background:#f5f7fa}
+main{max-width:920px;margin:auto;padding:20px;overflow-wrap:anywhere}
+h1,h2{line-height:1.2}fieldset,section{background:white;border:1px solid #b9c5d1;border-radius:8px;padding:16px;margin:20px 0}
+.metadata{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+label{display:grid;gap:4px}input:not([type=checkbox]),select{box-sizing:border-box;width:100%;min-width:0;font:inherit;padding:6px}
+.choice,.studio-processing__choice{display:flex;align-items:center;gap:8px}.choice{grid-column:1/-1}
+.studio-processing{background:white;padding:16px;border:1px solid #b9c5d1;border-radius:8px}
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0}button,a{font:inherit}button{padding:8px 14px;cursor:pointer}
+button:disabled{cursor:default}a{color:#064f8d}video{display:block;width:100%;max-height:420px;background:#111}
+:focus-visible{outline:3px solid #176db7;outline-offset:2px}
+</style></head><body><div id="root"></div><script type="module" src="/src/evaluation/VideoMeasurementsPage.tsx"></script></body></html>

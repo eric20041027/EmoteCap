@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createLandmarkers } from './landmarkers';
+import { closeLandmarkers,createLandmarkers,type Landmarkers } from './landmarkers';
 import { ProcessingConsentError } from '../privacy/processingConsent';
 
 const sdk=vi.hoisted(()=>({fileset:vi.fn(),pose:vi.fn(),hand:vi.fn()}));
@@ -63,5 +63,26 @@ describe('SDK setup admission and late owned cleanup',()=>{
     const pose=model();sdk.pose.mockResolvedValue(pose);sdk.hand.mockRejectedValue(new Error('No hands'));
     const result=await createLandmarkers('fast',admitted);expect(result).toEqual({pose,hands:undefined});
     expect(sdk.hand).toHaveBeenCalledTimes(2);expect(pose.close).not.toHaveBeenCalled();
+  });
+});
+
+describe('opt-in actual pose delegate metadata',()=>{
+  beforeEach(()=>{vi.resetAllMocks();sdk.fileset.mockResolvedValue({});sdk.pose.mockResolvedValue(model());sdk.hand.mockResolvedValue(model());});
+  it('reports successful GPU only when requested',async()=>{
+    expect((await createLandmarkers('accurate',admitted,{reportDelegate:true})).poseDelegate).toBe('GPU');
+    expect(await createLandmarkers('accurate',admitted)).not.toHaveProperty('poseDelegate');
+  });
+  it('reports actual CPU fallback rather than requested GPU',async()=>{
+    sdk.pose.mockRejectedValueOnce(new Error('Owned GPU failure')).mockResolvedValueOnce(model());
+    expect((await createLandmarkers('accurate',admitted,{reportDelegate:true})).poseDelegate).toBe('CPU');
+  });
+  it('reports independently configured hand CPU fallback',async()=>{
+    sdk.hand.mockRejectedValueOnce(new Error('Owned hand GPU failure')).mockResolvedValueOnce(model());
+    expect(await createLandmarkers('accurate',admitted,{reportDelegate:true})).toMatchObject({poseDelegate:'GPU',handDelegate:'CPU'});
+  });
+  it('still closes owned hands if owned pose cleanup throws',()=>{
+    const pose={close:vi.fn(()=>{throw new Error('Owned pose close failure');})},hands=model();
+    expect(()=>closeLandmarkers({pose,hands} as unknown as Landmarkers)).toThrow('Owned pose close failure');
+    expect(hands.close).toHaveBeenCalledTimes(1);
   });
 });

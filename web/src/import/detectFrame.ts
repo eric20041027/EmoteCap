@@ -9,8 +9,10 @@ export type FrameDetector = (video: HTMLVideoElement, timestampMs: number) => Fr
  * Pose and (for the Body + Fingers skeleton) hands on every frame. If the hand model fails once, the rest of
  * the import continues body-only.
  */
-export function createFrameDetector(landmarkers: Landmarkers, trackHands: boolean, authorize: SdkAuthorization): FrameDetector {
+export function createFrameDetector(landmarkers: Landmarkers, trackHands: boolean, authorize: SdkAuthorization,
+  reportTracking = false): FrameDetector {
   let handTracker = trackHands ? landmarkers.hands : undefined;
+  let handFailed = false;
   return (video, timestampMs) => {
     authorize();
     const pose = landmarkers.pose.detectForVideo(video, timestampMs);
@@ -25,9 +27,11 @@ export function createFrameDetector(landmarkers: Landmarkers, trackHands: boolea
         if(error instanceof ProcessingConsentError)throw error;
         console.warn('Hand tracking stopped for this import (body tracking continues):', error);
         handTracker = undefined;
+        handFailed = true;
       }
     }
     authorize();
-    return { world: pose.worldLandmarks[0], image: pose.landmarks[0], hands };
+    return { world: pose.worldLandmarks[0], image: pose.landmarks[0], hands,
+      ...(reportTracking ? {handTracking:handFailed?'failed' as const:handTracker?'active' as const:'disabled' as const} : {}) };
   };
 }

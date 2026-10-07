@@ -40,13 +40,15 @@ interface HandDetections {
   handedness: Category[][];
 }
 
-export async function createHandLandmarker(fileset: WasmFileset, authorize: SdkAuthorization): Promise<HandLandmarker> {
+export async function createHandLandmarker(fileset: WasmFileset, authorize: SdkAuthorization,
+  reportDelegate?: (delegate:'GPU'|'CPU')=>void): Promise<HandLandmarker> {
   const options = (delegate: 'GPU' | 'CPU') => ({
     baseOptions: { modelAssetPath: HAND_MODEL_PATH, delegate },
     runningMode: 'VIDEO' as const,
     numHands: 2,
   });
   let hand: HandLandmarker;
+  let delegate:'GPU'|'CPU'='GPU';
   try {
     authorize();
     hand=await HandLandmarker.createFromOptions(fileset, options('GPU'));
@@ -54,8 +56,9 @@ export async function createHandLandmarker(fileset: WasmFileset, authorize: SdkA
     authorize();
     console.warn('HandLandmarker GPU delegate failed, retrying on CPU:', gpuError);
     hand=await HandLandmarker.createFromOptions(fileset, options('CPU'));
+    delegate='CPU';
   }
-  try {authorize();return hand;}
+  try {authorize();reportDelegate?.(delegate);return hand;}
   catch(error){hand.close();throw error;}
 }
 

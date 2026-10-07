@@ -7,6 +7,7 @@ import {
   NO_PERSON_MESSAGE,
   T_POSE_HOLD_FRAMES,
   type FrameDetection,
+  type ConversionAttempt,
 } from './convertVideo';
 import { ARMS_DOWN_IMAGE, T_POSE_IMAGE } from './testPoses';
 
@@ -16,6 +17,56 @@ const person = (timestampMs: number, image: NormalizedLandmark[] = ARMS_DOWN_IMA
   world: [{ x: timestampMs / 1000, y: 0, z: 0, visibility: 1 }],
   image,
   hands: NO_HANDS,
+});
+
+describe('optional conversion observations',()=>{
+  it('retains failed attempts without changing the calibrated final take',async()=>{
+    const detect=(ms:number)=>Math.round(ms)===33?NOBODY:person(ms);
+    const plain=await convertVideo(.1,{...steps,detect});
+    const attempts:ConversionAttempt[]=[];let clock=0;
+    const observed=await convertVideo(.1,{...steps,detect,now:()=>++clock,onAttempt:event=>attempts.push(event)});
+    expect(attempts.map(event=>event.status)).toEqual(['ok','no-pose','ok']);
+    expect(attempts[1].frame).toBeNull();
+    expect(attempts.every(event=>event.seekStartedMs<=event.startedMs&&event.startedMs<=event.finishedMs)).toBe(true);
+    expect(observed.frames).toEqual(plain.frames);expect(observed.measurementState).toBe('complete');
+  });
+  it('reports the tenth fatal detector failure',async()=>{
+    const attempts:ConversionAttempt[]=[];let clock=0;
+    await expect(convertVideo(1,{...steps,detect:()=>{throw new Error('Owned detector error');},
+      now:()=>++clock,onAttempt:event=>attempts.push(event)})).rejects.toThrow('Owned detector error');
+    expect(attempts).toHaveLength(MAX_FAILED_FRAMES_IN_A_ROW);
+    expect(attempts.every(event=>event.status==='detector-error'&&event.frame===null)).toBe(true);
+  });
+  it('retains all no-person attempts before the normal rejection',async()=>{
+    const attempts:ConversionAttempt[]=[];
+    await expect(convertVideo(.1,{...steps,detect:()=>NOBODY,onAttempt:event=>attempts.push(event)})).rejects.toThrow(NO_PERSON_MESSAGE);
+    expect(attempts.map(event=>event.status)).toEqual(['no-pose','no-pose','no-pose']);
+  });
+  it('reports seek and preview-solver errors before preserving the original rejection',async()=>{
+    const attempts:ConversionAttempt[]=[];
+    await expect(convertVideo(.1,{...steps,detect:person,seek:async()=>{throw new Error('Owned seek error');},
+      onAttempt:event=>attempts.push(event)})).rejects.toThrow('Owned seek error');
+    expect(attempts.map(event=>event.status)).toEqual(['seek-error']);attempts.length=0;
+    await expect(convertVideo(.1,{...steps,detect:person,createSolver:()=>({...fakeSolver(),solve:()=>{throw new Error('Owned solver error');}}),
+      onAttempt:event=>attempts.push(event)})).rejects.toThrow('Owned solver error');
+    expect(attempts.map(event=>event.status)).toEqual(['solver-error']);
+  });
+  it('copies preview data before an observer can mutate it',async()=>{
+    const values:number[]=[];let calls=0;
+    await convertVideo(.1,{...steps,detect:person,
+      onAttempt:event=>{calls++;if(event.frame)event.frame.r[0]=99;},
+      onProgress:progress=>{if(progress.frame)values.push(progress.frame.r[0]);}});
+    expect(calls).toBe(3);expect(values).toEqual([0,0,0]);
+  });
+  it('disables a failed observer and reports it without losing the ordinary final take',async()=>{
+    const plain=await convertVideo(.1,{...steps,detect:person});let calls=0;
+    const observed=await convertVideo(.1,{...steps,detect:person,onAttempt:()=>{calls++;throw new Error('Owned sink failure');}});
+    expect(calls).toBe(1);expect(observed.frames).toEqual(plain.frames);expect(observed.measurementState).toBe('failed');
+  });
+  it('invalid clock observation cannot destroy ordinary conversion',async()=>{
+    const observed=await convertVideo(.1,{...steps,detect:person,now:()=>NaN,onAttempt:()=>{}});
+    expect(observed.frames).toHaveLength(3);expect(observed.measurementState).toBe('failed');
+  });
 });
 const NOBODY: FrameDetection = { world: undefined, image: undefined, hands: NO_HANDS };
 

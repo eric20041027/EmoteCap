@@ -24,6 +24,19 @@ export interface FrameDetection {
   /** Normalized image landmarks of the same pose (overlay and jump detection). */
   image: NormalizedLandmark[] | undefined;
   hands: TrackedHands;
+  /** Optional diagnostic state; no field is added to ordinary detection results. */
+  handTracking?: 'active' | 'disabled' | 'failed';
+}
+
+export interface ConversionAttempt {
+  inputTimeS: number;
+  seekStartedMs: number;
+  startedMs: number;
+  finishedMs: number;
+  status: 'ok' | 'no-pose' | 'detector-error' | 'solver-error' | 'seek-error';
+  frame: MotionFrame | null;
+  handTracking?: 'active' | 'disabled' | 'failed';
+  assignedHandSides: readonly string[];
 }
 
 export interface ConvertProgress {
@@ -46,6 +59,9 @@ export interface ConvertSteps {
   aspect: number;
   onProgress?: (progress: ConvertProgress) => void;
   signal?: AbortSignal;
+  /** Opt-in diagnostics only; failure must not destroy ordinary conversion. */
+  onAttempt?: (attempt: ConversionAttempt) => void;
+  now?: () => number;
 }
 
 export interface ConvertedVideo {
@@ -53,6 +69,7 @@ export interface ConvertedVideo {
   frames: MotionFrame[];
   /** Video time (s) of the T-pose the take was calibrated from, or null when there was none. */
   calibratedAt: number | null;
+  measurementState?: 'complete' | 'failed';
 }
 
 const NOTHING_FOUND: FrameDetection = { world: undefined, image: undefined, hands: { world: {}, image: {} } };
@@ -82,29 +99,72 @@ export async function convertVideo(duration: number, steps: ConvertSteps): Promi
   let previewCalibrated = false;
   let tposeRun = 0;
   let failedInARow = 0;
+  let observer = steps.onAttempt;
+  let measurementFailed = false;
+  const measurementFailure = () => {
+    observer = undefined;
+    measurementFailed = true;
+    console.warn('Measurement collection stopped.');
+  };
+  const clock = () => {
+    if (!observer) return 0;
+    try {
+      const value = steps.now ? steps.now() : performance.now();
+      if (!Number.isFinite(value) || value < 0) throw new Error('Invalid clock');
+      return value;
+    } catch {
+      measurementFailure();
+      return 0;
+    }
+  };
+  const report = (t:number, seekStartedMs:number, startedMs:number,
+    status:ConversionAttempt['status'], frame:MotionFrame|null, detection:FrameDetection) => {
+    const finishedMs = clock();
+    if (!observer) return;
+    try {
+      observer(structuredClone({inputTimeS:t,seekStartedMs,startedMs,finishedMs,status,frame,
+        ...(detection.handTracking ? {handTracking:detection.handTracking} : {}),
+        assignedHandSides:Object.keys(detection.hands.world).sort()}));
+    } catch {
+      measurementFailure();
+    }
+  };
   for (const [index, t] of times.entries()) {
     signal?.throwIfAborted();
-    await seek(t);
+    const seekStartedMs = clock();
+    try { await seek(t); }
+    catch(error) {report(t,seekStartedMs,seekStartedMs,'seek-error',null,NOTHING_FOUND);throw error;}
     signal?.throwIfAborted();
+    const startedMs = clock();
     let detection = NOTHING_FOUND;
+    let status:ConversionAttempt['status'] = 'no-pose';
     try {
       detection = detect(t * 1000);
       failedInARow = 0;
     } catch (error) {
       failedInARow += 1;
-      if (failedInARow >= MAX_FAILED_FRAMES_IN_A_ROW) throw error;
+      status = 'detector-error';
+      if (failedInARow >= MAX_FAILED_FRAMES_IN_A_ROW) {
+        report(t,seekStartedMs,startedMs,status,null,detection);
+        throw error;
+      }
       console.warn(`Pose detection failed at ${t.toFixed(2)} s; skipping that frame.`, error);
     }
     analysed.push({ t, detection });
-    const isT = isTPose(detection.image, aspect);
-    tposeFlags.push(isT);
-    tposeRun = isT ? tposeRun + 1 : 0;
-    if (!previewCalibrated && tposeRun === T_POSE_HOLD_FRAMES) {
-      const runStart = index - T_POSE_HOLD_FRAMES + 1;
-      calibrateFrom(preview, analysed[runStart + Math.floor(T_POSE_HOLD_FRAMES / 2)].detection);
-      previewCalibrated = true;
-    }
-    const frame = preview.solve(detection.world, t, detection.hands.world, detection.image);
+    let frame:MotionFrame|null;
+    try {
+      const isT = isTPose(detection.image, aspect);
+      tposeFlags.push(isT);
+      tposeRun = isT ? tposeRun + 1 : 0;
+      if (!previewCalibrated && tposeRun === T_POSE_HOLD_FRAMES) {
+        const runStart = index - T_POSE_HOLD_FRAMES + 1;
+        calibrateFrom(preview, analysed[runStart + Math.floor(T_POSE_HOLD_FRAMES / 2)].detection);
+        previewCalibrated = true;
+      }
+      frame = preview.solve(detection.world, t, detection.hands.world, detection.image);
+    } catch(error) {report(t,seekStartedMs,startedMs,'solver-error',null,detection);throw error;}
+    if (status !== 'detector-error') status = frame ? 'ok' : 'no-pose';
+    report(t,seekStartedMs,startedMs,status,frame,detection);
     onProgress?.({ done: index + 1, total: times.length, frame, detection });
   }
 
@@ -117,5 +177,6 @@ export async function convertVideo(duration: number, steps: ConvertSteps): Promi
     if (frame) frames.push(frame);
   }
   if (frames.length === 0) throw new ImportError(NO_PERSON_MESSAGE);
-  return { frames: holdFromStart(frames), calibratedAt: calibration === null ? null : analysed[calibration].t };
+  return { frames: holdFromStart(frames), calibratedAt: calibration === null ? null : analysed[calibration].t,
+    ...(steps.onAttempt ? {measurementState:measurementFailed?'failed' as const:'complete' as const} : {}) };
 }
