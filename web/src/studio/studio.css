@@ -1,0 +1,28 @@
+.studio-heading,.studio-actions {display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.studio-heading {justify-content:space-between;}
+.studio-project fieldset,.studio-takes fieldset,.studio-review fieldset {border:0;padding:0;margin:0;min-width:0;}
+.studio-field {display:flex;flex-direction:column;gap:5px;font-size:13px;min-width:0;}
+.studio-field input,.studio-field select {min-height:42px;max-width:100%;padding:8px 10px;border:1px solid var(--field-border);border-radius:7px;background:var(--field);font:inherit;color:var(--text);}
+.studio-field input[aria-invalid=true] {border-color:var(--bad);}
+.studio-check {display:flex;align-items:center;gap:8px;min-height:42px;font-size:14px;}
+.studio-check input {width:18px;height:18px;accent-color:var(--accent);}
+.studio-help {color:var(--text-muted);font-size:13px;}
+.studio-warning {color:var(--warn);}
+.studio-error {color:var(--bad);font-size:14px;overflow-wrap:anywhere;}
+.studio-error pre {white-space:pre-wrap;max-height:200px;overflow:auto;font-size:12px;}
+.studio-save {font-size:13px;padding:6px 12px;border:1px solid var(--field-border);border-radius:999px;}
+.studio-save--saved {color:var(--ok);}.studio-save--dirty,.studio-save--saving {color:var(--warn);}.studio-save--error {color:var(--bad);}
+.studio-file {display:none;}
+.studio-take-list {list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:8px;}
+.studio-take-list button {display:flex;flex-direction:column;text-align:left;gap:4px;min-height:50px;padding:9px 14px;background:var(--field);border:1px solid var(--field-border);border-radius:8px;cursor:pointer;}
+.studio-take-list button[aria-pressed=true] {border-color:var(--accent-2);}
+.studio-take-list small {color:var(--text-muted);}
+.studio-take-details {margin-top:14px;}
+.studio-clips {display:flex;flex-direction:column;gap:12px;list-style:none;padding:0;margin:16px 0;}
+.studio-clip {display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid var(--field-border);border-radius:10px;background:var(--field);}
+.studio-clip-fields {display:flex;gap:12px;align-items:end;flex-wrap:wrap;}
+.studio-clip-fields .time-field {width:100px;}
+.studio-clip-fields .studio-field:first-child {flex:1 1 160px;}
+.studio-project .studio-field:first-child {flex:1 1 220px;}
+.studio-diagnostics {display:flex;flex-direction:column;gap:8px;}
+@media(max-width:640px) {.studio-actions {align-items:stretch;}.studio-actions .studio-field {flex:1 1 100%;}.studio-heading {align-items:start;}.studio-clip-fields {gap:8px;}}

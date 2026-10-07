@@ -16,6 +16,6 @@ export default defineConfig({
   test: {
     environment: 'node',
     // Installation scripts use Node's test runner through npm run test:assets.
-    exclude: [...configDefaults.exclude, 'scripts/**'],
+    exclude: [...configDefaults.exclude, 'scripts/**', 'e2e/**'],
   },
 });

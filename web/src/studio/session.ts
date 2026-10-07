@@ -87,7 +87,10 @@ export class StudioSession {
     }
     this.lane=new ProjectAutosave(this.store,project.id,savedRevision,status=>{
       if(generation!==this.laneGeneration || this.disposed) return;
-      this.publish({save:status,error:status.phase==='error'?status.error.message:null});
+      const previous=this.snapshot.save;
+      const error=status.phase==='error'?status.error.message
+        :previous.phase==='error' && this.snapshot.error===previous.error.message?null:this.snapshot.error;
+      this.publish({save:status,error});
       if(status.phase==='saved') void this.refreshList();
     });
     this.snapshot=Object.freeze({...this.snapshot,storage:'ready',save:this.lane.getStatus()});
@@ -190,15 +193,16 @@ export class StudioSession {
       this.context(recoverProject(project),project.revision);
     });
   }
-  async install(project:ProjectDocument,media:ReadonlyMap<string,ArchiveMediaSource>,discardSources=false):Promise<void> {
+  async install(project:ProjectDocument,media:ReadonlyMap<string,ArchiveMediaSource>,discardSources=false,signal?:AbortSignal):Promise<void> {
+    signal?.throwIfAborted();
     const parsed=parseProject(project),sources=new Map(media);
     if(parsed.id===this.snapshot.project.id) throw new ProjectDataError('Import must use a different project identity.');
     if(parsed.takes.some(t=>t.media)) throw new ProjectDataError('Imported source video needs a separate retention choice.');
     for(const [id,source] of sources) this.validateSource(parsed,id,source,sources);
     return this.perform(async()=>{
-      await this.leave(discardSources);
+      await this.leave(discardSources);signal?.throwIfAborted();
       if(this.store && await this.store.load(parsed.id)) throw new ProjectDataError('Imported project identity already exists.');
-      this.alive();this.context(recoverProject(parsed),null,sources);
+      this.alive();signal?.throwIfAborted();this.context(recoverProject(parsed),null,sources);
     });
   }
   async removeCurrent():Promise<void> {

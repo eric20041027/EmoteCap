@@ -119,7 +119,7 @@ downloadProject(session:StudioSession,includeMedia:boolean,signal?:AbortSignal):
 importProject(session:StudioSession,blob:Blob,discardSources:boolean,signal?:AbortSignal):Promise<void>;
 ```
 
-- [ ] **Step 1: Write failing clip behavior tests.**
+- [x] **Step 1: Write failing clip behavior tests.**
 
 ```typescript
 const take=readyProject().takes[0];
@@ -131,13 +131,13 @@ expect(projectClips(take)[0].frames[0].t).toBe(0);
 
 Pin case-insensitive duplicates, Unicode invalid export names, keyboard range clamping at0.1seconds, independent original frames, local pause splitting with stable generated IDs and persisted undo. Archive action tests use actual codec with a supplied download sink; failed/cancelled decode must never call install; includeMedia false must never read a source.
 
-- [ ] **Step 2: Observe RED and implement controls.**
+- [x] **Step 2: Observe RED and implement controls.**
 
 Run the new tests before helpers. Add labelled project/open/name/backup/import/source-choice inputs; loading/dirty/saving/saved/error text in a polite live region; explicit Retry save and Reopen saved copy; import/download cancel state. Download uses a temporary object URL, revoking it after the click. Only `.emotecap` data is imported and only a fully successful decode is installed.
 
 Clip rows preserve UUIDs and immediately stage name/loop/description changes, allow temporarily invalid names with an associated export error, and clamp time changes before calling editClip. Add clip/delete/play/undo and Find pauses, using fallbackSegments locally and replaceClips to retain undo. Export captures the frozen selected take at click and builds only validated names; missing Blender disables export with readable text while review/save/download remain enabled. Empty interrupted takes show the label and remain downloadable, with playback/export unavailable.
 
-- [ ] **Step 3: Verify and commit.**
+- [x] **Step 3: Verify and commit.**
 
 Run the whole Web suite and TypeScript; inspect rendered labels/state branches in the source, then commit `feat: add persistent Studio project and clip controls`. Task completion: `bash -c 'cd web && node node_modules/vitest/vitest.mjs run && node node_modules/typescript/bin/tsc --noEmit'`.
 

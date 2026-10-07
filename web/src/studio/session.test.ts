@@ -187,3 +187,8 @@ it('never creates another save lane after disposal during an awaited navigation 
   await vi.waitFor(()=>expect(resolve).toBeTypeOf('function'));studio.dispose();const before=studio.getSnapshot();resolve();
   await expect(navigating).rejects.toThrow(/closed/i);expect(studio.getSnapshot()).toBe(before);
 });
+
+it('does not hide an unrelated operation failure when autosave completes',async()=>{
+  const {studio}=await setup();studio.update(p=>renameProject(p,'Pending edit'));studio.reportError(new Error('Project import failed'));
+  await studio.flush();expect(studio.getSnapshot()).toMatchObject({save:{phase:'saved'},error:'Project import failed'});
+});
