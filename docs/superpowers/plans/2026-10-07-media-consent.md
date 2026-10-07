@@ -30,7 +30,7 @@
 
 ---
 
-### Task1: Consent gate and owned local temporary media
+### Task 1: Consent gate and owned local temporary media
 
 **Files:** Create `server/emotecap_server/media/{__init__,consent,storage,api}.py`, `server/tests/test_media_consent.py`, `test_media_storage.py`, `test_media_api.py`; modify `main.py`, `tests/test_takes_api.py`; create `contracts/media-consent-v1.md`.
 
@@ -61,7 +61,7 @@ with grants.enter():
 
 - [ ] **Step4: Verify/commit.** Full Python fast suite `uv run --directory server --frozen --python 3.12.14 pytest -q -m "not slow"`; Expected: all pass/real-Blender cases deselected. Contract documents grant/limits/errors and local cleanup scope. Commit `feat: require source-bound cloud consent and clean temporary media`; Native task-done repeats fast suite.
 
-### Task2: Honest provider cleanup report
+### Task 2: Honest provider cleanup report
 
 **Files:** Modify `server/emotecap_server/gemini.py`, `contract.py`, `media/api.py`, `server/tests/test_gemini.py`, `test_media_api.py`.
 
@@ -82,7 +82,7 @@ def test_remote_delete_failure_preserves_result_and_is_visible(fake,video):
 - [ ] **Step3: Implement report.** Always attempt delete of the confirmed uploaded file in finally; preserve original error/result and expose a bounded redacted warning. Do not delete unconfirmed/unrelated account files or promise removal of provider processing logs. Keep30sSDK budget,5sdelete limit and current verified stable model/fallback IDs.
 - [ ] **Step4: Verify/commit.** Same whole Python fast command; Expected all pass. Commit `fix: report provider cleanup without hiding slicing results`; Native task-done repeats it.
 
-### Task3: Explicit Studio source deletion and cloud suggestions
+### Task 3: Explicit Studio source deletion and cloud suggestions
 
 **Files:** Modify `web/src/studio/session.ts`, `session.test.ts`, `TakeList.tsx`, `ProjectReview.tsx`, `App.tsx`, legacy `take/takesApi.ts`, `sliceTake.ts` and their tests; create `web/src/cloud/api.ts`, `api.test.ts`, `controller.ts`, `controller.test.ts`, `useCloudSlice.ts`, `CloudPanel.tsx`, `web/e2e/media.spec.ts`; add report/update release-progress.
 
