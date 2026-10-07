@@ -1,5 +1,5 @@
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [react()],
@@ -13,5 +13,9 @@ export default defineConfig({
       '/ws': { target: 'ws://localhost:8787', ws: true },
     },
   },
-  test: { environment: 'node' },
+  test: {
+    environment: 'node',
+    // Installation scripts use Node's test runner through npm run test:assets.
+    exclude: [...configDefaults.exclude, 'scripts/**'],
+  },
 });
