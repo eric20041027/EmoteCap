@@ -18,7 +18,7 @@ Actual Edge 154.0.4258.62 with the relocated bundled Python and production API p
 
 Desktop 1280×2520 and narrow 390×3785 screenshots were inspected; no horizontal overflow occurred. Owned service/browser helpers exited. Browser artifacts are retained at `browser-489ff3b9-9802-4e0b-b2d1-9714cd5c6d21`; relocation/tamper/repeated ZIP receipts at `qa-a15793ff-6fbc-4af7-a86b-8c93b206a8fc`. Current source/history audit at 5572c88 found 0 detected credentials across 152 commits / 902 historical blobs / 510 current files / 16854760 bytes. This heuristic scan does not prove secret absence.
 
-The new artifact supersedes the older 2c019a0 candidate for current local SDK/notices qualification. All older outputs are retained. Native task-done and the one fresh final review remain pending at this report commit; no redistribution or public release is approved.
+The new artifact supersedes the older 2c019a0 candidate for current local SDK/notices qualification. All older outputs are retained. Native task-done repeated the whole fast backend: 725 passed / 1 privilege skip / 18 slow deselected in 73.37 seconds. One fresh independent Python review approved fixed cb170ff..188b66e with 0 Critical / 0 Important / 0 new Minor findings. Its focused run independently passed 41 cases with one privilege skip, including actual junction coverage, in 29.73 seconds. No correction pass or rereview was needed. Ruff/mypy/pylint/Black were unavailable; no dependency was added to run them. No redistribution or public release is approved.
 
 ## Rulings and costs
 
@@ -31,5 +31,17 @@ The new artifact supersedes the older 2c019a0 candidate for current local SDK/no
 - Ruling: Use an actual owned NTFS junction control when file-symlink privilege is unavailable — directory reparse rejection still needs Windows evidence — cost if wrong: file-symlink privilege remains a reported skip; no system privileges are changed and target bytes remain intact.
 - Ruling: Retain earlier scratch/candidates and the deferred reserved-name Minor — cleanup was previously rejected and this plan does not reopen accepted scope — cost if wrong: disk usage and the documented validation limitation remain explicit.
 - Ruling: Import the exact downloaded backup as a named byte payload in the owned browser harness — deep artifact-backed files previously caused Edge file-read failures — cost if wrong: byte/namespace/frame checks remain real, while this run does not qualify Edge's deep filesystem-path behavior.
+
+## Final review rulings and deferred limitation
+
+- Final Ruling: Physical camera, actual SDK inference/network, Unity/two rigs, target laptop, clean-machine and new users remain pending — synthetic and same-host qualification cannot establish these outcomes — cost if wrong: formal release remains gated on actual evidence.
+- Final Ruling: Legal ownership/redistribution/vendor/model/source-form sufficiency remains pending — technical byte correspondence cannot approve rights — cost if wrong: the material must not be interpreted as a legal grant or complete attribution assessment.
+- Final Ruling: Frozen Web rebuild evidence is separate from code inspection — the builder binds observed built bytes and source pins but cannot alone prove source derivation — cost if wrong: final-source qualification must retain the actual frozen-build receipt and cannot rely on a copied dist.
+- Final Ruling: Deep-path Edge backup-file behavior remains unqualified — this actual import used the exact downloaded bytes as a named payload — cost if wrong: backup content/restore passes here, while unusually deep filesystem selections may still fail.
+- Final Ruling: File-symlink creation remains a privilege skip — link rejection was inspected and an actual NTFS directory junction passed — cost if wrong: this host supplies no execution result for file-symlink creation, and privileges are not altered.
+- Final Ruling: Previously deferred reserved Windows names remain outside this accepted increment — the earlier Minor is explicitly retained — cost if wrong: those names remain a known validation gap before a formal supported distribution.
+- Final Ruling: Adversarial concurrent replacement of prepared files is not newly qualified — the existing copy/verification rules, fixed prepared receipt and isolated startup remain in force, and no concurrent writer was used — cost if wrong: hostile host mutation could break the prepared-input binding even with a self-consistent output manifest; this workflow requires immutable prepared inputs and does not authenticate the host or publisher.
+
+Deferred Minor: the prior `CONIN$` / `CONOUT$` / `CON .txt` / `NUL .txt` reserved-name admission gap remains recorded in the original Windows report. No new Minor was reported.
 
 No camera, SDK inference, cloud provider, Unity, target laptop, clean second machine or new-user qualification is inferred from these checks. Owner/contributor/four-media and native/vendor/model/source-form assessments remain pending. No project LICENSE, public push, remote-main merge, installer upload, tag or release occurs in this plan.
