@@ -20,7 +20,7 @@ The owner decision needed is: approve MIT and this contributor header, and confi
 ## Third-party treatment
 
 - Preserve upstream notices/licenses for locked npm/Python packages, runtime/WASM and any shipped dependencies; enumerate exact versions/file hashes and copied license texts before packaging.
-- MediaPipe task weights are three separately hashed assets from Google's model storage. Their model-license evidence must be established independently; the SDK license is not assumed to cover weights. Packaging inclusion stays pending that inventory.
+- MediaPipe task weights are three separately hashed assets from Google's model storage. Primary model-card Apache2evidence is recorded separately in the [static material](../third_party/README.md); the SDK license is not assumed to cover weights or every task-archive asset. Assessment and formal package inclusion remain pending.
 - Blender4.5.14 is an official hash-verified development tool/user-selected exporter, not bundled in the product. Its tool license and source are recorded separately.
 - Unity editor is a user prerequisite. Planned official Newtonsoft3.2.2 is an explicit future UPM dependency, not an already-installed or approved project license.
 - No tag/GitHub Release is created by approval of this proposal. Publication still requires the release checklist, artifacts/sourceSHA/checksums and separate owner approval.
