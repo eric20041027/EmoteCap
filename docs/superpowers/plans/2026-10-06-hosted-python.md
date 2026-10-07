@@ -79,6 +79,6 @@ Expected: status completed, conclusion success, and all three operating-system j
 
 Record the failed and successful runs, exact SHA, each platform result, the bootstrap decision and unchanged hardware/release limits in the report and release ledger. Commit those evidence documents. Task completion command: `gh run view <observed successful PR run ID> --repo eric20041027/EmoteCap --exit-status`, after independently confirming completed/success for all jobs.
 
-- [ ] **Step 5: Complete a fresh focused review**
+## Final Review
 
 Create the review package from fc63378 to the completed plan HEAD. Request one fresh Native reviewer for this new CI repair, not a re-review of the earlier security patch. Record all findings and declined scopes. Any substantive correction requires another actual hosted qualification before acceptance. Keep reports separate from a remote merge or release.

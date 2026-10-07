@@ -50,6 +50,11 @@ The three-platform CI checks source logic, protocol parity, input validation,
 model integrity, types, and the Web build. It uses no Gemini API key.
 It does not run a camera, real Blender export, or Unity playback.
 
+CI installs uv directly with its pinned official action, then installs the
+pinned managed Python using `uv python install 3.12.14`. The setup-python
+action does not provide this Python build on every target runner. CI keeps
+the same interpreter version, dependency locks and test commands on all OSes.
+
 With Blender configured, run `uv run --frozen --python 3.12.14 pytest -q -m slow`
 from `server/` for the real export smoke tests. A skipped test is not a pass.
 Before a release, also verify right-arm direction, scale, timing, and playback
