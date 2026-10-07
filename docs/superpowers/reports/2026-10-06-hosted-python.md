@@ -24,11 +24,19 @@ The [official uv integration guide](https://docs.astral.sh/uv/guides/integration
 
 ## Review and rulings
 
-Focused independent review of this new CI repair is pending. The earlier foundation and dependency-patch reviews remain valid for their scopes.
+Focused fresh-context review (gpt-6-astra, fc63378..61edabf) approved the CI repair with zero Critical, Important or Minor findings. It independently queried the run and inspected native architecture, interpreter, test and build evidence. No fix pass is needed. The earlier foundation and dependency-patch reviews remain valid for their scopes.
 
 - Continue the approved M1 draft PR without another routine approval question; remote main remains unchanged. Cost if wrong: the owner can review the draft before integration.
 - Use the actual failed installation and repaired hosted matrix as regression evidence for this configuration change. A text-matching unit test would not prove runner availability. Cost if wrong: external infrastructure can still change after this run.
 - Review this newly introduced CI repair separately from the prior dependency patch. Cost if wrong: one additional review context.
+- Retain the earlier foundation/security reviews for unchanged code. Cost if wrong: this focused review does not discover unrelated pre-existing defects.
+- Keep the untracked M2 design and all M2–M5 implementation outside this CI verdict and inside the active full goal. Cost if wrong: those features still need implementation and separate acceptance.
+- Preserve separate camera/Gemini/Blender/Unity/hardware/clean-machine gates. Cost if wrong: hosted source tests cannot demonstrate actual product performance or usability.
+- Keep license/contributor decisions and remote-main/release authorization separate from code approval. Cost if wrong: publication remains pending even though this code is technically ready.
+- Treat hosted downloads and advisory availability as dated evidence with failure propagation; no outage was deliberately injected. Cost if wrong: future upstream outages can fail CI.
+- Retain ignored verification scratch after the earlier cleanup approval rejection; do not attempt an alternative deletion route. Cost if wrong: a small amount of local diagnostic data remains.
+
+Deferred minor findings: none.
 
 ## Product boundary
 

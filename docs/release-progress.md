@@ -6,7 +6,7 @@ Authoritative product requirements: [product design](superpowers/specs/2026-10-0
 
 ## Current work
 
-- Active: M1 hosted qualification passed; finish the focused CI repair review, then M2 Studio persistence.
+- Active: M1 implemented, independently reviewed and qualified on all three CI platforms. Continue M2 Studio persistence.
 - Execution: main agent implements each stage; a fresh independent reviewer checks each completed implementation plan. Do not reopen the already-approved execution-method question.
 - Workspace: reuse the existing linked worktree `EmoteCap-release-foundation`; do not touch unrelated workspaces or delete earlier policy-blocked scratch.
 - Keep each stage in committed, testable increments. No force-push or history rewrite.
@@ -45,5 +45,5 @@ Authoritative product requirements: [product design](superpowers/specs/2026-10-0
 - Native means inline implementation with final independent review, preserving the agreed local Web + Python + Unity architecture. No framework rewrite is part of the accepted roadmap.
 - Primary target remains Unity independent/student developers on Windows with the system browser.
 - The earlier frozen dependency baseline was for the initial M1 task. The newly authorized M1–M5 work includes the documented priority security patch; permit only the targeted security dependency update in its own plan.
-- No blocker stops independent local implementation now. External CI, contributor authorization and human/hardware acceptance stay explicit pending gates.
+- No blocker stops independent local implementation now. Future changes require their own CI evidence; contributor authorization and human/hardware acceptance stay explicit pending gates.
 - The user approved pushing the reviewed M1 branch and creating its draft PR on 2026-10-06. Initial hosted Python setup failed on Windows/macOS; the uv bootstrap repair preserves all version pins and passes the actual three-OS matrix. No remote main merge, tag or release has occurred.
