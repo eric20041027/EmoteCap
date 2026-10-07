@@ -160,10 +160,10 @@ export class StudioSession {
   }
   async keepSource(takeId:string,keep:boolean):Promise<void> {
     return this.perform(async()=>{
-      const source=keep?await this.readSource(takeId):null;
+      const source=await this.readSource(takeId);
       if(keep && !source) throw new ProjectDataError('No source video is available for this take.');
       if(source && !this.sources.has(takeId)) this.sources.set(takeId,Object.freeze(source));
-      this.change(p=>setTakeMedia(p,takeId,source?{name:source.name,size:source.blob.size,type:source.blob.type}:null));
+      this.change(p=>setTakeMedia(p,takeId,keep&&source?{name:source.name,size:source.blob.size,type:source.blob.type}:null));
     });
   }
   async flush():Promise<void> {this.alive();if(!this.lane) throw unavailable();await this.lane.flush();}

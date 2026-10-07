@@ -233,7 +233,7 @@ export default function App() {
 
       {isReviewing && activeTake?<ProjectReview key={`${studio.state.project.id}:${activeTake.id}`} take={activeTake} session={studio.session}
         frameRef={frameRef} server={server} exporter={exporter} locked={locked} />:<section className="dock" aria-label="Recording">
-        {isImporting?<ImportProgress state={importState} onCancel={importer.cancel} />:<fieldset className="studio-capture-controls" disabled={atCapacity||archiveBusy||studio.state.busy||studio.state.storage==='loading'}>
+        {isImporting?<ImportProgress state={importState} onCancel={importer.cancel} />:<fieldset className="studio-capture-controls" disabled={(atCapacity&&!capturing)||archiveBusy||studio.state.busy||studio.state.storage==='loading'}>
           <CaptureControls state={state.phase==='recorded'?{phase:'idle',notice:'Choose New take to capture another performance.'}:state}
             canRecord={cameraEnabled&&pose.status==='ready'&&state.phase==='idle'&&!atCapacity}
             isCalibrating={calibration.remaining!==null} calibrationMessage={calibration.message} onRecord={recorder.start} onStop={recorder.stop}

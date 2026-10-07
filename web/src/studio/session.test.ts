@@ -192,3 +192,15 @@ it('does not hide an unrelated operation failure when autosave completes',async(
   const {studio}=await setup();studio.update(p=>renameProject(p,'Pending edit'));studio.reportError(new Error('Project import failed'));
   await studio.flush();expect(studio.getSnapshot()).toMatchObject({save:{phase:'saved'},error:'Project import failed'});
 });
+
+it('unkeeping a reloaded source preserves memory backup and re-retention until explicit discard',async()=>{
+  const {studio,factory,name}=await setup(),p=studio.getSnapshot().project,takeId=p.takes[0].id;
+  const blob=new Blob(['original retained source'],{type:'video/webm'});studio.attachSource(takeId,{name:'source.webm',blob});
+  await studio.keepSource(takeId,true);await studio.flush();studio.dispose();
+  const db=await openProjectStore({factory,name}),reloaded=new StudioSession(async()=>db);sessions.push(reloaded);await reloaded.initialize();
+  await reloaded.keepSource(takeId,false);await reloaded.flush();expect(await db.readMedia(p.id,takeId)).toBeNull();
+  const memory=await reloaded.readSource(takeId);expect(memory?.blob.size).toBe(blob.size);expect(reloaded.hasVolatileSources()).toBe(true);
+  const decoded=await decodeProject(await encodeProject(reloaded.getSnapshot().project,{includeMedia:true,readMedia:id=>reloaded.readSource(id)}));
+  expect(await decoded.media.get(takeId)!.blob.text()).toBe('original retained source');
+  await reloaded.keepSource(takeId,true);await reloaded.flush();expect((await db.readMedia(p.id,takeId))?.size).toBe(blob.size);
+});

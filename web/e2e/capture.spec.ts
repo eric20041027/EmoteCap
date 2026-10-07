@@ -74,3 +74,25 @@ test('reloading an ongoing synthetic recording restores only the saved prefix as
   const restored=await storedProject(page);expect(restored.id).toBe(before.id);expect(restored.takes[0]).toMatchObject({id:prefix.id,status:'interrupted',frames:prefix.frames,media:null});
   await expect(page.getByRole('button',{name:'Start camera',exact:true})).toBeVisible();expect(await mediaRows(page)).toEqual([]);
 });
+
+test('the twentieth take can be stopped manually at the take-count limit',async({page})=>{
+  await syntheticCapture(page);await sample(page);
+  await page.evaluate(async()=>{
+    const url='/src/project/model.ts',model=await import(url);
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const r=indexedDB.open('emotecap-studio');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
+    const summaries=await new Promise<{id:string;name:string}[]>(resolve=>{const r=db.transaction('summaries').objectStore('summaries').getAll();r.onsuccess=()=>resolve(r.result);});
+    const id=summaries.find(s=>s.name==='EmoteCap sample')!.id;
+    let project=await new Promise<import('../src/project/types').ProjectDocument>(resolve=>{const r=db.transaction('projects').objectStore('projects').get(id);r.onsuccess=()=>resolve(r.result);});
+    const template=project.takes[0];while(project.takes.length<19) project=model.addTake(project,{name:`Fixture ${project.takes.length+1}`,source:'sample',provenance:template.provenance,frames:template.frames});
+    await new Promise<void>((resolve,reject)=>{const tx=db.transaction(['projects','summaries'],'readwrite');tx.objectStore('projects').put(project);
+      tx.objectStore('summaries').put({id:project.id,name:project.name,revision:project.revision,updatedAt:project.updatedAt,takeCount:project.takes.length});
+      tx.oncomplete=()=>resolve();tx.onabort=()=>reject(tx.error);});db.close();
+  });
+  await page.reload();await saved(page);await page.getByRole('button',{name:'New take',exact:true}).click();
+  await page.getByRole('button',{name:'Start camera',exact:true}).click();await expect(page.getByRole('button',{name:'Record',exact:true})).toBeEnabled();
+  await page.getByRole('button',{name:'Record',exact:true}).click();const stop=page.getByRole('button',{name:'Stop',exact:true});
+  await expect(stop).toBeVisible();await expect(stop).toBeEnabled();
+  await expect.poll(async()=>(await storedProject(page)).takes[19]?.frames.length??0,{timeout:10000}).toBeGreaterThan(10);
+  await stop.click();await expect(page.getByLabel('Take name')).toHaveValue('Take 20');await saved(page);
+  const result=await storedProject(page);expect(result.takes).toHaveLength(20);expect(result.takes[19].status).toBe('complete');
+});

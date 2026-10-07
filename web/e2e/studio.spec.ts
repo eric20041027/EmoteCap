@@ -101,6 +101,9 @@ test('included source needs a separate retention choice and unchecking deletes s
   expect(await mediaRows(page)).toEqual([]);await page.getByLabel('Keep source video').check();await saved(page);
   expect((await mediaRows(page))[0].size).toBe(15);await page.reload();await expect(page.getByLabel('Keep source video')).toBeChecked();
   await page.getByLabel('Keep source video').uncheck();await saved(page);expect(await mediaRows(page)).toEqual([]);
+  await expect(page.getByLabel('Keep source video')).toBeEnabled();await page.getByLabel('Keep source video').check();await saved(page);
+  expect((await mediaRows(page))[0].size).toBe(15);
+  await page.getByLabel('Keep source video').uncheck();await saved(page);expect(await mediaRows(page)).toEqual([]);
   await page.reload();await expect(page.getByLabel('Keep source video')).not.toBeChecked();expect(await mediaRows(page)).toEqual([]);
 });
 
