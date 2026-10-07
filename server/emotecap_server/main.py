@@ -1,6 +1,7 @@
 """EmoteCap server: FBX export (phase 1), Live Link relay (phase 2), Gemini slicing (phase 3)."""
 import logging
 import shutil
+from contextlib import asynccontextmanager
 from typing import Annotated
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket
@@ -8,10 +9,13 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 
 from . import exporter, gemini, takes
 from .config import load_settings
-from .contract import ExportRequest, ExportResponse, TakeResponse
+from .contract import ExportedFile, ExportResponse, TakeResponse
+from .jobs.api import router as jobs_router,get_service,invoke,read_submission
+from .jobs.service import JobService
 from .relay import LiveRelay
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s - %(message)s")
@@ -25,7 +29,18 @@ exports_dir = settings.data_dir / "exports"
 exports_dir.mkdir(parents=True, exist_ok=True)  # StaticFiles refuses a missing directory
 relay = LiveRelay()
 
-app = FastAPI(title="EmoteCap")
+@asynccontextmanager
+async def lifespan(application:FastAPI):
+    service=JobService(settings)
+    service.start();application.state.jobs=service
+    try:yield
+    finally:
+        service.close()
+        del application.state.jobs
+
+
+app = FastAPI(title="EmoteCap",lifespan=lifespan)
+app.include_router(jobs_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -50,20 +65,21 @@ def health() -> dict:
         "ok": True,
         "blender": shutil.which(settings.blender_path) is not None,
         "gemini": settings.gemini_api_key is not None,
+        "exportJobs": 1,
     }
 
 
 @app.post("/api/export")
-def export(request: ExportRequest) -> ExportResponse:
-    """Sync on purpose: FastAPI runs it in a threadpool while Blender works."""
-    try:
-        files = exporter.export_clips(request.clips, settings)
-    except exporter.ExportError as exc:
-        logger.error("Export failed: %s\n%s", exc.message, exc.stderr_tail)
-        raise HTTPException(
-            status_code=500, detail={"message": exc.message, "stderr": exc.stderr_tail}
-        ) from exc
-    return ExportResponse(files=files)
+async def export(request: Request) -> ExportResponse:
+    """Compatibility adapter; every HTTP export runs through the same finite worker."""
+    service=get_service(request);submission=await read_submission(request)
+    job=await run_in_threadpool(invoke,lambda:service.submit(submission))
+    result=await run_in_threadpool(invoke,lambda:service.wait(job.id,130))
+    if result.state!='succeeded':
+        error=result.error
+        raise HTTPException(500 if result.state=='failed' else 409,detail={
+            'message':error.message if error else result.phase,'stderr':error.details if error else ''})
+    return ExportResponse(files=[ExportedFile(name=file.name,url=file.url) for file in result.files])
 
 
 @app.post("/api/takes")

@@ -11,6 +11,8 @@ from starlette.websockets import WebSocketDisconnect
 from emotecap_server import main
 from emotecap_server.contract import BONE_COUNT, BONES
 from emotecap_server.relay import LiveRelay
+from emotecap_server.jobs.service import JobService
+from job_support import settings_at,write_outputs
 
 SOURCE_URL = "/ws/live?role=source"
 SINK_URL = "/ws/live?role=sink"
@@ -36,8 +38,9 @@ def relay(monkeypatch: pytest.MonkeyPatch) -> LiveRelay:
 
 
 @pytest.fixture
-def client(relay: LiveRelay) -> Iterator[TestClient]:
+def client(relay: LiveRelay,tmp_path,monkeypatch) -> Iterator[TestClient]:
     # As a context manager, TestClient runs every websocket session on one event loop, as uvicorn does.
+    monkeypatch.setattr(main,'JobService',lambda _:JobService(settings_at(tmp_path),runner=write_outputs))
     with TestClient(main.app) as test_client:
         yield test_client
 
