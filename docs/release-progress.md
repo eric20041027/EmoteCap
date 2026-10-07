@@ -18,7 +18,7 @@ Authoritative product requirements: [product design](superpowers/specs/2026-10-0
 | ID | Required outcome | Current evidence / status |
 |---|---|---|
 | M1.1 | Cross-platform subprocess tests, contract parity, motion validation, verified model cache | Implemented and reviewed in main ef7a76c; 380 backend + 226 app + 6 assets pass locally |
-| M1.2 | Resolve known vulnerable build dependency and guard against regression | In progress: source-map-js 1.2.1 → 1.2.2 only |
+| M1.2 | Resolve known vulnerable build dependency and guard against regression | Local fix 99a0434: only source-map-js 1.2.1 → 1.2.2; regression 2/2 and npm audit 0 vulnerabilities; independent review pending |
 | M1.3 | Actual Windows/macOS/Linux unit + Web build CI passes | Workflow exists; remote runs not yet performed |
 | M2.1 | Project/Take/Clip identity and immutable original take | Implementation pending |
 | M2.2 | IndexedDB autosave, restore after refresh, recording checkpoint every 5 seconds | Implementation pending |

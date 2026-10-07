@@ -34,7 +34,7 @@
 
 **Interfaces:** Consumes the installed `source-map-js` public constructors. Produces `npm run test:security` and `npm run audit:deps`, each exiting nonzero on failure; Task 2 consumes these along with existing CI checks.
 
-- [ ] **Step 1: Write the characterization.** Create exactly:
+- [x] **Step 1: Write the characterization.** Create exactly:
 
 ```javascript
 import test from 'node:test';
@@ -60,9 +60,9 @@ test('installed source-map consumer preserves normal generated code', () => {
 });
 ```
 
-- [ ] **Step 2: Observe RED.** In web run `node --test scripts/dependency-security.test.mjs`. Expected first test FAIL (Missing expected exception) and second PASS. The failure must occur at the constructor assertion, without running a generator on the huge offset.
-- [ ] **Step 3: Patch only the transitive lock.** In web run `npm update source-map-js --ignore-scripts`. Compare parsed `packages` records against the base lock; require the only changed package key to be `node_modules/source-map-js`, with final version `1.2.2`. If other entries move, revert only this task's lock changes and use npm's targeted lock update with explicit package version; do not accept unrelated changes.
-- [ ] **Step 4: Add exact scripts.** Preserve all other scripts and add:
+- [x] **Step 2: Observe RED.** In web run `node --test scripts/dependency-security.test.mjs`. Expected first test FAIL (Missing expected exception) and second PASS. The failure must occur at the constructor assertion, without running a generator on the huge offset.
+- [x] **Step 3: Patch only the transitive lock.** In web run `npm update source-map-js --ignore-scripts`. Compare parsed `packages` records against the base lock; require the only changed package key to be `node_modules/source-map-js`, with final version `1.2.2`. If other entries move, revert only this task's lock changes and use npm's targeted lock update with explicit package version; do not accept unrelated changes.
+- [x] **Step 4: Add exact scripts.** Preserve all other scripts and add:
 
 ```json
 {
@@ -82,8 +82,8 @@ Insert these CI steps after `npm run test:assets`:
 
 Insert `npm run test:security` and `npm run audit:deps` into the Development setup/check list after assets. Explain in prose that the characterization protects the installed source-map boundary and the registry audit requires network access.
 
-- [ ] **Step 5: Observe GREEN and full checks.** Run `npm ci`, `npm run test:security`, `npm run audit:deps`, `npm run test:assets`, `npm test`, `npm run build`, then backend `uv run --frozen --python 3.12.14 pytest -q -m "not slow"`. Expect 2 security, 6 assets, 226 app, 380 backend passing; 2 real-Blender deselections remain explicit. Record actual audit result and the sole dependency-record diff.
-- [ ] **Step 6: Commit.** `git add web/scripts/dependency-security.test.mjs web/package.json web/package-lock.json .github/workflows/ci.yml docs/development.md` then `git commit -m "fix: patch source-map dependency denial of service"`.
+- [x] **Step 5: Observe GREEN and full checks.** Run `npm ci`, `npm run test:security`, `npm run audit:deps`, `npm run test:assets`, `npm test`, `npm run build`, then backend `uv run --frozen --python 3.12.14 pytest -q -m "not slow"`. Expect 2 security, 6 assets, 226 app, 380 backend passing; 2 real-Blender deselections remain explicit. Record actual audit result and the sole dependency-record diff.
+- [x] **Step 6: Commit.** `git add web/scripts/dependency-security.test.mjs web/package.json web/package-lock.json .github/workflows/ci.yml docs/development.md` then `git commit -m "fix: patch source-map dependency denial of service"`.
 
 ### Task 2: Reviewed hosted candidate and three-OS evidence
 
