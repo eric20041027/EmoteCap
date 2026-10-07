@@ -13,9 +13,9 @@ Original remote main snapshot713d349df05aa26b6b95a1b7974f7f3d8e574149 contains:
 | eric20041027 |67| Original project development/history |
 | leokao0806 |1| fa91968, README.md documentation |
 
-Counts reflect Git authorship at that snapshot, not proof of ownership/permission. No root or UPM LICENSE/NOTICE was found in the current tracked tree. Existing `docs/media/import-video.jpg` and `gemini-slicing.jpg` require confirmation that project publication is permitted. No third-party character or private recording is to be added. Original history/contributor attribution is preserved.
+Counts reflect Git authorship at that snapshot, not proof of ownership/permission. No root or UPM LICENSE/NOTICE was found in the current tracked tree. All four existing documentation media files require confirmation that project publication is permitted: `docs/media/import-video.jpg`, `gemini-slicing.jpg`, `hero.gif` and `dozed-off.gif`. The earlier two-image inventory omitted the GIFs; no permission for them is inferred. No third-party character or private recording is to be added. Original history/contributor attribution is preserved.
 
-The owner decision needed is: approve MIT and this contributor header, and confirm authority/permission for the original project code/documentation, the other contributor's README contribution and those two existing documentation images. If any item is not covered, identify it before adding the license or publishing. This request does not ask the owner to relicense third-party libraries/models.
+The owner decision needed is: approve MIT and this contributor header, and confirm authority/permission for the original project code/documentation, the other contributor's README contribution and all four existing documentation media files. If any item is not covered, identify it before adding the license or publishing. This request does not ask the owner to relicense third-party libraries/models.
 
 ## Third-party treatment
 

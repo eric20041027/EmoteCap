@@ -4,6 +4,11 @@ Use Node 24.19.0, npm 11.21.0, Python 3.12.14, and uv 0.12.6.
 Install dependencies with the committed lockfiles. Do not run an upgrade as
 part of routine setup. `.env` and captured media stay local.
 
+This guide applies to the rebuilt checkout. Start with the [English entry](../README.md)
+or [Traditional Chinese walkthrough](quickstart.zh-TW.md). Current qualification and
+pending human/device/rights gates are in [release progress](release-progress.md);
+publication requires the [release checklist](release-checklist.md).
+
 ## Setup and checks
 
 In `web/`:
@@ -85,3 +90,8 @@ all consumers together if a future version changes the wire format.
 Do not commit third-party character models, raw personal recordings, keys,
 runtime exports, or dependency directories. Release packaging and licensing
 have their own acceptance criteria in the product plan.
+
+MediaPipe capture/import requires the [session processing choice](sdk-privacy.md),
+which is separate from Gemini source-video sending. For static documentation-only
+changes, verify controls, commands and local links; do not add tests that mirror
+prose. See [CONTRIBUTING](../CONTRIBUTING.md) and [SECURITY](../SECURITY.md).
