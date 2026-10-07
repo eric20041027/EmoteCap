@@ -1,0 +1,8 @@
+.export-jobs { margin: 1.2rem auto; max-width: 1440px; padding: 1rem 1.4rem; border: 1px solid var(--border); border-radius: 12px; }
+.export-jobs-list,.export-job-files { list-style: none; padding: 0; }
+.export-job { padding: .8rem 0; border-top: 1px solid var(--border); overflow-wrap: anywhere; }
+.export-job-state { margin: .35rem 0; font-weight: 600; }
+.export-job progress { width: min(100%, 32rem); }
+.export-job-files li { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; padding-top: .5rem; }
+.export-job pre { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 650px) { .export-jobs { padding: .8rem; margin: 1rem .5rem; } }

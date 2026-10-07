@@ -1,8 +1,8 @@
 import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir:'./e2e',workers:1,timeout:30000,expect:{timeout:5000},forbidOnly:!!process.env.CI,
-  outputDir:'../.superpowers/sdd/2026-10-07-studio-integration/browser-results',
-  reporter:[['list'],['html',{outputFolder:'../.superpowers/sdd/2026-10-07-studio-integration/browser-report',open:'never'}]],
+  outputDir:'../.superpowers/sdd/2026-10-07-export-jobs/browser-results',
+  reporter:[['list'],['html',{outputFolder:'../.superpowers/sdd/2026-10-07-export-jobs/browser-report',open:'never'}]],
   projects:[{name:'studio-development',testIgnore:'production.spec.ts'},
     {name:'studio-production',testMatch:'production.spec.ts',use:{baseURL:'http://127.0.0.1:4176'}}],
   use:{browserName:'chromium',channel:process.env.EMOTECAP_BROWSER_CHANNEL||undefined,

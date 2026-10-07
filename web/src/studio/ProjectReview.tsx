@@ -27,7 +27,7 @@ export function ProjectReview({take,session,frameRef,server,exporter,locked}:Pro
     {take.status==='interrupted' && <p className="studio-warning" role="status">Interrupted recording: this is the last saved prefix. Frames after that checkpoint were not recovered.</p>}
     <p className="studio-help">{take.provenance.calibration.note}</p>
     {take.frames.length===0 && <p className="studio-help">This checkpoint has no captured frames. Keep the project or start a new take.</p>}
-    <fieldset disabled={locked||exporter.busy}>
+    <fieldset disabled={locked}>
       <div className="studio-actions">
         <button type="button" className="btn btn--secondary" disabled={duration<0.1||take.clips.length>=MAX_CLIPS} onClick={addClip}>Add clip</button>
         <button type="button" className="btn btn--secondary" disabled={duration<0.1} onClick={()=>apply(()=>session.update(p=>replaceClips(p,take.id,localClips(take))))}>Find pauses</button>
@@ -48,11 +48,11 @@ export function ProjectReview({take,session,frameRef,server,exporter,locked}:Pro
         <label className="studio-field">Description<input aria-label={`Clip ${index+1} description`} value={clip.description} maxLength={512} onChange={event=>patch(clip.id,{description:event.target.value})} /></label>
         {issues.has(clip.id) && <p id={`clip-error-${clip.id}`} className="studio-error">{issues.get(clip.id)} Export is unavailable until names are valid.</p>}
       </li>)}</ol>
-      <button type="button" className="btn btn--primary" disabled={server!=='online'||issues.size>0||!take.clips.length||!take.frames.length}
-        onClick={()=>{const frozen=take;void exporter.exportClips(()=>projectClips(frozen));}}>Export FBX</button>
+      <button type="button" className="btn btn--primary" disabled={exporter.busy||server!=='online'||issues.size>0||!take.clips.length||!take.frames.length}
+        onClick={()=>{const frozen=take,projectId=session.getSnapshot().project.id;void exporter.exportClips(()=>projectClips(frozen),{projectId,takeId:frozen.id,clipRevision:frozen.clipRevision});}}>Export FBX</button>
     </fieldset>
     {server!=='online' && <p className="studio-help">{server==='no-blender'?'Blender is missing from the local export service.':server==='checking'?'Checking the local export service…':'Start the local export service to export FBX.'} You can still review, save and download this project.</p>}
-    {exporter.busy && <p role="status">Exporting animation…</p>}
+    {exporter.busy && <p role="status">Saving export input…</p>}
     {exporter.error && <div className="studio-error" role="alert"><p>{exporter.error.message}</p>{exporter.error.details && <details><summary>Export details</summary><pre>{exporter.error.details}</pre></details>}</div>}
   </section>;
 }

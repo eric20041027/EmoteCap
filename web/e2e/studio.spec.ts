@@ -59,7 +59,7 @@ test('portable backup restores edits in a new project without camera access',asy
 
 test('a corrupt import preserves the current project and editable original',async({page})=>{
   const before=await sample(page);await page.getByLabel('Import project file').setInputFiles({name:'corrupt.emotecap',mimeType:'application/x-emotecap',buffer:Buffer.from('not zip')});
-  await expect(page.getByRole('alert')).toContainText(/corrupt|unsupported/i);expect(await projectId(page)).toBe(before.id);
+  await expect(page.getByRole('alert').filter({hasText:/corrupt|unsupported/i})).toContainText(/corrupt|unsupported/i);expect(await projectId(page)).toBe(before.id);
   expect((await storedProject(page)).takes[0].frames).toEqual(before.takes[0].frames);
   await page.getByLabel('Clip 1 name').fill('Still_editable');await saved(page);
 });
@@ -75,14 +75,14 @@ test('an injected quota failure preserves a downloadable in-memory revision',asy
   await page.getByLabel('Clip 1 name').fill('Unsaved_quota');await expect(saveStatus(page)).toHaveText('Not saved');
   expect((await storedProject(page)).takes[0].clips[0].name).toBe(original.takes[0].clips[0].name);
   const file=await download(page,info,'quota-recovery.emotecap');expect((await readFile(file)).length).toBeGreaterThan(100);
-  await page.getByRole('button',{name:'New project'}).click();await expect(page.getByRole('alert')).toContainText(/full|unsaved/i);expect(await projectId(page)).toBe(original.id);
+  await page.getByRole('button',{name:'New project'}).click();await expect(page.getByRole('alert').filter({hasText:/full|unsaved/i})).toContainText(/full|unsaved/i);expect(await projectId(page)).toBe(original.id);
 });
 
 test('another tab cannot overwrite a newer revision and can reopen after explicit discard',async({page,context},info)=>{
   const original=await sample(page),other=await context.newPage();await other.goto('/');await expect(other.getByLabel('Clip 1 name')).toBeVisible();
   await page.getByLabel('Clip 1 name').fill('First_tab');await saved(page);
   await other.getByLabel('Clip 1 name').fill('Second_unsaved');await expect(saveStatus(other)).toHaveText('Not saved');
-  await expect(other.getByRole('alert')).toContainText('another tab');expect((await storedProject(other)).takes[0].clips[0].name).toBe('First_tab');
+  await expect(other.getByRole('alert').filter({hasText:'another tab'})).toContainText('another tab');expect((await storedProject(other)).takes[0].clips[0].name).toBe('First_tab');
   const path=await download(other,info,'conflict-recovery.emotecap');expect((await readFile(path)).length).toBeGreaterThan(100);
   other.once('dialog',dialog=>dialog.accept());await other.getByRole('button',{name:'Reopen saved copy'}).click();
   await expect(other.getByLabel('Clip 1 name')).toHaveValue('First_tab');await saved(other);expect(await projectId(other)).toBe(original.id);await other.close();

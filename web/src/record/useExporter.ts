@@ -2,6 +2,8 @@ import { useCallback, useState } from 'react';
 import { CLIP_NAME_PATTERN, makeClip, type Clip, type MotionFrame } from '../motion/index';
 import { ExportFailure, postClips, type ExportedFile } from './exportApi';
 import { DEFAULT_CLIP_NAME, nextClipName } from './take';
+import type { ExportJobs } from '../jobs/controller';
+import type { JobSnapshot } from '../jobs/api';
 
 export interface Exporter {
   name: string;
@@ -15,7 +17,7 @@ export interface Exporter {
   files: ExportedFile[];
   exportRange: (frames: readonly MotionFrame[], start: number, end: number) => Promise<void>;
   /** Export several clips in one request (auto-sliced take); resolves true on success. */
-  exportClips: (buildClips: () => Clip[]) => Promise<boolean>;
+  exportClips: (buildClips: () => Clip[], snapshot?:JobSnapshot) => Promise<boolean>;
 }
 
 function toFailure(error: unknown): ExportFailure {
@@ -24,7 +26,7 @@ function toFailure(error: unknown): ExportFailure {
 }
 
 /** Clip name / loop settings and the export request; lives across takes so names keep counting up. */
-export function useExporter(): Exporter {
+export function useExporter(jobs?:ExportJobs): Exporter {
   const [name, setName] = useState(DEFAULT_CLIP_NAME);
   const [loop, setLoop] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -32,12 +34,13 @@ export function useExporter(): Exporter {
   const [files, setFiles] = useState<ExportedFile[]>([]);
 
   // Building the clips happens inside the try so a makeClip error is shown like a server error.
-  const exportClips = useCallback(async (buildClips: () => Clip[]): Promise<boolean> => {
+  const exportClips = useCallback(async (buildClips: () => Clip[], snapshot?:JobSnapshot): Promise<boolean> => {
     setBusy(true);
     setError(null);
     try {
-      const exported = await postClips(buildClips());
-      setFiles((previous) => [...exported, ...previous]);
+      const clips=buildClips();
+      if(jobs) await jobs.submit({clips,snapshot:snapshot??null});
+      else {const exported=await postClips(clips);setFiles((previous)=>[...exported,...previous]);}
       return true;
     } catch (err) {
       console.error('Export failed:', err);
@@ -46,7 +49,7 @@ export function useExporter(): Exporter {
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [jobs]);
 
   const exportRange = useCallback(
     async (frames: readonly MotionFrame[], start: number, end: number) => {

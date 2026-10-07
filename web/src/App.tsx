@@ -21,6 +21,8 @@ import { PreviewCanvas } from './preview/PreviewCanvas';
 import { CaptureControls } from './record/CaptureControls';
 import { ExportedFiles } from './record/ExportedFiles';
 import { useExporter } from './record/useExporter';
+import { useExportJobs } from './jobs/useExportJobs';
+import { JobPanel } from './jobs/JobPanel';
 import { takeDuration } from './record/take';
 import { useRecorder } from './record/useRecorder';
 import { useTakeVideo } from './take/useTakeVideo';
@@ -52,7 +54,8 @@ export default function App() {
   const cameras = useCameraDevices();
   const server = useServerHealth();
   const liveLink = useLiveLink();
-  const exporter = useExporter();
+  const exportJobs=useExportJobs();
+  const exporter = useExporter(exportJobs.controller);
   const [mirrorPreview, setMirrorPreview] = useState(true);
   const [quality, setQuality] = useState<CaptureQuality>('fast');
   const [crop, setCrop] = useState<CropMode>('none');
@@ -244,6 +247,7 @@ export default function App() {
       {state.phase==='recorded' && capture.takeId===activeTake?.id && state.note && <p className="studio-warning" role="status">{state.note.text}</p>}
       {capture.sourcePending && <p className="studio-help" role="status">Finishing source video. Captured motion is being saved.</p>}
       <ExportedFiles files={exporter.files} />
+      <JobPanel controller={exportJobs.controller} state={exportJobs.state} />
       <SetupDiagnostics server={server} />
 
       {recorder.countdown !== null && <CountdownOverlay value={recorder.countdown} caption="Get into position" />}
