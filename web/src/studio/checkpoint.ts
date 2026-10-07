@@ -1,5 +1,5 @@
 import type { MotionFrame } from '../motion/index';
-import { addTake, appendTakeFrames, finishTake, removeTake } from '../project/model';
+import { addTake, appendTakeFrames, finishTake, recoverProject, removeTake } from '../project/model';
 import type { TakeProvenance } from '../project/types';
 import { ProjectDataError } from '../project/validation';
 import { StudioSession } from './session';
@@ -27,11 +27,11 @@ export class CaptureCheckpoint {
   }
   private flush():void {void this.session.flush().catch(error=>this.session.reportError(error));}
   checkpoint():void {if(!this.finished) {this.append(this.readFrames());this.flush();}}
-  finish(frames:readonly MotionFrame[]):void {
+  finish(frames:readonly MotionFrame[],interrupted=false):void {
     if(this.finished) return;
     if(this.timer!==null) clearInterval(this.timer);this.timer=null;
     this.append(frames);
-    this.session.update(p=>frames.length?finishTake(p,this.takeId):removeTake(p,this.takeId));
+    this.session.update(p=>frames.length?(interrupted?recoverProject(p):finishTake(p,this.takeId)):removeTake(p,this.takeId));
     this.finished=true;this.flush();
   }
   dispose():void {if(this.timer!==null) clearInterval(this.timer);this.timer=null;this.finished=true;}

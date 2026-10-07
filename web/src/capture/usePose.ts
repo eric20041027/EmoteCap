@@ -20,7 +20,7 @@ export interface PoseResult {
   timestampMs: number;
 }
 
-export type PoseStatus = 'loading' | 'ready' | 'error';
+export type PoseStatus = 'off' | 'loading' | 'ready' | 'error';
 
 export interface PoseTracker {
   status: PoseStatus;
@@ -83,10 +83,12 @@ export function usePose(
   crop: CropMode = 'none',
   /** Skip tracking (the camera keeps running), e.g. while a video file is being imported. */
   paused = false,
+  /** Camera/model access is opt-in. Disabling closes current and late-arriving resources. */
+  enabled = false,
 ): PoseTracker {
   const [status, setStatus] = useState<{ status: PoseStatus; message: string }>({
-    status: 'loading',
-    message: LOADING_MESSAGE,
+    status: enabled?'loading':'off',
+    message: enabled?LOADING_MESSAGE:'Camera is off.',
   });
   const [fps, setFps] = useState(0);
   const [frame, setFrame] = useState({ aspect: 16 / 9, cropped: false });
@@ -106,6 +108,7 @@ export function usePose(
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
   useEffect(() => {
+    if(!enabled) {setStatus({status:'off',message:'Camera is off.'});setFps(0);return;}
     const video = videoRef.current;
     if (!video) return;
     let disposed = false;
@@ -218,9 +221,9 @@ export function usePose(
 
     const start = async () => {
       setStatus({ status: 'loading', message: LOADING_MESSAGE });
-      const [camera, model] = await Promise.allSettled([openCamera(deviceId), createLandmarkers(quality)]);
-      if (camera.status === 'fulfilled') stream = camera.value;
-      if (model.status === 'fulfilled') landmarkers = model.value;
+      const cameraTask=openCamera(deviceId).then(value=>{if(disposed) stopStream(value);else stream=value;return value;});
+      const modelTask=createLandmarkers(quality).then(value=>{if(disposed) closeLandmarkers(value);else landmarkers=value;return value;});
+      const [camera, model] = await Promise.allSettled([cameraTask,modelTask]);
       if (disposed) {
         release();
         return;
@@ -242,7 +245,7 @@ export function usePose(
       disposed = true;
       release();
     };
-  }, [videoRef, attempt, quality, deviceId]);
+  }, [videoRef, attempt, quality, deviceId, enabled]);
 
   return { ...status, fps, frameAspect: frame.aspect, cropped: frame.cropped, retry };
 }

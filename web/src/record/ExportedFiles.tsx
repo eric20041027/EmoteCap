@@ -21,7 +21,7 @@ export function ExportedFiles({ files }: ExportedFilesProps) {
         ))}
       </ul>
       <p className="dock__meta">
-        With UNITY_EXPORT_DIR set on the server, clips also land in your Unity project automatically.
+        Download the FBX files and add them to your Unity project.
       </p>
     </div>
   );

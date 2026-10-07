@@ -147,7 +147,7 @@ Run the whole Web suite and TypeScript; inspect rendered labels/state branches i
 
 **Interfaces:** usePose gains final `enabled:boolean=false` and PoseStatus gains off. Disabled mode releases streams/models and never invokes openCamera/createLandmarkers. useRecorder gains a maximum remaining frame option bounded by the project/take caps; stopping at180seconds or the frame limit retains the valid prefix with a visible note. useCaptureProject consumes the recorder state, frozen start provenance, session and useTakeVideo result, and returns current capture take identity for source attachment.
 
-- [ ] **Step 1: Write failing lifecycle/diagnostic cases.**
+- [x] **Step 1: Write failing lifecycle/diagnostic cases.**
 
 ```typescript
 let state=recordingWith([100,101]);
@@ -158,7 +158,7 @@ expect(state.phase==='recorded' && state.frames).toHaveLength(2);
 
 Add180second overflow, duplicate/backward/nonfinite timeline input and zero remaining capacity. Diagnostic tests assert HEAD-only local model availability, missing files/messages, no camera/provider calls and cancellation. Browser Task4 explicitly pins no startup call and late-source identity after capture; unit checkpoint tests from Task1 pin scheduling.
 
-- [ ] **Step 2: Observe RED, then wire App.**
+- [x] **Step 2: Observe RED, then wire App.**
 
 Run recorder/diagnostics tests before modifying their production logic. Keep camera DOM mounted, but default enabled false. Add Start camera/Stop camera, disable camera/settings/navigation while capture/countdown/import is active, and clear calibration on a restarted camera generation. New take leaves a saved take intact and resets capture controls. Video import completion installs another complete take with its actual note/provenance and in-memory source. Camera stop finalizes motion immediately; asynchronous MediaRecorder completion is attached only to its captured take ID.
 
@@ -172,7 +172,7 @@ useCaptureProject(recorder,studio.session,startProvenance,video);
 
 Mount ProjectBar/TakeList and keyed ProjectReview around the existing camera/preview. Restore/sample/import use session state rather than loading through a video-only recorder. The beforeunload handler warns if capturing or current save is unconfirmed. Diagnostics show local server/Blender and model availability; no background camera/model startup is needed for sample/save/download.
 
-- [ ] **Step 3: Verify and commit.**
+- [x] **Step 3: Verify and commit.**
 
 Run all Web and8Node tests, TypeScript, model hashes and build; commit `feat: integrate explicit capture and Studio checkpoints`. Task completion: `bash -c 'cd web && node node_modules/vitest/vitest.mjs run && node --test scripts/asset-integrity.test.mjs scripts/dependency-security.test.mjs && node node_modules/typescript/bin/tsc --noEmit && node --use-system-ca --use-env-proxy scripts/fetch-mediapipe.mjs && node node_modules/vite/bin/vite.js build'`.
 

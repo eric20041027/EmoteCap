@@ -13,6 +13,32 @@ function recordingWith(times: number[]): RecorderState {
 }
 
 describe('recorderReducer', () => {
+  it('stops at the project frame budget while preserving the valid prefix', () => {
+    const before=recordingWith([100,101]);
+    const stopped=recorderReducer(before,{type:'push',frame:frameAt(102),maxFrames:2});
+    expect(stopped.phase).toBe('recorded');
+    expect(stopped.phase==='recorded' && stopped.frames).toHaveLength(2);
+  });
+  it('stops before a frame beyond 180 seconds can enter a take', () => {
+    const before=recordingWith([100,200]);
+    const stopped=recorderReducer(before,{type:'push',frame:frameAt(280.01)});
+    expect(stopped.phase).toBe('recorded');expect(stopped.phase==='recorded' && stopped.frames).toHaveLength(2);
+  });
+  it.each([100,99,NaN,Infinity])('rejects invalid/nonincreasing capture time %s and keeps earlier motion', t => {
+    const stopped=recorderReducer(recordingWith([100]),{type:'push',frame:frameAt(t)});
+    expect(stopped.phase).toBe('recorded');
+    expect(stopped.phase==='recorded' && stopped.frames).toHaveLength(1);
+    expect(stopped.phase==='recorded' && stopped.interrupted).toBe(true);
+  });
+  it('keeps nonfinite motion out of a capture without throwing away its valid prefix', () => {
+    const frame=frameAt(101);frame.r[0]=NaN;
+    const stopped=recorderReducer(recordingWith([100]),{type:'push',frame});
+    expect(stopped.phase).toBe('recorded');expect(stopped.phase==='recorded' && stopped.frames[0].r.every(Number.isFinite)).toBe(true);
+  });
+  it('never appends a frame when no project capacity remains', () => {
+    const stopped=recorderReducer(recordingWith([]),{type:'push',frame:frameAt(100),maxFrames:0});
+    expect(stopped.phase).toBe('idle');expect(stopped.phase==='idle' && stopped.notice).toMatch(/capacity|limit/i);
+  });
   it('starts idle', () => {
     expect(INITIAL_RECORDER_STATE).toEqual({ phase: 'idle' });
   });

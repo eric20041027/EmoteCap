@@ -25,4 +25,6 @@
 .studio-clip-fields .studio-field:first-child {flex:1 1 160px;}
 .studio-project .studio-field:first-child {flex:1 1 220px;}
 .studio-diagnostics {display:flex;flex-direction:column;gap:8px;}
+.studio-settings {display:flex;flex-wrap:wrap;align-items:center;gap:10px;border:0;padding:0;margin:0;min-width:0;}
+.studio-capture-controls {border:0;padding:0;margin:0;min-width:0;}
 @media(max-width:640px) {.studio-actions {align-items:stretch;}.studio-actions .studio-field {flex:1 1 100%;}.studio-heading {align-items:start;}.studio-clip-fields {gap:8px;}}

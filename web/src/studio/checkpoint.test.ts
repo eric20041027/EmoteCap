@@ -49,3 +49,8 @@ it('disposal stops the timer and leaves the last saved take recoverable',async()
   frames=[...frames,tposeFrame(1)];await vi.advanceTimersByTimeAsync(10000);
   expect((await db.load(studio.getSnapshot().project.id))?.takes[0].frames).toHaveLength(1);
 });
+it('a failed capture finalizes its valid prefix as interrupted rather than complete',async()=>{
+  const {studio}=await setup(),frames=[tposeFrame(0),tposeFrame(0.5)];
+  const capture=new CaptureCheckpoint(studio,provenance(),()=>frames);captures.push(capture);capture.finish(frames,true);await studio.flush();
+  expect(studio.getSnapshot().project.takes[0]).toMatchObject({status:'interrupted',frames});
+});
