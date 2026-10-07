@@ -17,6 +17,7 @@ from .jobs.service import JobService,ServiceUnavailable
 from .jobs.runner import TIMEOUT_SECONDS
 from .media.api import MediaService,router as media_router
 from .relay import LiveRelay
+from .live.api import router as live_router
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -37,6 +38,7 @@ async def lifespan(application:FastAPI):
         application.state.media=MediaService(settings)
         yield
     finally:
+        await relay.aclose()
         service.close()
         del application.state.jobs
         if hasattr(application.state,'media'):del application.state.media
@@ -45,6 +47,7 @@ async def lifespan(application:FastAPI):
 app = FastAPI(title="EmoteCap",lifespan=lifespan)
 app.include_router(jobs_router)
 app.include_router(media_router)
+app.include_router(live_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -93,7 +96,7 @@ async def export(request: Request) -> ExportResponse:
 
 @app.websocket("/ws/live")
 async def live_link(websocket: WebSocket, role: str | None = None) -> None:
-    """Phase 2 Live Link: ?role=source (browser) or ?role=sink (Unity)."""
+    """Local Live Link requires a role-specific paired v2 hello before frames."""
     await relay.serve(websocket, role)
 
 
