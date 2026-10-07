@@ -8,7 +8,17 @@ The builder validates the committed third-party index against five source pins, 
 
 Meaningful admission/copy tests failed before implementation: 21 failures with 16 existing controls passing and one unavailable file-symlink privilege skip. A separate extra-WASM case reproduced an unrecorded-file admission before enforcing exact correspondence. Focused checks passed 40 cases with one skip; actual NTFS junction and late-copy mutation controls passed three cases. Full fast backend passed 725 cases, with one privilege skip and 18 slow cases deselected. Current asset checks and the frozen TypeScript/Web build passed; no Web logic changed.
 
-The actual source index validates with 114 licensing texts / 468667 bytes / 54 native records and SHA256 `5f04de638c18d687b5ec02c505d8b831452889d6beac71c82bb868fcf3ba4288`. New package generation, repeated ZIP equality, relocated production/Blender QA and fresh final review are pending at this commit. The prior candidate remains retained; no new artifact is selected yet.
+The actual source index validates with 114 licensing texts / 468667 bytes / 54 native records and SHA256 `5f04de638c18d687b5ec02c505d8b831452889d6beac71c82bb868fcf3ba4288`. A new candidate was built from clean source `5572c88787be43b3f0665889f4d17a8408f78a2e`, with 5385 manifest payload files, ZIP 87612108 bytes and SHA256 `db7408b810b0904e8d4f06ec8c19a1b56a7b8fdd3ccedfcee1cb821d2e1e597d`. Repeated ZIP bytes matched that digest. All 114 copied texts matched source bytes, index/manifest matched and assessment remained pending.
+
+## Actual relocated qualification
+
+The owned candidate and a fresh Unicode/spaces relocation are retained under this plan's ignored workspace. The supplied Windows wrapper rejected an alternate Web-root argument with exit 2. Corrupting a copied licensing text caused isolated packaged startup to exit 1 before ready output or private-data creation. Both negative controls used only System32 on PATH and poisoned PYTHONPATH.
+
+Actual Edge 154.0.4258.62 with the relocated bundled Python and production API passed sample/edit/autosave/native IndexedDB reload/portable backup import into a new namespace, preserving original frames. The SDK choice was initially denied; granting alone caused no processing requests, and reload reset it. Paired browser/service acknowledgement and stop/revocation passed; this is not Unity receiver evidence. External Blender 4.5.14 produced a binary FBX of 595388 bytes with SHA256 `044c7095b715ea7c626f3d4f31177e71b86d9bb2a0ffe9b7b4669a9525413625`. No API mocks or development proxy were used. External/cloud/model requests and page errors were zero; actual SDK inference remains untested.
+
+Desktop 1280×2520 and narrow 390×3785 screenshots were inspected; no horizontal overflow occurred. Owned service/browser helpers exited. Browser artifacts are retained at `browser-489ff3b9-9802-4e0b-b2d1-9714cd5c6d21`; relocation/tamper/repeated ZIP receipts at `qa-a15793ff-6fbc-4af7-a86b-8c93b206a8fc`. Current source/history audit at 5572c88 found 0 detected credentials across 152 commits / 902 historical blobs / 510 current files / 16854760 bytes. This heuristic scan does not prove secret absence.
+
+The new artifact supersedes the older 2c019a0 candidate for current local SDK/notices qualification. All older outputs are retained. Native task-done and the one fresh final review remain pending at this report commit; no redistribution or public release is approved.
 
 ## Rulings and costs
 
@@ -20,5 +30,6 @@ The actual source index validates with 114 licensing texts / 468667 bytes / 54 n
 - Ruling: Require the exact built WASM set — an extra file was admitted before the new failing control — cost if wrong: unrecorded binaries now stop packaging, without an SDK upgrade.
 - Ruling: Use an actual owned NTFS junction control when file-symlink privilege is unavailable — directory reparse rejection still needs Windows evidence — cost if wrong: file-symlink privilege remains a reported skip; no system privileges are changed and target bytes remain intact.
 - Ruling: Retain earlier scratch/candidates and the deferred reserved-name Minor — cleanup was previously rejected and this plan does not reopen accepted scope — cost if wrong: disk usage and the documented validation limitation remain explicit.
+- Ruling: Import the exact downloaded backup as a named byte payload in the owned browser harness — deep artifact-backed files previously caused Edge file-read failures — cost if wrong: byte/namespace/frame checks remain real, while this run does not qualify Edge's deep filesystem-path behavior.
 
 No camera, SDK inference, cloud provider, Unity, target laptop, clean second machine or new-user qualification is inferred from these checks. Owner/contributor/four-media and native/vendor/model/source-form assessments remain pending. No project LICENSE, public push, remote-main merge, installer upload, tag or release occurs in this plan.
