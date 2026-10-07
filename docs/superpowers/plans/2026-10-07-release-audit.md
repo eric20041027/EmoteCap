@@ -13,9 +13,9 @@
 ## Global Constraints
 
 - No publishing, credential revocation, history rewriting or deletion is part of this increment.
-- Ignored environment files, runtime recordings and dependency caches are excluded from the source candidate; the distribution must separately use an explicit allowlist.
+- Current candidates include all tracked files plus nonignored untracked files; untracked ignored environments, runtime recordings and dependency caches are excluded. The distribution must separately use an explicit allowlist.
 - Findings never emit matched credential values or Git error text.
-- Bounds:5000commits,50000unique blobs,50000current candidates,16MiBper blob/file,512MiBtotal scan bytes; Git30second timeouts; body batches≤16MiB.
+- Bounds:5000commits,5000annotated tag objects,50000unique blobs,50000current candidates,10000findings,16MiBper blob/file/commit/tag,512MiBtotal scan bytes; Git30second timeouts/file-backed20MiBread limit; body batches≤16MiB.
 - Reports are exclusive, immutable writes; exit0clean detection result,1findings,2incomplete. No automatic false-positive suppression or release-readiness claim.
 
 ## Review Focus
