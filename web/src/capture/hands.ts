@@ -5,6 +5,7 @@ import {
   type Landmark,
   type NormalizedLandmark,
 } from '@mediapipe/tasks-vision';
+import type { SdkAuthorization } from '../privacy/processingConsent';
 
 type WasmFileset = Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>>;
 
@@ -39,18 +40,23 @@ interface HandDetections {
   handedness: Category[][];
 }
 
-export async function createHandLandmarker(fileset: WasmFileset): Promise<HandLandmarker> {
+export async function createHandLandmarker(fileset: WasmFileset, authorize: SdkAuthorization): Promise<HandLandmarker> {
   const options = (delegate: 'GPU' | 'CPU') => ({
     baseOptions: { modelAssetPath: HAND_MODEL_PATH, delegate },
     runningMode: 'VIDEO' as const,
     numHands: 2,
   });
+  let hand: HandLandmarker;
   try {
-    return await HandLandmarker.createFromOptions(fileset, options('GPU'));
+    authorize();
+    hand=await HandLandmarker.createFromOptions(fileset, options('GPU'));
   } catch (gpuError) {
+    authorize();
     console.warn('HandLandmarker GPU delegate failed, retrying on CPU:', gpuError);
-    return HandLandmarker.createFromOptions(fileset, options('CPU'));
+    hand=await HandLandmarker.createFromOptions(fileset, options('CPU'));
   }
+  try {authorize();return hand;}
+  catch(error){hand.close();throw error;}
 }
 
 const distance = (a: NormalizedLandmark, b: NormalizedLandmark) => Math.hypot(a.x - b.x, a.y - b.y);

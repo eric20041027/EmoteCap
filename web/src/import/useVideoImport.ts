@@ -6,6 +6,7 @@ import type { TakeNote } from '../record/useRecorder';
 import { ImportError, convertVideo, type ConvertedVideo } from './convertVideo';
 import { createFrameDetector } from './detectFrame';
 import { closeVideoFile, openVideoFile, seekTo } from './videoSource';
+import { ProcessingConsent, ProcessingConsentError, type SdkAuthorization } from '../privacy/processingConsent';
 
 export type ImportState =
   | { phase: 'idle'; error?: string }
@@ -21,6 +22,7 @@ export interface VideoImport {
 }
 
 export interface VideoImportOptions {
+  processingConsent:ProcessingConsent;
   /** The <video> the file is read in (shown in the Camera panel while importing). */
   videoRef: RefObject<HTMLVideoElement | null>;
   overlayRef: RefObject<HTMLCanvasElement | null>;
@@ -47,13 +49,14 @@ function calibrationNote(calibratedAt: number | null): TakeNote {
 }
 
 function describeImportError(error: unknown): string {
-  if (error instanceof ImportError || error instanceof CaptureError) return error.message;
+  if (error instanceof ImportError || error instanceof CaptureError || error instanceof ProcessingConsentError) return error.message;
   return `Import failed: ${error instanceof Error ? error.message : String(error)}`;
 }
 
 /** Turn a video file into a take: read every frame, solve it, then hand the take to the recorder. */
 export function useVideoImport(options: VideoImportOptions): VideoImport {
-  const [file, setFile] = useState<File | null>(null);
+  const [picked, setPicked] = useState<{file:File;authorize:SdkAuthorization;generation:number}|null>(null);
+  const generation=useRef(0);
   const [state, setState] = useState<ImportState>(IDLE);
   const [aspect, setAspect] = useState(DEFAULT_ASPECT);
   const optionsRef = useRef(options);
@@ -63,41 +66,56 @@ export function useVideoImport(options: VideoImportOptions): VideoImport {
   });
 
   const start = useCallback((picked: File) => {
+    const id=++generation.current;
+    let authorize:SdkAuthorization;
+    try {authorize=optionsRef.current.processingConsent.lease();authorize();}
+    catch(error){setPicked(null);setState({phase:'idle',error:describeImportError(error)});return;}
     setState({ phase: 'loading', fileName: picked.name });
     setAspect(DEFAULT_ASPECT);
-    setFile(picked);
+    setPicked({file:picked,authorize,generation:id});
   }, []);
 
   const cancel = useCallback(() => {
-    setFile(null);
+    generation.current+=1;
+    setPicked(null);
     setState(IDLE);
   }, []);
 
   // Runs once the import view (and its <video>) is on screen for the picked file.
   useEffect(() => {
     const video = optionsRef.current.videoRef.current;
-    if (!file || !video) return;
+    if (!picked || !video) return;
+    const {file}=picked;
     const controller = new AbortController();
     const { signal } = controller;
+    const active=()=>!signal.aborted&&generation.current===picked.generation;
+    const authorize=()=>{
+      signal.throwIfAborted();
+      if(!active())throw new DOMException('Import superseded','AbortError');
+      picked.authorize();
+    };
 
     const run = async (): Promise<ConvertedVideo> => {
+      authorize();
       const duration = await openVideoFile(file, video, signal);
+      authorize();
       setAspect(video.videoWidth / video.videoHeight);
-      const landmarkers = await createLandmarkers('accurate');
+      const landmarkers = await createLandmarkers('accurate',authorize);
       try {
-        signal.throwIfAborted();
+        authorize();
         const { trackHands, smoothing } = optionsRef.current;
-        const detect = createFrameDetector(landmarkers, trackHands);
+        const detect = createFrameDetector(landmarkers, trackHands,authorize);
         const frameSize = { width: video.videoWidth, height: video.videoHeight };
         const startedAt = performance.now();
         let publishedAt = 0;
         return await convertVideo(duration, {
-          seek: (t) => seekTo(video, t, signal),
+          seek: async(t) => {authorize();await seekTo(video,t,signal);authorize();},
           detect: (timestampMs) => detect(video, timestampMs),
           createSolver: () => createPoseSolver({}, smoothing),
           aspect: frameSize.width / frameSize.height,
           signal,
           onProgress: ({ done, total, frame, detection }) => {
+            authorize();
             drawPoseOverlay(optionsRef.current.overlayRef.current, frameSize, detection.image, detection.hands.image);
             if (frame) optionsRef.current.onFrame(frame);
             const now = performance.now();
@@ -111,26 +129,26 @@ export function useVideoImport(options: VideoImportOptions): VideoImport {
       }
     };
 
-    run().then(
+    void run().then(
       ({ frames, calibratedAt }) => {
-        if (signal.aborted) return;
-        setFile(null);
+        if (!active()) return;
+        authorize();
+        setPicked(null);
         setState(IDLE);
         optionsRef.current.onDone(frames, file, calibrationNote(calibratedAt));
       },
-      (error: unknown) => {
-        if (signal.aborted) return;
+    ).catch((error: unknown) => {
+        if (!active()) return;
         console.error('Video import failed:', error);
-        setFile(null);
+        setPicked(null);
         setState({ phase: 'idle', error: describeImportError(error) });
-      },
-    );
+    });
 
     return () => {
       controller.abort();
       closeVideoFile(video);
     };
-  }, [file]);
+  }, [picked]);
 
   return { state, aspect, start, cancel };
 }

@@ -6,7 +6,13 @@ test('built Studio supports offline-source sample backup, reload and import',asy
   page.on('request',request=>{if(request.url().startsWith('http') && new URL(request.url()).origin!=='http://127.0.0.1:4176') external++;});
   await page.route('**/models/**',route=>{models++;return route.abort();});await page.route('**/mediapipe/**',route=>{models++;return route.abort();});
   await page.route('**/api/health',route=>route.fulfill({json:{ok:true,blender:false}}));
+  await page.route('**/api/export-jobs',route=>route.fulfill({json:{jobs:[]}}));
+  await page.goto('/');
+  await expect(page.getByRole('button',{name:'Import video',exact:true})).toBeDisabled();
   const original=await sample(page);await page.getByLabel('Clip 1 name').fill('Built_backup');await saved(page);
+  await expect(page.getByRole('checkbox',{name:'Allow MediaPipe performance and usage metrics'})).not.toBeChecked();
+  await expect(page.getByRole('button',{name:'Start camera',exact:true})).toBeDisabled();
+  await expect(page.getByRole('region',{name:'MediaPipe processing'})).toContainText('performance and usage metrics to Google');
   const file=await download(page,info,'built-backup.emotecap');await page.reload();await expect(page.getByLabel('Clip 1 name')).toHaveValue('Built_backup');
   await page.getByLabel('Import project file').setInputFiles(file);await expect.poll(()=>projectId(page)).not.toBe(original.id);await saved(page);
   expect((await storedProject(page)).takes[0].frames).toEqual(original.takes[0].frames);expect(external).toBe(0);expect(models).toBe(0);

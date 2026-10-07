@@ -22,7 +22,13 @@ test('local pauses and checking consent send nothing; explicit Send previews bef
   await page.route('**/api/takes',route=>{uploads++;return route.fulfill({json:{takeId:source.takes[0].id,segments:[{name:'Cloud_suggestion',start:0,end:1,loop:false,description:'Synthetic suggestion'}],
     cleanup:{localVideo:'deleted',warning:null,remoteFiles:'failed',remoteWarning:'Google file deletion could not be confirmed',model:'mock'}}});});
   const source=await withSource(page);await page.getByRole('button',{name:'Find pauses',exact:true}).click();await saved(page);expect(grants).toBe(0);expect(uploads).toBe(0);
-  const panel=page.getByRole('region',{name:'Optional Gemini suggestions'});await panel.getByLabel('Allow sending the selected source video to Google Gemini').check();
+  const panel=page.getByRole('region',{name:'Optional Gemini suggestions'});
+  const sdkChoice=page.getByRole('checkbox',{name:'Allow MediaPipe performance and usage metrics'});
+  const sourceChoice=panel.getByLabel('Allow sending the selected source video to Google Gemini');
+  await expect(sdkChoice).not.toBeChecked();await sdkChoice.check();
+  await expect(sourceChoice).not.toBeChecked();await expect(panel.getByRole('button',{name:'Send selected video',exact:true})).toBeDisabled();
+  expect(grants).toBe(0);expect(uploads).toBe(0);await sdkChoice.uncheck();
+  await sourceChoice.check();await expect(sdkChoice).not.toBeChecked();
   expect(grants).toBe(0);expect(uploads).toBe(0);const before=await storedProject(page);
   await panel.getByRole('button',{name:'Send selected video',exact:true}).click();await expect(panel).toContainText('Cloud_suggestion');await expect(panel).toContainText('Google file deletion could not be confirmed');
   expect(grants).toBe(1);expect(uploads).toBe(1);expect((await storedProject(page)).takes[0].clips).toEqual(before.takes[0].clips);

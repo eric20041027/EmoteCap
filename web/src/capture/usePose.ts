@@ -5,6 +5,7 @@ import { cropRect, type CropMode } from './cropFrame';
 import { NO_HANDS, assignHands, type TrackedHands } from './hands';
 import { CaptureError, closeLandmarkers, createLandmarkers, type CaptureQuality, type Landmarkers } from './landmarkers';
 import { detachStream, stopStream } from './streams';
+import { ProcessingConsent, ProcessingConsentError, type SdkAuthorization } from '../privacy/processingConsent';
 
 export type { CaptureQuality } from './landmarkers';
 
@@ -46,13 +47,15 @@ const HAVE_CURRENT_DATA = 2;
  * Default: the built-in camera at 720p. A chosen device (e.g. an upright iPhone via Continuity Camera) only
  * gets a height hint, so a portrait source can deliver a portrait 720x1280 frame instead of a landscape crop.
  */
-async function openCamera(deviceId: string): Promise<MediaStream> {
+async function openCamera(deviceId: string, authorize: SdkAuthorization): Promise<MediaStream> {
+  authorize();
   if (!navigator.mediaDevices?.getUserMedia) throw new CaptureError(INSECURE_CONTEXT_MESSAGE);
   const fallback: MediaTrackConstraints = { width: 1280, height: 720, facingMode: 'user' };
   const video: MediaTrackConstraints = deviceId ? { deviceId: { exact: deviceId }, height: { ideal: 1280 } } : fallback;
   try {
     return await navigator.mediaDevices.getUserMedia({ video, audio: false });
   } catch (error) {
+    authorize();
     const name = error instanceof DOMException ? error.name : '';
     if (!deviceId || (name !== 'OverconstrainedError' && name !== 'NotFoundError' && name !== 'NotReadableError')) {
       throw new CaptureError(describeCameraError(error));
@@ -60,6 +63,7 @@ async function openCamera(deviceId: string): Promise<MediaStream> {
     // The chosen camera vanished or is busy (e.g. the iPhone went to sleep): use the default camera instead.
     console.warn(`Camera ${deviceId} unavailable (${name}); falling back to the default camera.`);
   }
+  authorize();
   try {
     return await navigator.mediaDevices.getUserMedia({ video: fallback, audio: false });
   } catch (error) {
@@ -85,6 +89,7 @@ export function usePose(
   paused = false,
   /** Camera/model access is opt-in. Disabling closes current and late-arriving resources. */
   enabled = false,
+  processingConsent: ProcessingConsent,
 ): PoseTracker {
   const [status, setStatus] = useState<{ status: PoseStatus; message: string }>({
     status: enabled?'loading':'off',
@@ -115,6 +120,7 @@ export function usePose(
     let stream: MediaStream | undefined;
     let landmarkers: Landmarkers | undefined;
     let rafId = 0;
+    let authorize:SdkAuthorization;
 
     const release = () => {
       cancelAnimationFrame(rafId);
@@ -167,6 +173,7 @@ export function usePose(
 
       const tick = () => {
         rafId = requestAnimationFrame(tick);
+        try {authorize();}catch(error){fail(error);return;}
         if (pausedRef.current) return;
         if (video.readyState < HAVE_CURRENT_DATA || video.currentTime === lastVideoTime) return;
         lastVideoTime = video.currentTime;
@@ -175,6 +182,7 @@ export function usePose(
         let result;
         try {
           result = active.pose.detectForVideo(source.image, timestampMs);
+          authorize();
         } catch (error) {
           fail(error);
           return;
@@ -184,12 +192,15 @@ export function usePose(
         if (handTracker && wantHands && frameIndex % HAND_EVERY_N_FRAMES[quality] === 0) {
           try {
             hands = assignHands(handTracker.detectForVideo(source.image, timestampMs), result.landmarks[0], source);
+            authorize();
             lastHands = hands;
             lastHandsMs = timestampMs;
           } catch (error) {
+            if(error instanceof ProcessingConsentError){fail(error);return;}
             console.warn('Hand tracking stopped (body tracking continues):', error);
             handTracker.close();
             handTracker = undefined;
+            active.hands=undefined;
           }
         }
         frameIndex += 1;
@@ -202,6 +213,7 @@ export function usePose(
           lastPublishMs = timestampMs;
           setFps(Math.round(fpsEma));
         }
+        try {authorize();}catch(error){fail(error);return;}
         try {
           onResultRef.current({
             landmarks: result.landmarks[0],
@@ -221,8 +233,17 @@ export function usePose(
 
     const start = async () => {
       setStatus({ status: 'loading', message: LOADING_MESSAGE });
-      const cameraTask=openCamera(deviceId).then(value=>{if(disposed) stopStream(value);else stream=value;return value;});
-      const modelTask=createLandmarkers(quality).then(value=>{if(disposed) closeLandmarkers(value);else landmarkers=value;return value;});
+      authorize=processingConsent.lease();authorize();
+      const cameraTask=openCamera(deviceId,authorize).then(value=>{
+        if(disposed)stopStream(value);
+        else {try {authorize();stream=value;}catch(error){stopStream(value);throw error;}}
+        return value;
+      });
+      const modelTask=createLandmarkers(quality,authorize).then(value=>{
+        if(disposed)closeLandmarkers(value);
+        else {try {authorize();landmarkers=value;}catch(error){closeLandmarkers(value);throw error;}}
+        return value;
+      });
       const [camera, model] = await Promise.allSettled([cameraTask,modelTask]);
       if (disposed) {
         release();
@@ -230,11 +251,13 @@ export function usePose(
       }
       if (camera.status === 'rejected') throw camera.reason;
       if (model.status === 'rejected') throw model.reason;
+      authorize();
       video.srcObject = stream ?? null;
       video.muted = true;
       video.playsInline = true;
       await video.play();
       if (disposed || !landmarkers) return;
+      authorize();
       setStatus({ status: 'ready', message: '' });
       runLoop(landmarkers);
     };
@@ -245,7 +268,7 @@ export function usePose(
       disposed = true;
       release();
     };
-  }, [videoRef, attempt, quality, deviceId, enabled]);
+  }, [videoRef, attempt, quality, deviceId, enabled,processingConsent]);
 
   return { ...status, fps, frameAspect: frame.aspect, cropped: frame.cropped, retry };
 }

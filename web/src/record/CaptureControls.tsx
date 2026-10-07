@@ -7,6 +7,7 @@ import type { RecorderState } from './useRecorder';
 interface CaptureControlsProps {
   state: Exclude<RecorderState, { phase: 'recorded' }>;
   canRecord: boolean;
+  canImport?: boolean;
   isCalibrating: boolean;
   calibrationMessage: CalibrationMessage | null;
   onRecord: () => void;
@@ -70,7 +71,7 @@ export function CaptureControls(props: CaptureControlsProps) {
       >
         {isCalibrating ? 'Hold the T-pose…' : 'Calibrate T-pose'}
       </button>
-      <ImportButton disabled={isCalibrating} onFile={props.onImport} />
+      <ImportButton disabled={isCalibrating||!props.canImport} onFile={props.onImport} />
       <div className="capture__text">
         <p className="capture__tip">
           Stand 2–3 m back so your whole body is visible. Recording starts after a 3-second countdown.

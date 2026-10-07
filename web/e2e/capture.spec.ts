@@ -20,7 +20,7 @@ test('camera startup is explicit and stopping releases a late model even before 
   await page.route('**/api/health',route=>route.fulfill({json:{ok:true,blender:false}}));
   await page.goto('/');await expect(page.getByRole('heading',{name:'Camera',exact:true})).toBeVisible();
   expect(await page.evaluate(()=>Number(Reflect.get(window,'emoteCameraRequests')))).toBe(0);
-  await page.getByRole('button',{name:'Start camera',exact:true}).click();
+  await page.getByRole('checkbox',{name:'Allow MediaPipe performance and usage metrics'}).check();await page.getByRole('button',{name:'Start camera',exact:true}).click();
   await expect.poll(()=>page.evaluate(()=>typeof Reflect.get(window,'emoteResolveModel'))).toBe('function');
   await page.getByRole('button',{name:'Stop camera',exact:true}).click();
   await page.evaluate(()=>(Reflect.get(window,'emoteResolveModel') as ()=>void)());
@@ -48,7 +48,7 @@ async function syntheticCapture(page:import('@playwright/test').Page) {
 
 test('synthetic camera checkpoints and stop preserve earlier originals and bind video to the captured take',async({page})=>{
   await syntheticCapture(page);const original=await sample(page);
-  await page.getByRole('button',{name:'New take',exact:true}).click();await page.getByRole('button',{name:'Start camera',exact:true}).click();
+  await page.getByRole('button',{name:'New take',exact:true}).click();await page.getByRole('checkbox',{name:'Allow MediaPipe performance and usage metrics'}).check();await page.getByRole('button',{name:'Start camera',exact:true}).click();
   await expect(page.getByRole('button',{name:'Record',exact:true})).toBeEnabled();await page.getByRole('button',{name:'Record',exact:true}).click();
   await expect(page.getByRole('button',{name:'Stop',exact:true})).toBeVisible();
   await expect.poll(async()=>(await storedProject(page)).takes[1]?.frames.length??0,{timeout:10000}).toBeGreaterThan(10);
@@ -66,7 +66,7 @@ test('synthetic camera checkpoints and stop preserve earlier originals and bind 
 
 test('reloading an ongoing synthetic recording restores only the saved prefix as interrupted',async({page})=>{
   await syntheticCapture(page);await page.goto('/');await saved(page);
-  await page.getByRole('button',{name:'Start camera',exact:true}).click();await expect(page.getByRole('button',{name:'Record',exact:true})).toBeEnabled();
+  await page.getByRole('checkbox',{name:'Allow MediaPipe performance and usage metrics'}).check();await page.getByRole('button',{name:'Start camera',exact:true}).click();await expect(page.getByRole('button',{name:'Record',exact:true})).toBeEnabled();
   await page.getByRole('button',{name:'Record',exact:true}).click();await expect(page.getByRole('button',{name:'Stop',exact:true})).toBeVisible();
   await expect.poll(async()=>(await storedProject(page)).takes[0]?.frames.length??0,{timeout:10000}).toBeGreaterThan(10);
   const before=await storedProject(page),prefix=before.takes[0];page.once('dialog',dialog=>dialog.accept());await page.reload();
@@ -89,7 +89,7 @@ test('the twentieth take can be stopped manually at the take-count limit',async(
       tx.oncomplete=()=>resolve();tx.onabort=()=>reject(tx.error);});db.close();
   });
   await page.reload();await saved(page);await page.getByRole('button',{name:'New take',exact:true}).click();
-  await page.getByRole('button',{name:'Start camera',exact:true}).click();await expect(page.getByRole('button',{name:'Record',exact:true})).toBeEnabled();
+  await page.getByRole('checkbox',{name:'Allow MediaPipe performance and usage metrics'}).check();await page.getByRole('button',{name:'Start camera',exact:true}).click();await expect(page.getByRole('button',{name:'Record',exact:true})).toBeEnabled();
   await page.getByRole('button',{name:'Record',exact:true}).click();const stop=page.getByRole('button',{name:'Stop',exact:true});
   await expect(stop).toBeVisible();await expect(stop).toBeEnabled();
   await expect.poll(async()=>(await storedProject(page)).takes[19]?.frames.length??0,{timeout:10000}).toBeGreaterThan(10);

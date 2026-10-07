@@ -47,6 +47,8 @@ import { AppHeader } from './ui/AppHeader';
 import { CountdownOverlay } from './ui/CountdownOverlay';
 import { StatusBar } from './ui/StatusBar';
 import { useServerHealth } from './ui/useServerHealth';
+import { ProcessingConsent } from './privacy/processingConsent';
+import { ProcessingConsentPanel } from './privacy/ProcessingConsentPanel';
 
 export default function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -64,6 +66,8 @@ export default function App() {
   const [quality, setQuality] = useState<CaptureQuality>('fast');
   const [crop, setCrop] = useState<CropMode>('none');
   const [cameraEnabled,setCameraEnabled]=useState(false);
+  const processingConsent=useMemo(()=>new ProcessingConsent(),[]);
+  const [processingAllowed,setProcessingAllowed]=useState(false);
   const [cameraGeneration,setCameraGeneration]=useState(0);
   const [archiveBusy,setArchiveBusy]=useState(false);
   const skeleton = useSkeleton();
@@ -87,6 +91,7 @@ export default function App() {
   const importVideoRef = useRef<HTMLVideoElement>(null);
   const importOverlayRef = useRef<HTMLCanvasElement>(null);
   const importer = useVideoImport({
+    processingConsent,
     videoRef: importVideoRef,
     overlayRef: importOverlayRef,
     trackHands: skeleton === 'full',
@@ -121,6 +126,7 @@ export default function App() {
 
   // Runs once per camera frame, outside React rendering.
   const handlePose = ({ landmarks, worldLandmarks, hands, frameSize, timestampMs }: PoseResult) => {
+    if(!processingConsent.allowed)return;
     drawPoseOverlay(overlayRef.current, frameSize, landmarks, hands.image);
     latestWorldRef.current = worldLandmarks ?? null;
     setHasPose(worldLandmarks !== undefined);
@@ -134,14 +140,24 @@ export default function App() {
 
   // Importing pauses camera tracking (its models stay loaded) so the GPU works on the video alone and the two never
   // fight over the preview.
-  const pose = usePose(videoRef, handlePose, quality, cameras.deviceId, skeleton === 'full', crop, isImporting||isReviewing, cameraEnabled);
+  const pose = usePose(videoRef, handlePose, quality, cameras.deviceId, skeleton === 'full', crop, isImporting||isReviewing, cameraEnabled&&processingAllowed,processingConsent);
   useEffect(()=>{if(pose.status==='off') {latestWorldRef.current=null;setHasPose(false);}},[pose.status]);
   const { refresh: refreshCameras } = cameras;
   useEffect(() => {
     if (pose.status === 'ready') void refreshCameras(); // device labels appear once permission is granted
   }, [pose.status, refreshCameras]);
   const recordingSeconds = state.phase === 'recording' ? takeDuration(state.frames) : null;
-  const startCamera=()=>{if(locked) return;setCameraGeneration(n=>n+1);setCameraEnabled(true);pose.retry();};
+  const startCamera=()=>{if(locked||!processingConsent.allowed) return;setCameraGeneration(n=>n+1);setCameraEnabled(true);pose.retry();};
+  const chooseProcessing=(allowed:boolean)=>{
+    processingConsent.setAllowed(allowed);
+    setProcessingAllowed(allowed);
+    if(!allowed){
+      setCameraEnabled(false);calibration.cancel();importer.cancel();
+      if(state.phase==='recording')recorder.stop();
+      else if(state.phase==='countdown')recorder.discard();
+      latestWorldRef.current=null;setHasPose(false);
+    }
+  };
   const newTake=()=>{
     if(locked||atCapacity) return;
     try {recorder.discard();studio.session.update(p=>selectTake(p,null));frameRef.current=tposeFrame();}
@@ -170,6 +186,7 @@ export default function App() {
 
       <ProjectBar session={studio.session} state={studio.state} locked={locked} onBusyChange={setArchiveBusy} onSample={openSample} />
       <TakeList session={studio.session} state={studio.state} locked={locked} onNewTake={newTake} sourceBusy={cloud.state.busy} />
+      <ProcessingConsentPanel allowed={processingAllowed} onChange={chooseProcessing} />
 
       <main className="stage">
         <section className="panel" aria-label="Camera">
@@ -196,7 +213,7 @@ export default function App() {
               status={pose.status}
               message={pose.message}
               onRetry={startCamera}
-              startDisabled={locked}
+              startDisabled={locked||!processingAllowed}
               showStepBackHint={stepBack}
               recordingSeconds={recordingSeconds}
               aspect={pose.frameAspect}
@@ -243,7 +260,7 @@ export default function App() {
         frameRef={frameRef} server={server} exporter={exporter} locked={locked} />:<section className="dock" aria-label="Recording">
         {isImporting?<ImportProgress state={importState} onCancel={importer.cancel} />:<fieldset className="studio-capture-controls" disabled={(atCapacity&&!capturing)||archiveBusy||studio.state.busy||studio.state.storage==='loading'}>
           <CaptureControls state={state.phase==='recorded'?{phase:'idle',notice:'Choose New take to capture another performance.'}:state}
-            canRecord={cameraEnabled&&pose.status==='ready'&&state.phase==='idle'&&!atCapacity}
+            canImport={processingAllowed} canRecord={processingAllowed&&cameraEnabled&&pose.status==='ready'&&state.phase==='idle'&&!atCapacity}
             isCalibrating={calibration.remaining!==null} calibrationMessage={calibration.message} onRecord={recorder.start} onStop={recorder.stop}
             onCancel={recorder.discard} onCalibrate={calibration.start} onImport={importer.start} importError={importState.error} />
         </fieldset>}

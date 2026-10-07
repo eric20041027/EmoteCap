@@ -28,3 +28,8 @@
 .studio-settings {display:flex;flex-wrap:wrap;align-items:center;gap:10px;border:0;padding:0;margin:0;min-width:0;}
 .studio-capture-controls {border:0;padding:0;margin:0;min-width:0;}
 @media(max-width:640px) {.studio-actions {align-items:stretch;}.studio-actions .studio-field {flex:1 1 100%;}.studio-heading {align-items:start;}.studio-clip-fields {gap:8px;}}
+.studio-processing{padding:16px;margin:16px 0;border:1px solid var(--panel-border);border-radius:12px;background:var(--panel);}
+.studio-processing h2{margin:0 0 10px;font-size:16px;}
+.studio-processing p{font-size:13px;line-height:1.5;}
+.studio-processing__choice{display:flex;align-items:flex-start;gap:10px;line-height:1.5;}
+.studio-processing__choice input{flex-shrink:0;margin-top:4px;}
