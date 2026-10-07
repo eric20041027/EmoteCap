@@ -15,7 +15,8 @@ export type FetchFn=(url:string,init:RequestInit)=>Promise<Response>;
 export class JobFailure extends ExportFailure {constructor(message:string,details=''){super(message,details);this.name='JobFailure';}}
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const STATES=new Set(['queued','running','succeeded','failed','cancelled','interrupted']);
-const MAX_RESPONSE_BYTES=9*1024*1024,MAX_INPUT_BYTES=128*1024*1024;
+//128 tails can expand sixfold when JSON escapes control bytes, plus bounded file metadata.
+const MAX_RESPONSE_BYTES=64*1024*1024,MAX_INPUT_BYTES=128*1024*1024;
 const record=(v:unknown):v is Record<string,unknown>=>typeof v==='object'&&v!==null&&!Array.isArray(v);
 const text=(v:unknown,max:number):v is string=>typeof v==='string'&&v.length<=max;
 const integer=(v:unknown,min=0,max=Number.MAX_SAFE_INTEGER):v is number=>typeof v==='number'&&Number.isSafeInteger(v)&&v>=min&&v<=max;

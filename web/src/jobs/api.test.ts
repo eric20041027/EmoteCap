@@ -22,7 +22,7 @@ it('shows queue capacity rejection rather than losing the take',async()=>{
   await expect(submitJob(submission(),async()=>response({detail:'Export queue is full'},429))).rejects.toThrow(/queue is full/i);
 });
 it('bounds streamed response bytes before parsing',async()=>{
-  const stream=new ReadableStream<Uint8Array>({start(c){c.enqueue(new Uint8Array(9*1024*1024+1));c.close();}});
+  const stream=new ReadableStream<Uint8Array>({start(c){c.enqueue(new Uint8Array(64*1024*1024+1));c.close();}});
   await expect(requestJobs(async()=>new Response(stream))).rejects.toThrow(/large/i);
 });
 it('pre-cancel never sends a request',async()=>{
@@ -34,4 +34,9 @@ it('times out even when an injected fetch ignores cancellation',async()=>{
     const pending=requestJobs(()=>new Promise(()=>{})).catch(error=>error);
     await vi.advanceTimersByTimeAsync(15000);expect((await pending).message).toMatch(/timed out/i);
   }finally{vi.useRealTimers();}
+});
+it.each(['failed\r\n'.repeat(8192),'\u0000'.repeat(65536)])('recovers a full legal history whose diagnostic JSON needs escaping %#',async details=>{
+  const jobs=Array.from({length:128},(_,n)=>job({id:`00000000-0000-4000-8000-${n.toString(16).padStart(12,'0')}`,
+    state:'failed',phase:'Export failed',error:{message:'Blender failed',details}}));
+  expect((await requestJobs(async()=>response({jobs}))).map(j=>j.id)).toEqual(jobs.map(j=>j.id));
 });

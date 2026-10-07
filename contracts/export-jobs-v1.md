@@ -19,11 +19,13 @@ Job fields: id, schemaVersion1, state, phase, progress0..100, snapshot, inputSha
 - queued→running→succeeded or failed. Queued cancel→cancelled. Running cancellation first persists cancelRequested then signals its owned process; completion and cancellation share the publication lock. Repeating cancel on a terminal record is idempotent.
 - Restart marks queued/running records interrupted; never resumes automatically. Failed/cancelled/interrupted retry uses saved digest/snapshot and creates a new ID/retryOf. Missing/tampered inputs reject retry instead of rebuilding from current edits.
 - GET `/api/export-jobs` returns `{jobs:[...]}` newest first, at most128. GET `/{UUID}` returns one record. POST `/{UUID}/cancel`, POST `/{UUID}/retry`202 and DELETE `/{UUID}`204 perform explicit actions. Delete accepts terminal records only, removes service-owned input/downloads, and leaves optional copies already placed in the user's Unity project.
-- POST `/api/export` is a synchronous compatibility adapter through this same queue. It returns legacy `{files:[{name,url}]}` with job-specific URLs. Failure preserves500 message/stderr; cancelled/interrupted returns409. A disconnected browser does not implicitly cancel a service job.
+- POST `/api/export` is a synchronous compatibility adapter through this same queue. It returns legacy `{files:[{name,url}]}` with job-specific URLs. Its wait budget includes all five admitted120second runs plus10seconds/job for cleanup/publication. Failure preserves500 message/stderr; cancelled/interrupted returns409. A wait/service failure503 includes the accepted jobId/statusUrl for explicit recovery; never automatically resubmit. A disconnected browser does not implicitly cancel a service job.
 
 ## Limits/errors
 
 One running+4waiting jobs,128retained records,50clips,43202aggregate frames,128MiBrequest bytes,30second request-ingress deadline,120second Blender deadline and64KiB combined output tail. Chunked and Content-Length bodies enforce the byte cap before model decoding; aggregate counts are checked before validating each frame. Capacity429 explains wait/cancel or explicit terminal deletion; no silent eviction. Invalid request422 uses sanitized loc/msg/type; media type415; oversized413; ingress deadline408; unknown job404; invalid state/action409; unavailable worker/storage503.
+
+Browser responses are capped at64MiB before JSON parsing. This includes the worst sixfold JSON escaping of128diagnostic tails plus bounded result metadata; a legal full history remains recoverable/deletable.
 
 Optional UNITY_EXPORT_DIR receives its own UUID subdirectory, sidecar before FBX. Copy failure is a successful local download with a visible warning, rather than losing the completed output. Interrupted/failed staging files remain inside their bounded retained job and are removed only by explicit deletion. Failed acceptance cleans only its newly owned unpublished input directory, after resolved containment/link checks.
 

@@ -15,7 +15,8 @@ from . import exporter, gemini, takes
 from .config import load_settings
 from .contract import ExportedFile, ExportResponse, TakeResponse
 from .jobs.api import router as jobs_router,get_service,invoke,read_submission
-from .jobs.service import JobService
+from .jobs.service import JobService,ServiceUnavailable
+from .jobs.runner import TIMEOUT_SECONDS
 from .relay import LiveRelay
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s - %(message)s")
@@ -74,7 +75,12 @@ async def export(request: Request) -> ExportResponse:
     """Compatibility adapter; every HTTP export runs through the same finite worker."""
     service=get_service(request);submission=await read_submission(request)
     job=await run_in_threadpool(invoke,lambda:service.submit(submission))
-    result=await run_in_threadpool(invoke,lambda:service.wait(job.id,130))
+    # The last admitted job may wait behind four healthy120second runs.
+    wait_budget=(service.max_waiting+1)*(TIMEOUT_SECONDS+10)
+    try:result=await run_in_threadpool(service.wait,job.id,wait_budget)
+    except ServiceUnavailable as exc:
+        raise HTTPException(503,detail={'message':str(exc)[:512],'jobId':job.id,
+                                       'statusUrl':f'/api/export-jobs/{job.id}'}) from exc
     if result.state!='succeeded':
         error=result.error
         raise HTTPException(500 if result.state=='failed' else 409,detail={

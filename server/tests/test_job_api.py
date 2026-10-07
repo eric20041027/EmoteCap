@@ -62,3 +62,46 @@ def test_legacy_adapter_uses_the_same_lane_and_isolated_urls(client):
 def test_missing_lifespan_is_visible_unavailable(monkeypatch):
     monkeypatch.delattr(main.app.state,'jobs',raising=False)
     assert TestClient(main.app).post('/api/export-jobs',json=submission().model_dump(mode='json')).status_code==503
+
+
+def test_legacy_wait_includes_healthy_queued_exports(client,monkeypatch):
+    """Three simulated100second jobs, using Events instead of a300second sleep."""
+    import threading
+    import time
+    from types import SimpleNamespace
+    from emotecap_server.jobs import service as service_module
+    from emotecap_server.jobs.runner import JobCancelled
+    service=main.app.state.jobs;started=[threading.Event() for _ in range(3)];release=[threading.Event() for _ in range(3)]
+    calls=[];clock=[0.0]
+    def runner(settings,path,out,cancel,progress):
+        index=len(calls);calls.append(path);started[index].set()
+        while not release[index].wait(.01):
+            if cancel.is_set():raise JobCancelled('Cancelled')
+        write_outputs(settings,path,out,cancel,progress)
+    service.runner=runner
+    monkeypatch.setattr(service_module,'time',SimpleNamespace(monotonic=lambda:clock[0],time=time.time))
+    original_wait=service._condition.wait
+    def controlled_wait(timeout=None):
+        if timeout is not None:
+            for index in range(3):
+                if started[index].is_set() and not release[index].is_set():
+                    clock[0]+=100;release[index].set();break
+        return original_wait(None if timeout is None else .03)
+    monkeypatch.setattr(service._condition,'wait',controlled_wait)
+    service.submit(submission());assert started[0].wait(2);service.submit(submission())
+    try:
+        result=client.post('/api/export',json={'clips':submission().model_dump(mode='json')['clips']})
+        assert result.status_code==200,result.text
+        assert clock[0]==300 and len(calls)==3
+    finally:
+        for event in release:event.set()
+
+
+def test_legacy_unconfirmed_wait_returns_the_accepted_job_identity(client,monkeypatch):
+    from emotecap_server.jobs.service import ServiceUnavailable
+    def unavailable(*args):raise ServiceUnavailable('Export is still running; check its job status')
+    monkeypatch.setattr(main.app.state.jobs,'wait',unavailable)
+    response=client.post('/api/export',json={'clips':submission().model_dump(mode='json')['clips']})
+    assert response.status_code==503
+    detail=response.json()['detail'];assert detail['statusUrl']==f"/api/export-jobs/{detail['jobId']}"
+    assert client.get(detail['statusUrl']).status_code==200

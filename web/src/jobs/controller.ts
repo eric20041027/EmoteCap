@@ -26,7 +26,7 @@ export class ExportJobs {
     this.mutation=true;this.epoch++;const generation=this.generation;this.publish({busy:true,error:null});
     try{const value=await run();if(generation===this.generation)apply(value);return value;}
     catch(error){if(generation===this.generation)this.publish({error:error instanceof Error?error.message:String(error)});throw error;}
-    finally{this.mutation=false;if(generation===this.generation||this.active)this.publish({busy:false});}
+    finally{this.epoch++;this.mutation=false;if(generation===this.generation||this.active)this.publish({busy:false});}
   }
   private upsert(job:JobStatus){this.publish({jobs:Object.freeze([job,...this.state.jobs.filter(old=>old.id!==job.id)].slice(0,128))});}
   submit(input:JobSubmission):Promise<JobStatus>{return this.action(()=>submitJob(input,this.fetchFn),job=>this.upsert(job));}

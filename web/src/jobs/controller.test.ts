@@ -36,3 +36,9 @@ it('effect replay during an accepted submission releases the action lock',async(
   const pending=c.submit(submission());expect(c.getSnapshot().busy).toBe(true);c.stop();c.start();resolve(response(job(),202));await pending;
   expect(c.getSnapshot().busy).toBe(false);
 });
+it('a poll started during deletion cannot resurrect its completed result',async()=>{
+  let finishDelete!:(response:Response)=>void,finishPoll!:(response:Response)=>void;
+  const fetchFn:FetchFn=(_url,init)=>new Promise(resolve=>{if(init.method==='DELETE')finishDelete=resolve;else finishPoll=resolve;});
+  const c=create(fetchFn),deleting=c.delete(ID),polling=c.refresh();finishDelete(new Response(null,{status:204}));await deleting;
+  finishPoll(response({jobs:[job()]}));await polling;expect(c.getSnapshot().jobs).toEqual([]);
+});
