@@ -29,7 +29,8 @@ class SinkDelivery:
             # A child can start after an event-loop pause; recheck at its actual entry.
             self._remaining();await self.socket.send_text(text)
         try:await asyncio.wait_for(admitted_send(),min(self.send_timeout,remaining))
-        except TimeoutError:
+        except TimeoutError as exc:
+            if remaining<=self.send_timeout:raise PairingExpired() from exc
             self._remaining() # Distinguish pairing expiry from an ordinary stalled receiver.
             raise
     async def run(self):

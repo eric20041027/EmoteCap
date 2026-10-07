@@ -153,3 +153,15 @@ def test_send_timeout_never_extends_the_remaining_pairing_lifetime():
             await asyncio.wait_for(sink.closed.wait(),.15)
             assert sink.frames==[] and sink.codes[0]==1008
     asyncio.run(scenario())
+
+def test_lifetime_timer_firing_early_still_has_expiry_semantics(monkeypatch):
+    from emotecap_server.live.delivery import SinkDelivery,PairingExpired
+    async def scenario():
+        relay=LiveRelay(clock=lambda:0);session=relay.sessions.issue();session.deadline=.02
+        delivery=SinkDelivery(Socket(),session,send_timeout=.5)
+        async def early_timeout(awaitable,timeout):
+            assert timeout==.02;awaitable.close();raise TimeoutError()
+        monkeypatch.setattr(asyncio,'wait_for',early_timeout)
+        import pytest
+        with pytest.raises(PairingExpired):await delivery._send(frame_text(0))
+    asyncio.run(scenario())

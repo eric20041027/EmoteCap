@@ -9,6 +9,7 @@ Writes <out>/<name>.fbx and <out>/<name>.emotecap.json for every clip.
 """
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -46,14 +47,14 @@ def select_skeleton(contract: dict, mode: str) -> dict:
     return {**contract, "skeleton": [bone for bone in contract["skeleton"] if bone["name"] not in fingers]}
 
 
-def reset_scene(fps: int, frame_count: int) -> None:
+def reset_scene(fps: int, duration: float) -> None:
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
     scene.unit_settings.system = "METRIC"
     scene.unit_settings.scale_length = 1.0
     scene.render.fps = fps
     scene.frame_start = 0
-    scene.frame_end = max(frame_count - 1, 0)
+    scene.frame_end = math.ceil(duration * fps)
 
 
 def build_armature(skeleton: list[dict]) -> bpy.types.Object:
@@ -105,8 +106,17 @@ def key_clip(obj: bpy.types.Object, contract: dict, clip: dict) -> None:
     driven_index = {name: i for i, name in enumerate(contract["driven"])}
     fbx_names = {bone["name"]: bone["fbx"] for bone in skeleton}
     rest = {bone["name"]: obj.data.bones[bone["fbx"]].matrix_local.copy() for bone in skeleton}
+    # Armature-only FBX model transforms use the current pose. An excluded rest key
+    # lets the exporter restore true T-pose after baking, even if clip t=0 is posed.
+    for pose_bone in obj.pose.bones:
+        pose_bone.rotation_mode = "QUATERNION"
+        pose_bone.rotation_quaternion = Quaternion((1, 0, 0, 0))
+        pose_bone.location = Vector((0, 0, 0))
+        pose_bone.keyframe_insert("rotation_quaternion", frame=-1)
+        pose_bone.keyframe_insert("location", frame=-1)
     previous: dict[str, Quaternion] = {}
-    for frame_index, frame in enumerate(clip["frames"]):
+    for frame in clip["frames"]:
+        key_time = frame["t"] * clip["fps"]
         pose = solve_frame(frame, skeleton, driven_index, rest)
         for bone in skeleton:
             name, parent = bone["name"], bone["parent"]
@@ -121,10 +131,11 @@ def key_clip(obj: bpy.types.Object, contract: dict, clip: dict) -> None:
                 q.negate()
             previous[name] = q
             pose_bone.rotation_quaternion = q
-            pose_bone.keyframe_insert("rotation_quaternion", frame=frame_index)
+            pose_bone.keyframe_insert("rotation_quaternion", frame=key_time)
             if parent is None:
                 pose_bone.location = basis.translation
-                pose_bone.keyframe_insert("location", frame=frame_index)
+                pose_bone.keyframe_insert("location", frame=key_time)
+    bpy.context.scene.frame_set(-1)
 
 
 def export_fbx(path: Path) -> None:
@@ -158,7 +169,7 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     for completed, clip in enumerate(clips, start=1):
         clip_contract = select_skeleton(contract, clip.get("skeleton", "full"))
-        reset_scene(clip["fps"], len(clip["frames"]))
+        reset_scene(clip["fps"], clip["frames"][-1]["t"])
         armature = build_armature(clip_contract["skeleton"])
         key_clip(armature, clip_contract, clip)
         armature.animation_data.action.name = clip["name"]
