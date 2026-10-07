@@ -24,8 +24,8 @@ function VideoMeasurementsPage(){
   useEffect(()=>()=>{mounted.current=false;active.current?.abort();consent.setAllowed(false);},[consent]);
   useEffect(()=>{
     if(!result){setLinks(null);return;}
-    const raw=URL.createObjectURL(new Blob([JSON.stringify(result,null,2)],{type:'application/json'}));
-    const packet=result.packet?URL.createObjectURL(new Blob([JSON.stringify(result.packet,null,2)],{type:'application/json'})):null;
+    const raw=URL.createObjectURL(new Blob([JSON.stringify(result)],{type:'application/json'}));
+    const packet=result.packet?URL.createObjectURL(new Blob([JSON.stringify(result.packet)],{type:'application/json'})):null;
     setLinks({raw,packet});return()=>{URL.revokeObjectURL(raw);if(packet)URL.revokeObjectURL(packet);};
   },[result]);
   const metadata={sourceCommit:commit,environment,classification,skeleton,smoothing,warmupMs:warmup};

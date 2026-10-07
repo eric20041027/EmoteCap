@@ -31,7 +31,7 @@ An eligible `emotecap-measurement-v1` preview packet has strict source/configura
 
 Projection is unavailable after cancellation, missing/truncated/invalid observations, cleanup failure, seek/final-solver failure, unknown pose/hand configuration, mid-run hand downgrade, exhausted warmup or wall budget. The v1 packet represents one delegate; active pose/hand configurations that differ retain raw/final data with `mixed-model-delegates` and no packet. Body-only mode explicitly records hand policy off. Initial unavailable hands remain explicit in raw metadata; a full skeleton shape alone does not mean fingers were tracked.
 
-Source is limited to100MiB/180seconds. Raw diagnostics are at most21601attempts/32MiB; crossing the private diagnostic budget stops only that collection and keeps a bounded partial result. Timings must be finite/nonnegative/ordered and inside their actual wall interval. Existing main Studio imports have no observer by default and preserve their original result/calibration/error behavior.
+Source is limited to100MiB/180seconds. Raw diagnostics are at most21601attempts/32MiB; crossing the private diagnostic budget stops only that collection and keeps a bounded partial result. Downloads use the same compact JSON serialization as the byte budget. Timings must be finite/nonnegative/ordered and inside their actual wall interval. Existing main Studio imports have no observer by default and preserve their original result/calibration/error behavior.
 
 ## Analyze and retain evidence
 

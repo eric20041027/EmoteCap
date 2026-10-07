@@ -30,13 +30,14 @@ async function source(page:Page){
   const bytes=await page.evaluate(async()=>{
     const canvas=document.createElement('canvas');canvas.width=64;canvas.height=64;
     const context=canvas.getContext('2d')!;context.fillStyle='#234567';context.fillRect(0,0,64,64);
-    const stream=canvas.captureStream(30),chunks:BlobPart[]=[];
+    const stream=canvas.captureStream(0),track=stream.getVideoTracks()[0] as CanvasCaptureMediaStreamTrack,chunks:BlobPart[]=[];
     const mimeType=MediaRecorder.isTypeSupported('video/webm;codecs=vp8')?'video/webm;codecs=vp8':'video/webm';
     const recorder=new MediaRecorder(stream,{mimeType});
     const stopped=new Promise<void>(resolve=>{recorder.onstop=()=>resolve();});
     recorder.ondataavailable=event=>{if(event.data.size)chunks.push(event.data);};
-    recorder.start();let n=0;const timer=setInterval(()=>{
+    recorder.start();track.requestFrame();let n=0;const timer=setInterval(()=>{
       context.fillStyle=n++%2?'#234567':'#456789';context.fillRect(0,0,64,64);
+      track.requestFrame();
     },33);
     try {await new Promise(resolve=>setTimeout(resolve,550));recorder.stop();await stopped;}
     finally {clearInterval(timer);stream.getTracks().forEach(track=>track.stop());}
@@ -106,4 +107,46 @@ test('hand degradation keeps raw/final data and disables comparable-packet downl
   await expect(page.getByRole('status',{name:'Collection status'})).toContainText('hand-policy-changed',{timeout:15000});
   await expect(page.getByRole('link',{name:'Download raw collection',exact:true})).toBeVisible();
   await expect(page.getByRole('link',{name:'Download preview packet',exact:true})).toHaveCount(0);
+});
+
+test('long synthetic collection downloads stay within the compact diagnostic budget',async({page})=>{
+  // Inject a long canonical result to exercise the actual page/Blob/download boundary,
+  // independently of decoder, inference or physical performance qualification.
+  await page.route('**/src/evaluation/videoMeasurements.ts',route=>route.fulfill({contentType:'text/javascript',body:`
+    import {tposeFrame} from '/src/motion/contract.ts';
+    export const MAX_SOURCE_BYTES=100*1024*1024;
+    export const validCollectionMetadata=()=>true;
+    export async function collectVideoMeasurements(options){
+      const runId=crypto.randomUUID(),inputSha256=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',
+        await options.file.arrayBuffer())),v=>v.toString(16).padStart(2,'0')).join('');
+      const frames=Array.from({length:5400},(_,index)=>tposeFrame(index/30));
+      const attempts=frames.map((frame,index)=>({inputTimeS:frame.t,seekStartedMs:1+index*2,
+        startedMs:1+index*2,finishedMs:2+index*2,status:'ok',frame,handTracking:'disabled',assignedHandSides:[]}));
+      const packet={schema:'emotecap-measurement-v1',runId,sourceCommit:options.sourceCommit,classification:'synthetic',
+        localProcessingAuthorized:true,inputSha256,sourceKind:'video',environment:options.environment,
+        settings:{quality:'accurate',width:64,height:64,crop:'none',smoothing:'medium',skeleton:'body',
+          sdkVersion:'1.0.1',modelSha256:'a'.repeat(64),delegate:'CPU',handPolicy:'off'},
+        measurement:{clock:'performance-monotonic',latencyDefinition:'detection-to-solver',
+          startedMs:1,finishedMs:10801,warmupMs:0},
+        samples:attempts.map(({inputTimeS,startedMs,finishedMs,status,frame})=>({inputTimeS,startedMs,finishedMs,status,frame})),annotations:[]};
+      return {schema:'emotecap-video-collection-v1',runId,qualification:'pending',outcome:'completed',reason:null,
+        metadata:{pipeline:'video-import-preview-and-final',inputSha256,durationS:180,classification:'synthetic'},
+        attempts,finalFrames:frames,packet};
+    }
+  `}));
+  await page.goto('/measurements.html');await metadata(page);
+  await page.getByLabel('Source video',{exact:true}).setInputFiles({name:'owned-download-control.webm',mimeType:'video/webm',buffer:Buffer.from([1,2,3])});
+  await page.getByRole('checkbox',{name:'Allow MediaPipe performance and usage metrics'}).check();
+  await page.getByRole('button',{name:'Run collection',exact:true}).click();
+  const sizes:Record<string,number>={};
+  for(const [kind,label] of [['raw','Download raw collection'],['packet','Download preview packet']] as const){
+    const pending=page.waitForEvent('download');await page.getByRole('link',{name:label,exact:true}).click();
+    const download=await pending,stream=await download.createReadStream(),parts:Buffer[]=[];
+    for await(const part of stream!)parts.push(Buffer.from(part));
+    const bytes=Buffer.concat(parts),decoded=JSON.parse(bytes.toString());sizes[kind]=bytes.byteLength;
+    expect(kind==='raw'?decoded.attempts.length:decoded.samples.length).toBe(5400);
+    expect(bytes.byteLength).toBeLessThanOrEqual(32*1024*1024);
+    expect(bytes.toString()).toBe(JSON.stringify(decoded));
+  }
+  mkdirSync(root,{recursive:true});writeFileSync(path.join(root,'long-download-budget.json'),JSON.stringify({classification:'synthetic',frames:5400,...sizes}),{flag:'wx'});
 });
