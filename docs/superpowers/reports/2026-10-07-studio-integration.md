@@ -18,8 +18,8 @@ The committed synthetic sample supports onboarding without models or Blender. Se
 - Watched late source attachment fail to reject during navigation; storage retry replace imported memory work; navigation install a new lane after disposal. Each has a passing regression.
 - Watched draft export validation/backup helpers fail; subframe trim returned 1 frame instead of 19. Cancellation during a pending save still installed an import, and autosave hid unrelated import errors; both now pass regression checks.
 - Watched invalid/time/capacity captures incorrectly continue, and a failed capture finalize as complete. The valid original prefix is now preserved and labelled accurately.
-- **383 Web tests passed / 42 files; 8 Node asset/security tests passed.** TypeScript passed; all three cached model SHA256 checks passed; production Web build passed (169 modules, lazy archive chunk). Backend source is unchanged; the M1 hosted run is its prior evidence, not a fresh backend rerun.
-- **13 actual browser tests passed together**, with one worker on installed **Microsoft Edge 154.0.4258.62**, driven by Playwright 1.62.1. Twelve use the development application and one uses the production build. Owned strict-port servers use 127.0.0.1:4175/4176 and never reuse a foreign service.
+- **384 Web tests passed / 42 files; 8 Node asset/security tests passed.** TypeScript passed; all three cached model SHA256 checks passed; production Web build passed (169 modules, lazy archive chunk). Backend source is unchanged; the M1 hosted run is its prior evidence, not a fresh backend rerun.
+- **14 actual browser tests passed together**, with one worker on installed **Microsoft Edge 154.0.4258.62**, driven by Playwright 1.62.1. Thirteen use the development application and one uses the production build. Owned strict-port servers use 127.0.0.1:4175/4176 and never reuse a foreign service.
 - Browser cases cover no-camera sample save/reload, keyboard range/name/loop edits and undo, draft/duplicate export gating, backup/import under a new namespace, corrupt import preservation, injected quota recovery download, native multi-tab conflicts and explicit reopen, source retention/removal/reload, earlier-take preservation, camera opt-in/late-resource cleanup, synthetic recording checkpoints/finalization/source identity, and interrupted recording recovery.
 - The built application independently completed sample/edit/save/reload/backup/import with **zero external HTTP and zero tracking-model requests**. Desktop and 390-pixel layouts were captured and visually inspected; the narrow layout has no horizontal page overflow.
 - Exact **@playwright/test 1.62.1**, Apache-2.0, is development-only. Four new dev/optional lock records were added (@playwright/test, playwright, playwright-core 1.62.1 and nested fsevents 2.3.2); **zero existing package records changed**, and installation audit reported **0 vulnerabilities**.
@@ -27,7 +27,7 @@ The committed synthetic sample supports onboarding without models or Blender. Se
 
 The first lazy archive action exposed a Vite optimizer page reload: its trace showed an interrupted optimized ZIP request followed by a new document navigation. Explicit initial prebundling fixes the development workflow; the runner forces cold optimization. Production archive behavior is verified separately. [Vite dependency optimization](https://vite.dev/config/dep-optimization-options.html) describes these development-only controls.
 
-Final Native whole-plan independent review is pending. Local workflow qualification does not mark all M2 or release gates complete.
+Final Native whole-plan independent review found Critical0/Important2/Minor0. Both Important findings were reproduced and fixed in the single TDD pass at e7c5005: unkeeping a reloaded source now caches its validated original before deleting the stored copy, and reaching20takes no longer disables active Stop/Cancel. The new unit regression verifies backup bytes and re-retention; the actual-browser regression manually stops and completes the twentieth take. All384Web/8Node and14browser cases passed after the fixes. No re-review was dispatched under the Native rule. Local workflow qualification does not mark all M2 or release gates complete.
 
 ## Rulings made
 
@@ -48,7 +48,17 @@ Final Native whole-plan independent review is pending. Local workflow qualificat
 15. Prebundle the lazy ZIP dependency during development to prevent import-triggered reload. Cost if wrong: slightly more startup work; production uses its independently tested bundle.
 16. Use two isolated owned acceptance servers for development and production. Cost if wrong: two test ports must be free; the runner refuses reuse and does not terminate a foreign service.
 
-Deferred minor findings: none so far; independent review pending.
+Final review rulings for every declined boundary:
+
+17. Keep physical camera permission, actual MediaPipe inference and motion quality pending. Cost if wrong: camera/inference may fail outside synthetic browser lifecycle tests.
+18. Keep physical quota, eviction, power loss and browser persistence policies pending. Cost if wrong: physical disk/browser recovery may differ from injected quota/native transactions.
+19. Require maximum-size memory/responsiveness and Fast720p FPS/p95 measurement on the M4 target laptop. Cost if wrong: large projects or ordinary laptops may pause excessively.
+20. Require real Blender/Unity direction, scale and timing plus two redistributable rigs in M4. Cost if wrong: exported animation remains unqualified.
+21. Retain M3 provider/jobs and M4/M5 clean-machine, beginner, licensing and public-release gates in the active full goal. Cost if wrong: subsystem qualification could be confused with release readiness.
+22. Preserve previous independent storage/archive approvals while qualifying new integration interactions. Cost if wrong: a new boundary interaction may require another regression.
+23. Refresh vulnerability audit and hosted CI for the later release candidate; current browser evidence is Edge only. Cost if wrong: advisories or platform differences can change before publication.
+
+Deferred minor findings: none.
 
 ## Evidence boundaries and remaining gates
 
