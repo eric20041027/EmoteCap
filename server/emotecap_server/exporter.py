@@ -1,11 +1,12 @@
 """Export service: run Blender headless on a batch of clips and publish FBX + sidecar files.
 
 clips -> data/jobs/<uuid>/clips.json -> Blender -> data/jobs/<uuid>/out/
-      -> data/exports/ (served at /files) -> UNITY_EXPORT_DIR (optional)
+      -> data/exports/<uuid>/ -> UNITY_EXPORT_DIR/<uuid>/ (optional)
 """
 import json
 import logging
 import os
+import re
 import shutil
 import subprocess
 import uuid
@@ -43,15 +44,15 @@ def unique_names(names: list[str]) -> list[str]:
     neither already assigned nor a name given explicitly elsewhere in `names`; the base is
     truncated to make room for the suffix.
     """
-    explicit = set(names)
+    explicit = {name.casefold() for name in names}
     taken: set[str] = set()
     result: list[str] = []
     for name in names:
         candidate, index = name, 1
-        while candidate in taken or (index > 1 and candidate in explicit):
+        while candidate.casefold() in taken or (index > 1 and candidate.casefold() in explicit):
             index += 1
             candidate = _with_suffix(name, index)
-        taken.add(candidate)
+        taken.add(candidate.casefold())
         result.append(candidate)
     return result
 
@@ -61,12 +62,8 @@ def _with_suffix(name: str, index: int) -> str:
     return name[: MAX_NAME_LENGTH - len(suffix)] + suffix
 
 
-def run_blender(settings: Settings, job_json: Path, out_dir: Path) -> None:
-    """Run server/blender/export_fbx.py headless on `job_json`, writing into `out_dir`.
-
-    Raise ExportError on non-zero exit, timeout, or missing Blender.
-    """
-    command = [
+def blender_command(settings: Settings, job_json: Path, out_dir: Path) -> list[str]:
+    return [
         settings.blender_path, "-b", "--factory-startup",
         # Without this flag Blender exits 0 even when the export script raises.
         "--python-exit-code", "1",
@@ -75,6 +72,9 @@ def run_blender(settings: Settings, job_json: Path, out_dir: Path) -> None:
         "--out", str(out_dir.absolute()),
         "--bones", str(settings.bones_path.absolute()),
     ]
+def run_blender(settings: Settings, job_json: Path, out_dir: Path) -> None:
+    """Legacy source-call runner; the HTTP API uses the owned job worker."""
+    command = blender_command(settings, job_json, out_dir)
     try:
         result = subprocess.run(
             command,
@@ -114,19 +114,19 @@ def export_clips(clips: list[Clip], settings: Settings) -> list[ExportedFile]:
     renamed = [
         clip.model_copy(update={"name": name}) for clip, name in zip(clips, names, strict=True)
     ]
-    job_dir = settings.data_dir / "jobs" / uuid.uuid4().hex
-    job_json = _write_job(job_dir, renamed)
+    job_id = str(uuid.uuid4())
+    job_dir = settings.data_dir / "jobs" / job_id
+    job_json = write_job(job_dir, renamed)
     out_dir = job_dir / "out"
     run_blender(settings, job_json, out_dir)
-    exports_dir = settings.data_dir / "exports"
-    _publish(out_dir, exports_dir, names)
-    if settings.unity_export_dir is not None:
-        _copy_to_unity(exports_dir, settings.unity_export_dir, names)
+    files, warning = publish_job(out_dir, settings, job_id, names)
+    if warning:
+        logger.warning('%s', warning)
     logger.info("Exported %s (job %s)", ", ".join(names), job_dir.name)
-    return [ExportedFile(name=name, url=f"/files/{name}{FBX_SUFFIX}") for name in names]
+    return files
 
 
-def _write_job(job_dir: Path, clips: list[Clip]) -> Path:
+def write_job(job_dir: Path, clips: list[Clip]) -> Path:
     job_json = job_dir / "clips.json"
     try:
         job_dir.mkdir(parents=True)
@@ -141,27 +141,67 @@ def _files_for(name: str) -> tuple[str, str]:
     return f"{name}{SIDECAR_SUFFIX}", f"{name}{FBX_SUFFIX}"
 
 
-def _publish(out_dir: Path, exports_dir: Path, names: list[str]) -> None:
-    """Move Blender's output into exports_dir, overwriting older exports with the same name."""
+def _linked(path: Path) -> bool:
+    return path.is_symlink() or (hasattr(path, 'is_junction') and path.is_junction())
+
+
+def publish_job(out_dir: Path, settings: Settings, job_id: str, names: list[str]) -> tuple[list[ExportedFile], str | None]:
+    """Expose only a complete ordinary directory; never overwrite a prior result."""
+    try:
+        parsed = uuid.UUID(job_id)
+    except (ValueError, AttributeError) as exc:
+        raise ExportError('Invalid export job identity') from exc
+    if parsed.version != 4 or str(parsed) != job_id:
+        raise ExportError('Invalid export job identity')
+    if not names or any(re.fullmatch(r'[A-Za-z0-9_]{1,24}', name) is None for name in names):
+        raise ExportError('Invalid export output name')
+    if len({name.casefold() for name in names}) != len(names):
+        raise ExportError('Export output names collide')
+    if _linked(out_dir) or any(_linked(parent) for parent in out_dir.parents):
+        raise ExportError('Export output must be a regular directory')
     missing = [f for name in names for f in _files_for(name) if not (out_dir / f).is_file()]
     if missing:
         raise ExportError(f"Blender finished but did not produce: {', '.join(missing)}")
+    expected = {f for name in names for f in _files_for(name)}
+    if any(_linked(out_dir / f) for f in expected):
+        raise ExportError('Export output must contain regular files')
+    if {p.name for p in out_dir.iterdir()} != expected:
+        raise ExportError('Blender produced unexpected output files')
+    exports_dir = settings.data_dir / 'exports'
+    destination = exports_dir / job_id
     try:
         exports_dir.mkdir(parents=True, exist_ok=True)
-        for name in names:
-            for filename in _files_for(name):
-                os.replace(out_dir / filename, exports_dir / filename)
+        if _linked(exports_dir) or any(_linked(p) for p in exports_dir.parents):
+            raise ExportError('Export destination must be a regular directory')
+        if destination.exists():
+            raise ExportError('Export job directory already exists')
+        os.rename(out_dir, destination)
     except OSError as exc:
         raise ExportError(f"Could not move exported files into {exports_dir}: {exc}") from exc
+    warning = None
+    if settings.unity_export_dir is not None:
+        try:
+            _copy_to_unity(destination, settings.unity_export_dir, job_id, names)
+        except ExportError as exc:
+            warning = exc.message
+    return [ExportedFile(name=name, url=f'/files/{job_id}/{name}{FBX_SUFFIX}') for name in names], warning
 
 
-def _copy_to_unity(exports_dir: Path, unity_dir: Path, names: list[str]) -> None:
+def _copy_to_unity(exports_dir: Path, unity_dir: Path, job_id: str, names: list[str]) -> None:
     """Copy each sidecar, then its FBX, so Unity never imports an FBX without its sidecar."""
     try:
         unity_dir.mkdir(parents=True, exist_ok=True)
+        if _linked(unity_dir) or any(_linked(p) for p in unity_dir.parents):
+            raise ExportError('UNITY_EXPORT_DIR must be a regular directory')
+        staging = unity_dir / f'.{job_id}.tmp'
+        staging.mkdir()
         for name in names:
             for filename in _files_for(name):
-                _atomic_copy(exports_dir / filename, unity_dir / filename)
+                _atomic_copy(exports_dir / filename, staging / filename)
+        destination = unity_dir / job_id
+        if destination.exists():
+            raise ExportError('UNITY_EXPORT_DIR job directory already exists')
+        os.rename(staging, destination)
     except OSError as exc:
         raise ExportError(
             f"Exported, but copying to UNITY_EXPORT_DIR {unity_dir} failed: {exc}"

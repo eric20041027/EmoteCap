@@ -156,7 +156,7 @@ def main() -> None:
     clips = json.loads(Path(args.inp).read_text())["clips"]
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
-    for clip in clips:
+    for completed, clip in enumerate(clips, start=1):
         clip_contract = select_skeleton(contract, clip.get("skeleton", "full"))
         reset_scene(clip["fps"], len(clip["frames"]))
         armature = build_armature(clip_contract["skeleton"])
@@ -166,6 +166,7 @@ def main() -> None:
         sidecar = {"name": clip["name"], "loop": clip["loop"], "fps": clip["fps"]}
         (out_dir / f"{clip['name']}.emotecap.json").write_text(json.dumps(sidecar))
         print(f"EMOTECAP exported {clip['name']} ({len(clip['frames'])} frames)")
+        print(f"EMOTECAP_PROGRESS:{completed}:{len(clips)}", flush=True)
 
 
 if __name__ == "__main__":
