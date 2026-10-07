@@ -2,11 +2,11 @@
 
 Objective: finish the accepted M1–M5 roadmap as a usable, verifiable open-source v1 product. The user authorized continuous Native development on 2026-10-06. Keep this objective intact; local tests alone do not prove a release.
 
-Authoritative product requirements: [product design](superpowers/specs/2026-10-06-open-source-product-design.md). Historical foundation reports describe their original snapshots; current integration starts at local main `ef7a76c`.
+Authoritative product requirements: [product design](superpowers/specs/2026-10-06-open-source-product-design.md). Historical foundation reports describe their original snapshots; current integration starts at local main `25c6cbe` (M1 plus security/CI follow-ups, fast-forwarded on 2026-10-07).
 
 ## Current work
 
-- Active: M1 implemented, independently reviewed and qualified on all three CI platforms. Continue M2 Studio persistence.
+- Active: M1 implemented, independently reviewed and qualified on all three CI platforms. M2 design is saved in [Studio projects and recovery](superpowers/specs/2026-10-06-studio-projects-design.md); implementation is next on local branch `feat/studio-projects`.
 - Execution: main agent implements each stage; a fresh independent reviewer checks each completed implementation plan. Do not reopen the already-approved execution-method question.
 - Workspace: reuse the existing linked worktree `EmoteCap-release-foundation`; do not touch unrelated workspaces or delete earlier policy-blocked scratch.
 - Keep each stage in committed, testable increments. No force-push or history rewrite.
@@ -47,3 +47,4 @@ Authoritative product requirements: [product design](superpowers/specs/2026-10-0
 - The earlier frozen dependency baseline was for the initial M1 task. The newly authorized M1–M5 work includes the documented priority security patch; permit only the targeted security dependency update in its own plan.
 - No blocker stops independent local implementation now. Future changes require their own CI evidence; contributor authorization and human/hardware acceptance stay explicit pending gates.
 - The user approved pushing the reviewed M1 branch and creating its draft PR on 2026-10-06. Initial hosted Python setup failed on Windows/macOS; the uv bootstrap repair preserves all version pins and passes the actual three-OS matrix. No remote main merge, tag or release has occurred.
+- The prior explicit local-main integration choice also covers the verified M1 follow-ups. On 2026-10-07, clean local main fast-forwarded from ef7a76c to 25c6cbe after verifying that only documentation changed since the qualified code commit 663cd33. The receipt is local `.git/codex-m1-integration-20261007.json`; remote main remains unchanged. New M2 work is local and not included in the M1 draft PR.
