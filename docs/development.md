@@ -35,6 +35,13 @@ is not a clean audit.
 
 ## Run locally
 
+After the frozen Web build setup, [one source entry](local-start.md) runs the
+production Studio and service together: root `start.cmd` on Windows or
+`start.sh` on POSIX, then http://127.0.0.1:8787. The launcher uses private
+user-local server data and the source `.env`; explicit flags select paths,
+Blender and port. Browser project migration uses a portable backup/import
+when changing origin. The two-terminal development flow below remains available.
+
 Copy the root `.env.example` to `.env` if configuration is needed. Set
 `BLENDER_PATH` to your local Blender executable for FBX export. Gemini is
 optional. Start the server in `server/`:
