@@ -1,0 +1,120 @@
+{
+  "schema": "emotecap-baseline-index-v1",
+  "sourceCommit": "713d349df05aa26b6b95a1b7974f7f3d8e574149",
+  "files": [
+    {
+      "path": "contracts/bones.json",
+      "blob": "e3c3fa6cbfee46b686e4751c17b889fdb4c563db",
+      "bytes": 8714,
+      "sha256": "6f0df7087dae4246fcb55079f9d86324ebe99dbc02b64b7e77d6061912c1b97c"
+    },
+    {
+      "path": "web/package-lock.json",
+      "blob": "cba73a171d8bfbc0613eace79afc0befc9bb1210",
+      "bytes": 54742,
+      "sha256": "30de46648ab7397f01c10243d1b918be90757ecabd28a50aea5864b49a357a59"
+    },
+    {
+      "path": "web/scripts/fetch-mediapipe.mjs",
+      "blob": "5842ad035e164a3ca810f607f981bb8776c49ccb",
+      "bytes": 3269,
+      "sha256": "9ddf0b446167b1d271845496f54246e2b6718212a6652267d0f93eea32bacd69"
+    },
+    {
+      "path": "web/src/import/convertVideo.ts",
+      "blob": "822a95dcac995f7072cb589fa04efaeabc42bda0",
+      "bytes": 5312,
+      "sha256": "b6f5821152d2e3859eea227bb9abc91cb307c2f2e5bccc152fa524d8be3552b1"
+    },
+    {
+      "path": "web/src/import/frameTimes.ts",
+      "blob": "25f99c63d8873d16eb482a7da7fdddf2b7b6abdb",
+      "bytes": 1236,
+      "sha256": "f1e3873ec29a83f2231f77a207bf81b97ed9bff4693c08dd9af297fc5506d6fd"
+    },
+    {
+      "path": "web/src/import/tpose.ts",
+      "blob": "4a8454ded024c3d43fbb8d60d55b0307d2f77639",
+      "bytes": 2985,
+      "sha256": "c3e04bea501359261ddd410e9036c1fe044bafdd911b1a1e84410341124987d6"
+    },
+    {
+      "path": "web/src/motion/clip.ts",
+      "blob": "5de97f8a7ae1823dd2106e90d92d3f3e088c51aa",
+      "bytes": 3651,
+      "sha256": "c913bc088c501bda9069acdc5b5e63bff45b41089908dbfd5ce322be638df406"
+    },
+    {
+      "path": "web/src/motion/contract.ts",
+      "blob": "230b441a98aa51a914206e5e2add5d9573091a98",
+      "bytes": 2832,
+      "sha256": "5eada7dea154e5b0183ce5085257b38b651834fb23e747f2f1b46db0ce7652eb"
+    },
+    {
+      "path": "web/src/motion/hands.ts",
+      "blob": "7978278963dfecb55a297dca5af8ee9bd229f573",
+      "bytes": 1941,
+      "sha256": "035147f0dbb594a4115c4cb86d56da14ef98065b68e1afa78f5a482681236a35"
+    },
+    {
+      "path": "web/src/motion/index.ts",
+      "blob": "d1b5df0da9926b416f888442413b1ddc4d7750c6",
+      "bytes": 5878,
+      "sha256": "f733ba335f712b7332062dd6b5794d0a78bc6929ca74a415e5b828e5e7a65ec5"
+    },
+    {
+      "path": "web/src/motion/jump.ts",
+      "blob": "681609871dec93417f79fc8476ee8235ca09b98b",
+      "bytes": 3158,
+      "sha256": "91eb0884d8949477663df93fd43a5e4929c6e7e9def934da48177301630df9a0"
+    },
+    {
+      "path": "web/src/motion/landmarks.ts",
+      "blob": "aad7a60813b1faf4a52b746deaaefcf11a53f5a6",
+      "bytes": 2496,
+      "sha256": "098494c387402357a6f23e838d67dc7ac8077c96bc54f701feceecf6d79debb1"
+    },
+    {
+      "path": "web/src/motion/math.ts",
+      "blob": "8faba265cfb942acf1ebe4b26c2f7b474d8a4132",
+      "bytes": 4176,
+      "sha256": "f2b4f75b6281340b8c963d696c1689b3296f4194518d96db31eb4afac782d2ff"
+    },
+    {
+      "path": "web/src/motion/oneEuro.ts",
+      "blob": "cf96f5a1eb562cd9016121d6c929667e93815790",
+      "bytes": 2724,
+      "sha256": "0c2771723bc1155911f24a2234f7f79e1f99f0aac3b8b72421d8d65d7a0edb01"
+    },
+    {
+      "path": "web/src/motion/plant.ts",
+      "blob": "9dc7818ffde18e4654df405627475b7e71151bd0",
+      "bytes": 1804,
+      "sha256": "c8fc89d2c1655cc0407082e763375d0cec7d769bb073871fbf8c77ba855b3e30"
+    },
+    {
+      "path": "web/src/motion/rotationFilter.ts",
+      "blob": "d93b01293724ef68acc7d77aecd4a236a16104fa",
+      "bytes": 3119,
+      "sha256": "6b2ac708f08b021eaeaab733b7f348e59e8e2d69bc64941d90f1bf1c7b19b864"
+    },
+    {
+      "path": "web/src/motion/segments.ts",
+      "blob": "95db410a92ca155cc573be98e5340499ef6d9aa3",
+      "bytes": 5224,
+      "sha256": "d62590858da137e6d26686a426604fef26e2f084afecb74d6de8d071f7f67817"
+    },
+    {
+      "path": "web/src/motion/skeleton.ts",
+      "blob": "50892ce7edb531807d6bc787334b61266d083369",
+      "bytes": 2336,
+      "sha256": "6d615265e5483d06d3ba5cd88ac3a36bb8b2a03feef19ce9d21bd43608da82b1"
+    },
+    {
+      "path": "web/src/motion/solver.ts",
+      "blob": "5256b76d726cf963b8dfd97a705704c83917e585",
+      "bytes": 15699,
+      "sha256": "ab2973553383f66359a7dc383cab68571c5442bed4a232d6ff6b33200cf75d2f"
+    }
+  ]
+}
