@@ -1,0 +1,17 @@
+import { expect, test } from '@playwright/test';
+import { download, projectId, sample, saved, storedProject } from './helpers';
+test('built Studio supports offline-source sample backup, reload and import',async({page},info)=>{
+  await page.addInitScript(()=>Object.defineProperty(navigator.mediaDevices,'getUserMedia',{value:async()=>{throw new Error('Built sample never needs a camera');}}));
+  let external=0,models=0;
+  page.on('request',request=>{if(request.url().startsWith('http') && new URL(request.url()).origin!=='http://127.0.0.1:4176') external++;});
+  await page.route('**/models/**',route=>{models++;return route.abort();});await page.route('**/mediapipe/**',route=>{models++;return route.abort();});
+  await page.route('**/api/health',route=>route.fulfill({json:{ok:true,blender:false}}));
+  const original=await sample(page);await page.getByLabel('Clip 1 name').fill('Built_backup');await saved(page);
+  const file=await download(page,info,'built-backup.emotecap');await page.reload();await expect(page.getByLabel('Clip 1 name')).toHaveValue('Built_backup');
+  await page.getByLabel('Import project file').setInputFiles(file);await expect.poll(()=>projectId(page)).not.toBe(original.id);await saved(page);
+  expect((await storedProject(page)).takes[0].frames).toEqual(original.takes[0].frames);expect(external).toBe(0);expect(models).toBe(0);
+  await page.screenshot({path:info.outputPath('studio-desktop.png'),fullPage:true});
+  await page.setViewportSize({width:390,height:844});await expect(page.getByLabel('Clip 1 name')).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+  await page.screenshot({path:info.outputPath('studio-narrow.png'),fullPage:true});
+});

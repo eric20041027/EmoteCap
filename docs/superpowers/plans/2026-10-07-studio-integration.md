@@ -182,7 +182,7 @@ Run all Web and8Node tests, TypeScript, model hashes and build; commit `feat: in
 
 **Interfaces:** Playwright uses an isolated local Vite server on127.0.0.1:4175, strict port and reuseExistingServer false, owned by the runner. Default bundled Chromium; optional EMOTECAP_BROWSER_CHANNEL=msedge for installed Edge. Tests use fresh browser contexts/real IndexedDB and normal visible controls. Artifact paths are ignored. Test-only routes may substitute synthetic model detections for capture; no production test flag or fake acceptance claim is added.
 
-- [ ] **Step 1: Pin the runner and write browser assertions.**
+- [x] **Step 1: Pin the runner and write browser assertions.**
 
 Install exact @playwright/test1.62.1 --save-dev --ignore-scripts; inspect parsed lock difference and audit. Exclude e2e from Vitest and include config/tests in TypeScript checking. Launch only the owned test server. Core assertion:
 
@@ -199,11 +199,11 @@ await expect(page.getByLabel('Take name')).toHaveValue('Synthetic right-arm rais
 
 Watch any newly pinned missing behavior fail before fixing it. Functional tests cover keyboard clip edits/undo/save/reload, motion backup/download/import into a new identity, corrupt import preserving the current project, new take preserving earlier originals, optional source keep/removal/reload, injected quota failure leaving a usable backup, real multi-tab CAS conflict, explicit saved-copy reopen and an interrupted recording prefix. Synthetic capture through the actual lifecycle proves5000ms checkpoint/stop/late-source binding; disclose substituted detections and distinguish from physical camera.
 
-- [ ] **Step 2: Run, inspect and resolve concrete failures.**
+- [x] **Step 2: Run, inspect and resolve concrete failures.**
 
 Run `node node_modules/@playwright/test/cli.js test`; use installed Edge if default Chromium absent, recording the exact browser version/channel. Failures must include useful trace/screenshot artifacts. Fix actual integration defects via RED→GREEN; no weakening of integrity/consent/version gates. Inspect screenshots, responsive layout and keyboard focus. Check the production build's no-camera sample/archive route as an additional smoke case so Vite development success does not stand in for built ZIP compatibility.
 
-- [ ] **Step 3: Record evidence and commit.**
+- [x] **Step 3: Record evidence and commit.**
 
 Report actual Web/Node/browser test counts, browser version, API/network scope, original-frame/identity checks, synthetic-vs-physical boundaries, quota injection and pending real quota/hardware gates. Update full M1–M5 ledger without marking physical camera or release complete. Commit `test: qualify Studio recovery in a real browser`. Task completion runs full Web/Node/types/hash/build and Playwright (same commands above plus browser runner) from web.
 
