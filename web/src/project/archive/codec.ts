@@ -14,7 +14,13 @@ interface Options {signal?:AbortSignal;limits?:Partial<ArchiveLimits>}
 export interface EncodeOptions extends Options {
   includeMedia?:boolean;readMedia?:(takeId:string)=>Promise<ArchiveMediaSource|null>;
 }
-function jsonBlob(value:unknown):Blob {return new Blob([JSON.stringify(value)],{type:'application/json'});}
+function jsonBlob(value:unknown):Blob {
+  // Validated schema text forbids NUL, so this internal placeholder cannot collide with user content.
+  const signedZero='\u0000EmoteCapSignedZero\u0000';
+  const json=JSON.stringify(value,(_key,item:unknown)=>Object.is(item,-0)?signedZero:item)
+    .replaceAll(JSON.stringify(signedZero),'-0.0');
+  return new Blob([json],{type:'application/json'});
+}
 function newNamespace(project:ProjectDocument):string {
   const used=new Set([project.id.toLowerCase(),...project.takes.flatMap(t=>[t.id,...t.clips.map(c=>c.id),...t.undo.flatMap(list=>list.map(c=>c.id))]).map(id=>id.toLowerCase())]);
   let id=crypto.randomUUID();while(used.has(id.toLowerCase())) id=crypto.randomUUID();return id;

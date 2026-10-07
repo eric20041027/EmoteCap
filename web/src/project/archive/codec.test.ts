@@ -45,6 +45,13 @@ it.each([0,6])('decodes actual stored/deflated ZIP entries (level %i)',async(lev
   expect((await decodeProject(archive)).project.takes).toEqual(source.takes);
 });
 
+it('preserves signed-zero motion values through a portable roundtrip',async()=>{
+  const frame=tposeFrame();frame.r[0]=-0;frame.h[0]=-0;frame.t=-0;
+  const source=addTake(createProject(),{name:'Original',source:'sample',provenance:provenance(),frames:[frame]});
+  const result=(await decodeProject(await encodeProject(source))).project.takes[0].frames[0];
+  expect(Object.is(result.r[0],-0)).toBe(true);expect(Object.is(result.h[0],-0)).toBe(true);expect(Object.is(result.t,-0)).toBe(true);
+});
+
 it('accepts bounded ZIP64 entries',async()=>{
   const source=readyProject(), archive=await zipped([['manifest.json',json(manifest())],['project.json',json(source)]],0,true);
   expect((await decodeProject(archive)).project.name).toBe(source.name);

@@ -1,7 +1,7 @@
 import { ProjectArchiveError, checkSize } from './limits';
 import { abortable } from './operation';
 
-/** Bound object construction before JSON.parse; valid schema1 data never approaches these structural caps. */
+/** Bound object construction before JSON.parse; every allowed schema1 shape fits these structural caps. */
 async function preflight(text:string,signal:AbortSignal):Promise<void> {
   const stack:{object:boolean;fields:number}[]=[];
   let quoted=false,escaped=false,stringLength=0,values=0;

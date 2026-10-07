@@ -108,23 +108,23 @@ Task completion command: `bash -c 'cd web && node node_modules/vitest/vitest.mjs
 
 **Interfaces:** Consumes Task1 codec and current motion v2 fixtures; produces a deterministic synthetic motion-only .emotecap that later Studio acceptance can import without a camera/model.
 
-- [ ] **Step 1: Write the fixture consumer test before generating it.**
+- [x] **Step 1: Write the fixture consumer test before generating it.**
 
 Test reads the committed binary via Node file tools, wraps in Blob, decodes with the production codec and asserts synthetic provenance, shared right-arm motion, stable take/clip identity, no included media/retention and schema1/contractv2. Expected RED: fixture absent until the generator runs. Read-only fixture generation is not a claim of real camera quality.
 
-- [ ] **Step 2: Generate a reproducible fixture.**
+- [x] **Step 2: Generate a reproducible fixture.**
 
 The script imports `encodeProject`, current raise-right-arm.clip.json and schema types, uses fixed UUIDs/timestamps and synthetic provenance (models empty, quality fixture, calibration synthetic), then writes the Blob bytes to contracts/fixtures/sample-project.emotecap. Run through the existing Vitest/Vite TypeScript runtime with EMOTECAP_GENERATE_FIXTURE=1, so frontend extensionless/JSON imports use their normal resolver. Generate twice into memory/files and compare SHA256; exact ZIP dates and entry ordering must make them identical. Commit only the synthetic portable file; no raw personal recording.
 
-- [ ] **Step 3: Document the format and actual limits.**
+- [x] **Step 3: Document the format and actual limits.**
 
 Describe manifest/project/media paths, exact versions/bounds, compression, CRC/strict parsing, default no-media export and no-retention import, new project identity, snapshot recovery and readable failures. Include commands to regenerate/read the synthetic fixture, and distinguish archive codec acceptance from full Studio/browser/hardware acceptance.
 
-- [ ] **Step 4: Run full Web qualification and record evidence.**
+- [x] **Step 4: Run full Web qualification and record evidence.**
 
 Run full Web tests, 8 asset/security tests, types, model hashes and build. Expected all pass; archive fixture consumer passes; parsed locks show only allowed package changes. Record exact counts, RED/GREEN, code commit range and pending real-browser/performance/remaining full M1–M5 gates in the report/ledger.
 
-- [ ] **Step 5: Commit.**
+- [x] **Step 5: Commit.**
 
 ```text
 git add contracts/emotecap-project-v1.md contracts/fixtures/sample-project.emotecap web/scripts/make-project-fixture.ts web/src/project/archive/fixture.test.ts docs/release-progress.md docs/superpowers/reports/2026-10-07-project-archive.md
