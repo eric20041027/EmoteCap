@@ -91,3 +91,7 @@ Reviewer 額外重跑 backend（380 passed、2 deselected）、assets（6 passed
 3. 依[產品規劃](../specs/2026-10-06-open-source-product-design.md)推進專案保存、可靠工作流程與開源發布；不將本輪基礎修正視為正式 v1。
 
 操作入口見 [Development](../../development.md)。
+
+## 暫存清理限制
+
+自動核准機制拒絕清除本輪 `.superpowers/sdd/2026-10-06-release-foundation/` 暫存目錄；工具只回報 `blocked by policy`，沒有提供更細原因。目錄保留且不受 Git 追蹤，沒有改用其他方式繞過限制。所有執行裁定與驗證結果已另存於本文件，不依賴暫存內容。實作 worktree 與分支亦保留。
