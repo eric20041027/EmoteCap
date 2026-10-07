@@ -1,6 +1,6 @@
 # Studio camera measurement qualification
 
-Plan/spec: [implementation](../plans/2026-10-07-camera-measurements.md), [design](../specs/2026-10-07-camera-measurements-design.md). Review baseccf52dc; plan3518b3e; Task1 implementation48bfc61; Task2 and final independent review remain in progress at this report's initial creation.
+Plan/spec: [implementation](../plans/2026-10-07-camera-measurements.md), [design](../specs/2026-10-07-camera-measurements-design.md). Review baseccf52dc; plan3518b3e; Task1 implementation48bfc61; Task2 implementation/review endpoint8fe03dd. Accepted locally after one fresh review and one Important correction pass; exact correction/acceptance commit is recorded in Git and the owned ledger.
 
 ## Implemented boundaries
 
@@ -28,8 +28,23 @@ Ignored evidence belongs to `.superpowers/sdd/2026-10-07-camera-measurements/` a
 5. Add two narrow-only wrapping rules because mounted Studio controls overflowed the promised320px width. Cost if wrong: different control wrapping below640px; no numerical/persistence changes.
 6. Extend optional observation with presented-video identity and deduplicate effective FPS: currentTime/SDK call counts overstated camera throughput. Cost if wrong: unsupported-counter browsers withhold comparable FPS and require another qualified identity source; ordinary tracking remains unchanged.
 
-## Pending review and product gates
+## Independent review and correction gate
 
-One fresh most-capable TypeScript reviewer will check the whole fixed increment after the Native task gate. Every finding/declined effect will be regraded and ruled; only one Important/Critical watched correction pass is allowed. Earlier deferred minors remain recorded in their own reports. This increment has not yet been accepted.
+One fresh gpt-6-astra/high TypeScript reviewer checkedccf52dc..8fe03dd and independently passed TypeScript/33focused cases. Actual isolated Edge/Studio/solver/Three.js reproductions confirmed two Important integration gaps: I1 setup publication was only startup/hand-failure, allowing hidden delivered-size/frame-rate drift to remain completed; I2 WebGL context loss returns normally from Three.js and could count unavailable renders as success. Root regraded both Important by their effect on comparable receipts. One watched correction pass completed; no rereview was performed. Reviewer source/tree/index stayed unchanged; owned browser/server closed. Evidence `.superpowers/review-camera-9fe755843ad84849a665ab3b05821684/{repro.mjs,setup-drift.json,context-lost.json}` is retained. The full566/49/build/21Edge gates were root evidence read, not independently repeated by the reviewer; ESLint is unavailable and unclaimed.
+
+I1's independent delivered-width-under-portrait and frame-rate-only cases plus I2 actual context-loss case were3EdgeRED then3GREEN. Setup now refreshes before each diagnostic attempt; owned lost/restored canvas listeners stop unavailable rendering and are removed on teardown. Actual context restoration was separately1RED with the restoration listener disconnected, then passed in the final full matrix with the listener restored; readiness returns after an actual render, while ordinary body capture/Record remain available. Final correction matrix24/zero skips passed in1.6min (10camera/9SDK/4capture/1production), wholeWeb566/54files, types and pinned full build184modules/model hashes pass.49Node cases are unaffected by this capture/preview-only correction and their prior zero-skip qualification is retained. Final corrected artifacts are in `.superpowers/e2e/camera-final-c9888b84`; earlier21-case artifacts remain source-specific. No minor code was changed.
+
+Deferred Minor M1: an empty measured interval makes `every(...)` claim input-identity availability and can grant a pending Fast720p candidate label with0attempts. Root retains Minor: raw zero counts/FPS and pending status are explicit, and it cannot qualify actual hardware or release. No minor polish enters the correction pass. Cost: the descriptive candidate/availability label overstates evidence for an empty interval. Earlier startup/offline-numeric/Windows-name minors remain deferred in their reports.
+
+All reviewer-declined effects were independently ruled by root:
+
+7. Physical camera/SDK/network/target laptop remains an actual parent gate; synthetic controls only qualify lifecycle/arithmetic. Cost if wrong: supported-device/privacy claims remain withheld until real execution.
+8. Exposure-to-display/perceived response stays outside the named timing proxies. Cost if wrong: a stronger latency claim needs external measurement, and release must not infer it from these receipts.
+9. Whole-runtime/declaration/rights authenticity is not established by four source hashes; actual source/artifact provenance and owner/contributor/media rights remain release gates. Cost if wrong: publication remains blocked until real authority/evidence is resolved.
+10. Unity/two rigs/clean-machine/new users/public CI/publication remain the full parent objective, not tool acceptance. Cost if wrong: M1–M5 cannot be completed or published from this local result.
+11. Duplicate detection-loop optimization remains deferred until actual target data identifies a required improvement; this increment observes existing numerical behavior. Cost if wrong: redundant SDK work remains, to be quantified and corrected through the actual baseline before support claims.
+12. Earlier deferred startup/numeric/Windows-name effects remain recorded rather than silently re-reviewed or polished. Cost if wrong: their original diagnostic/path limitations persist until an authorized dedicated correction.
 
 Actual SDK inference/network, physical camera/actors, specified laptop, original/new real-video quality, Unity activation/compilation/two rigs, clean machine/five new users, contributor/media/MIT rights, updated public CI and publication remain pending. No GitHub push, main merge, LICENSE, tag or release occurred for this increment.
+
+Unity was independently rechecked using installed6000.5.9f1/FileVersion6000.5.9.11894251: fresh owned hidden/batch/nographics/createProject process33108 terminated; redacted result at2026-10-07T23:17:40Z matched the no-valid-Editor-license failure. The owned project directory was created, which is not successful compilation/testing. Private editor log is retained without exposing account/machine details. Owner Hub activation remains required. The full M1–M5 goal remains active.

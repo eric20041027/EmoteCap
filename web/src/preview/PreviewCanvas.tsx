@@ -29,16 +29,25 @@ export function PreviewCanvas({ frameRef, mirrored = false,diagnostics }: Previe
       return;
     }
     observeCamera(diagnostics,sink=>sink.previewReady(true));
+    const canvas=container.querySelector('canvas');
+    let contextLost=false;
+    const lost=()=>{contextLost=true;observeCamera(diagnostics,sink=>sink.previewReady(false));
+      setError('3D preview unavailable: WebGL context was lost. Camera capture can continue.');};
+    const restored=()=>{contextLost=false;setError(null);};
+    canvas?.addEventListener('webglcontextlost',lost);
+    canvas?.addEventListener('webglcontextrestored',restored);
 
     let rafId = 0;
     const tick = () => {
       rafId = requestAnimationFrame(tick);
+      if(contextLost)return;
       // Apply every tick (cheap): works even if the solver mutates one frame object in place.
       const frame = frameRef.current;
       try {
         if (frame) preview.mannequin.applyFrame(frame);
         preview.render();
       } catch(err) {observeCamera(diagnostics,sink=>sink.previewReady(false));throw err;}
+      observeCamera(diagnostics,sink=>sink.previewReady(true));
       if(frame)observeCamera(diagnostics,sink=>{if(sink.active)sink.rendered(frame,performance.now());});
     };
 
@@ -52,6 +61,8 @@ export function PreviewCanvas({ frameRef, mirrored = false,diagnostics }: Previe
     return () => {
       observeCamera(diagnostics,sink=>sink.previewReady(false));
       cancelAnimationFrame(rafId);
+      canvas?.removeEventListener('webglcontextlost',lost);
+      canvas?.removeEventListener('webglcontextrestored',restored);
       observer.disconnect();
       preview.dispose();
     };

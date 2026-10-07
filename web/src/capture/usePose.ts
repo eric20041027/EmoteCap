@@ -190,6 +190,7 @@ export function usePose(
         const source = frameSource();
         let observing=false;
         observeCamera(diagnostics,sink=>{
+          sink.setup(cameraSetup());
           observing=sink.active;if(!observing)return;
           const playback=video.getVideoPlaybackQuality?.();
           const presented=playback?playback.totalVideoFrames-playback.droppedVideoFrames:null;

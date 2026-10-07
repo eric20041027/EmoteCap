@@ -20,6 +20,9 @@ async function controlled(page:Page){
       const canvas=document.createElement('canvas');canvas.width=1280;canvas.height=720;const ctx=canvas.getContext('2d')!;let n=0;
       const draw=()=>{ctx.fillStyle=n++%2?'#234567':'#345678';ctx.fillRect(0,0,1280,720);};draw();const timer=setInterval(draw,33);
       const stream=canvas.captureStream(30),track=stream.getVideoTracks()[0],stop=track.stop.bind(track);
+      let declaredRate=30;const settings=track.getSettings.bind(track);
+      track.getSettings=()=>({...settings(),frameRate:declaredRate});
+      Reflect.set(window,'changeCameraConditions',(width:number,rate:number)=>{canvas.width=width;declaredRate=rate;draw();});
       track.stop=()=>{clearInterval(timer);Reflect.set(window,'cameraStops',Number(Reflect.get(window,'cameraStops'))+1);stop();};
       window.addEventListener('pagehide',()=>{clearInterval(timer);stream.getTracks().forEach(track=>track.stop());},{once:true});return stream;
     }});
@@ -144,4 +147,38 @@ test('observer failures close only diagnostics and unknown delegates never gain 
   await expect(page.getByRole('status',{name:'Measurement status'})).toContainText('observer-failed');
   const report=await receipt(page,'camera-observer-failed.json');expect(report).toMatchObject({outcome:'incomplete',summary:null,fast720pLaptopCandidate:false,setup:{poseDelegate:null}});
   await expect(page.getByRole('button',{name:'Record',exact:true})).toBeEnabled();
+});
+for(const change of [{name:'delivered width concealed by portrait crop',width:1920,rate:30},{name:'frame-rate hint without dimension change',width:1280,rate:15}]){
+  test(`capture drift ends a partial receipt: ${change.name}`,async({page})=>{
+    await controlled(page);await page.goto('/camera-measurements.html');await declarations(page);await camera(page);
+    await page.getByRole('button',{name:'Portrait crop',exact:true}).click();
+    await page.getByRole('button',{name:'Start measurement',exact:true}).click();
+    await page.evaluate(({width,rate})=>(Reflect.get(window,'changeCameraConditions') as (w:number,r:number)=>void)(width,rate),change);
+    await expect(page.getByRole('status',{name:'Measurement status'})).toContainText('camera-setup-changed');
+    const report=await receipt(page,`camera-drift-${change.width}-${change.rate}.json`);
+    expect(report).toMatchObject({outcome:'incomplete',reason:'camera-setup-changed',summary:null,setup:{width:1280,height:720,frameRate:30}});
+    const before=await page.evaluate(()=>Number(Reflect.get(window,'cameraDetects')));
+    await expect.poll(()=>page.evaluate(()=>Number(Reflect.get(window,'cameraDetects')))).toBeGreaterThan(before+3);
+    await expect(page.getByRole('button',{name:'Record',exact:true})).toBeEnabled();
+  });
+}
+test('actual WebGL loss ends diagnostics and preserves ordinary camera capture',async({page})=>{
+  await start(page);
+  await page.getByRole('region',{name:'3D preview',exact:true}).locator('canvas').evaluate(async element=>{
+    const canvas=element as HTMLCanvasElement,gl=canvas.getContext('webgl2')??canvas.getContext('webgl');
+    const extension=gl?.getExtension('WEBGL_lose_context');if(!extension)throw new Error('Actual context-loss test is unavailable');
+    Reflect.set(window,'restoreControlledPreview',()=>extension.restoreContext());
+    const lost=new Promise<void>(resolve=>canvas.addEventListener('webglcontextlost',()=>resolve(),{once:true}));extension.loseContext();await lost;
+  });
+  await expect(page.getByRole('status',{name:'Measurement status'})).toContainText('preview-unavailable');
+  const report=await receipt(page,'camera-webgl-lost.json');expect(report).toMatchObject({outcome:'incomplete',reason:'preview-unavailable',summary:null});
+  await expect(page.getByRole('button',{name:'Start measurement',exact:true})).toBeDisabled();
+  const before=await page.evaluate(()=>Number(Reflect.get(window,'cameraDetects')));
+  await expect.poll(()=>page.evaluate(()=>Number(Reflect.get(window,'cameraDetects')))).toBeGreaterThan(before+3);
+  await expect(page.getByRole('button',{name:'Record',exact:true})).toBeEnabled();
+  await page.getByRole('region',{name:'3D preview',exact:true}).locator('canvas').evaluate(element=>new Promise<void>(resolve=>{
+    element.addEventListener('webglcontextrestored',()=>resolve(),{once:true});
+    setTimeout(()=>(Reflect.get(window,'restoreControlledPreview') as ()=>void)(),1200);
+  }));
+  await expect(page.getByRole('button',{name:'Start measurement',exact:true})).toBeEnabled();
 });
