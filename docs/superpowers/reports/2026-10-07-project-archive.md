@@ -23,7 +23,7 @@ The motion-only synthetic sample decodes through the production codec and matche
 - Exact runtime dependency **@zip.js/zip.js 2.23.0**, BSD-3-Clause, is the sole added package record in this plan. Parsed lock comparison found no existing dependency changes; installation audit reported **0 vulnerabilities**. Installed declarations/source were checked against the [upstream API](https://gildas-lormeau.github.io/zip.js/api/classes/ZipReader.html).
 - The existing >500 kB bundle warning remains. Backend source is unchanged; M1's hosted backend evidence is not described as a fresh local rerun.
 
-The final Native whole-plan independent review is pending. This report does not yet claim review approval or complete M2 acceptance.
+The fresh Native whole-plan review (gpt-6-astra, 6184b1f..2a94df6) approved with zero Critical, Important or Minor findings. It independently passed 106 project tests and TypeScript, checked the fixture hash and sole dependency addition, and rejected an additional 3,000-record forged directory before extraction. Active decode cancellation also rejected correctly. No fix pass is required. M2 acceptance remains incomplete.
 
 ## Rulings made
 
@@ -37,7 +37,19 @@ The final Native whole-plan independent review is pending. This report does not 
 8. Installed getEntriesGenerator options have no signal parameter; enforce cancellation in BoundedReader, each extraction pipeline and the outer race. Cost if wrong: a small metadata read may finish before observing cancellation, without publishing data.
 9. Preserve signed zero as standard JSON -0.0 rather than weakening original-motion equality. Cost if wrong: the extra serialization pass needs large-project performance measurement.
 
-Deferred minor findings: none so far; final review pending.
+## Review acceptance boundaries
+
+1. Studio file controls, visible progress/errors, keyboard operation and sample onboarding remain required consuming UI work. Cost if wrong: codec approval alone provides no usable workflow.
+2. Actual IndexedDB installation/reload, quota/eviction and five-second checkpoint scheduling remain required Studio wiring and browser acceptance. Cost if wrong: pure decoding does not prove durable recovery.
+3. Real Chrome/Edge and unsupported-browser UX remain acceptance gates. Cost if wrong: native compression support or bundling can differ from Node.
+4. Maximum-size browser memory, responsiveness and wall-clock timing during synchronous JSON operations remain measurement gates. Cost if wrong: a large allowed project can pause the page or exceed the intended deadline.
+5. Existing storage/domain behavior outside this range keeps its prior approval, with new integration behavior tested in the next plan. Cost if wrong: newly composed workflows may expose an interaction defect.
+6. Filesystem permissions and symbolic-link semantics do not apply to this in-memory codec; entries use fixed data paths and are never installed on a filesystem. Cost if wrong: any future filesystem consumer needs a separate path/permission review.
+7. Video stays bounded opaque data; this format does not validate content authenticity or scan malware. Cost if wrong: a future playback consumer must preserve its own security boundary.
+8. ZIP integrity and strict data validation do not establish cryptographic provenance. Archives are untrusted input, not authenticated backups. Cost if wrong: a signed-backup use case needs a separate versioned trust design.
+9. Physical tracking/camera, Blender/Unity, M3–M5, contributor rights, clean-machine distribution and owner-approved release remain required full-goal gates. Cost if wrong: subsystem approval is mistaken for product readiness.
+
+Deferred minor findings: none.
 
 ## Remaining acceptance
 
