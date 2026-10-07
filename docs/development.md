@@ -44,6 +44,14 @@ uv run --frozen --python 3.12.14 uvicorn emotecap_server.main:app --host 127.0.0
 In a second terminal in `web/` run `npm run dev`, then open
 `http://localhost:5173`. Stop both terminals when finished.
 
+Live Link is off by default and uses [paired local Live Link v1](../contracts/live-link-v1.md).
+Explicitly enable it in Studio, copy the Unity pairing code and use a receiver
+supporting that handshake. The service checks exact motionv2 bones and one source
+per pairing.1008rejects incompatible/expired connections; Stop invalidates the code
+when confirmed. Failed cleanup stays visible with its code/expiry and a retry action.
+The current Unity receiver update/runtime qualification is the next M4 plan;
+the historical unpaired component is not a working consumer of this increment.
+
 ## What the checks prove
 
 The three-platform CI checks source logic, protocol parity, input validation,

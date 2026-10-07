@@ -1,19 +1,19 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import type { MotionFrame } from '../motion/index';
-import { defaultLiveLinkUrl, LiveLinkSender, type LiveLinkStatus } from './liveLink';
+import { defaultLiveLinkUrl, LiveLinkSender, type LiveLinkSnapshot } from './liveLink';
 
-export interface LiveLink {
+export interface LiveLink extends LiveLinkSnapshot {
   enabled: boolean;
-  status: LiveLinkStatus;
   toggle(): void;
   /** Stream one frame; a no-op while Live Link is off or reconnecting. */
   send(frame: MotionFrame): void;
+  retryCleanup():void;
 }
 
 export function useLiveLink(): LiveLink {
   const [enabled, setEnabled] = useState(false);
-  const [status, setStatus] = useState<LiveLinkStatus>('off');
-  const sender = useMemo(() => new LiveLinkSender({ url: defaultLiveLinkUrl() }, setStatus), []);
+  const sender = useMemo(() => new LiveLinkSender({ url: defaultLiveLinkUrl() }), []);
+  const state=useSyncExternalStore(sender.subscribe,sender.getSnapshot,sender.getSnapshot);
 
   useEffect(() => {
     if (enabled) sender.start();
@@ -22,5 +22,5 @@ export function useLiveLink(): LiveLink {
 
   const toggle = useCallback(() => setEnabled((value) => !value), []);
   const send = useCallback((frame: MotionFrame) => void sender.send(frame), [sender]);
-  return { enabled, status, toggle, send };
+  return { ...state,enabled,toggle,send,retryCleanup:sender.retryCleanup };
 }

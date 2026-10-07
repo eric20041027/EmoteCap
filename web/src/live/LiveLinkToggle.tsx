@@ -5,12 +5,14 @@ const LABELS: Record<LiveLinkStatus, string> = {
   off: 'Live Link off',
   connecting: 'Live Link connecting…',
   live: 'Live Link streaming',
+  error: 'Live Link failed',
 };
 
 const TONES: Record<LiveLinkStatus, string> = {
   off: '',
   connecting: 'chip--warn',
   live: 'chip--ok',
+  error:'chip--warn',
 };
 
 interface LiveLinkToggleProps {
@@ -26,7 +28,7 @@ export function LiveLinkToggle({ enabled, status, onToggle }: LiveLinkToggleProp
       className={`chip chip-button ${TONES[status]}`}
       aria-pressed={enabled}
       onClick={onToggle}
-      title="Stream your pose to Unity: add the EmoteCapLiveLink component to a Humanoid character and press Play."
+      title="Pair this Studio with a Humanoid character using its Unity pairing code."
     >
       <span className="chip__dot" aria-hidden />
       {LABELS[status]}

@@ -92,9 +92,9 @@ stream timestamps; export clip timestamp bounds do not constrain live uptime.
 [Paired local Live Link](live-link-v1.md) now requires explicit in-memory pairing,
 trusted loopback Origin/Host and a role-specific source/sink secret in hello.
 The service verifies exact v2 bones and poses, rejects a competing source and
-isolates sessions. Its browser/Unity consumer integration and independent
-latest-frame delivery are being completed in M3; the unpaired legacy receiver
-is incompatible. `clip_ready` is not a completed delivery feature. Legacy v1
+isolates sessions. Its acknowledged Studio source and independent latest-frame
+delivery are locally qualified; updating the unpaired Unity receiver remains
+the next consumer gate. `clip_ready` is not a completed delivery feature. Legacy v1
 data is outside the current acceptance matrix.
 
 ## Acceptance fixtures

@@ -16,6 +16,7 @@ import { setSkeleton, useSkeleton, type SkeletonMode } from './settings/skeleton
 import { usePose, type CaptureQuality, type PoseResult } from './capture/usePose';
 import { ChipToggle, LiveLinkToggle } from './live/LiveLinkToggle';
 import { useLiveLink } from './live/useLiveLink';
+import { LiveLinkPanel } from './live/LiveLinkPanel';
 import { createPoseSolver, tposeFrame, type MotionFrame, type PoseLandmark } from './motion/index';
 import { PreviewCanvas } from './preview/PreviewCanvas';
 import { CaptureControls } from './record/CaptureControls';
@@ -236,6 +237,7 @@ export default function App() {
           </div>
         </section>
       </main>
+      <LiveLinkPanel state={liveLink} onRetryCleanup={liveLink.retryCleanup} />
 
       {isReviewing && activeTake?<ProjectReview key={`${studio.state.project.id}:${activeTake.id}`} take={activeTake} session={studio.session}
         frameRef={frameRef} server={server} exporter={exporter} locked={locked} />:<section className="dock" aria-label="Recording">
