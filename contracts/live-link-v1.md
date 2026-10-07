@@ -42,6 +42,6 @@ Frames have exactly `type:'frame',t,h,r`. Numbers must be finite, `t>=0` strictl
 
 ## Delivery and consumer qualification
 
-Each send has a0.5second deadline; failures close the failed sink. The following delivery task replaces coupled sends with one pending latest frame and a separate control/hello slot per sink, so stalled receivers cannot block source processing. The following browser task adds acknowledged status, bounded session requests, pairing display and explicit revocation.
+Each sink owns one writer, one pending latest frame and a separate hello/control slot. A newer frame replaces the unsent frame; a new source hello clears stale pending frames and precedes frames for that stream. Source processing never awaits a sink network write. Each send has a0.5second deadline; failures close only that sink. Explicit revocation/expiry/shutdown cancel only owned source/receiver work, release registration before awaited teardown and bound close attempts. The following browser task adds acknowledged status, bounded session requests, pairing display and explicit revocation.
 
 The historical unpaired browser/Unity receiver is incompatible with this new service. Browser integration is in the current relay plan; Unity handshake and fragmented-message bounds are in the immediately following Unity quality plan. M3 remains pending until its consumers are updated; protocol tests do not establish physical camera, actual Unity playback or measured latency.

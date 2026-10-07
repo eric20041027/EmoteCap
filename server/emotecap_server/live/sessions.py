@@ -21,9 +21,11 @@ class Session:
     deadline:float
     expires_at:int
     source:object|None=None
+    source_task:object|None=None
     sinks:set=field(default_factory=set)
     stream_id:str|None=None
     active:bool=True
+    clock:object=field(default=time.monotonic,repr=False)
     def public(self):
         return {'id':self.id,'sourceToken':self.source_token,'pairingCode':self.id+'.'+self.sink_token,'expiresAt':self.expires_at}
 
@@ -40,6 +42,7 @@ class SessionRegistry:
         if len(self._sessions)>=MAX_SESSIONS:raise SessionCapacity('Four pairing sessions are already active; stop one or wait for expiry')
         session=Session(str(uuid4()),secrets.token_urlsafe(32),secrets.token_urlsafe(32),self.clock()+SESSION_SECONDS,
                         int((self.wall_clock()+SESSION_SECONDS)*1000))
+        session.clock=self.clock
         self._sessions[session.id]=session;return session
     def authenticate(self,identifier,token,role):
         session=self._sessions.get(identifier)
