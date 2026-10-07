@@ -28,9 +28,11 @@ Commit/review the source, keep the checkout clean, and finish the frozen Web bui
 uv run --directory server --frozen --python 3.12.14 python ../scripts/build_windows.py --repo "C:\work\EmoteCap" --prepared "C:\work\prepared-unique" --output "C:\work\candidate-unique" --zip "C:\work\candidate-unique.zip"
 ```
 
-The builder uses a fixed full source commit and a narrow archive of server/Blender-script/contracts/entry files. The existing built Web bytes are inventoried, checked against committed model hashes and linked to lockfile digests; a copied dist is not by itself proof that the Web was regenerated from that commit. The documented frozen build remains required. Source private settings/data, developer environments, Node modules, Git metadata, recordings, Blender binaries and Unity are excluded.
+The builder uses a fixed full source commit and a narrow archive of server/Blender-script/contracts/entry files plus the committed third-party index and exact licensing texts. The existing built Web bytes are inventoried, checked against committed model hashes and linked to lockfile digests; a copied dist is not by itself proof that the Web was regenerated from that commit. The documented frozen build remains required. Source private settings/data, developer environments, Node modules, Git metadata, recordings, Blender binaries and Unity are excluded.
 
 The output contains a complete package manifest and a separate ZIP SHA256 receipt. Filesystem choices are canonicalized after checking original components for links; NTFS streams are rejected. Identical complete inputs produce identical sorted ZIP bytes with fixed1980timestamps/0644mode/deflate9. Runtime input hashes, actual file hashes and source commit are traceable. `releaseGate=pending` is mandatory; there is no approval or publish switch.
+
+Licensing material must match all five committed source pins, the prepared runtime receipt, native DLL/PYD records and the exact built SDK WASM file set. Extra, changed, missing, linked, oversized or falsely approved material stops the build. The package preserves original bytes under `notices/third_party/licenses/`, its source index under `notices/third_party/inventory.json`, and a plain `notices/README.txt` with the fixed source commit and index digest. Manifest `licensingMaterial.assessment=pending` records supplied evidence; it does not adopt a project LICENSE or approve redistribution.
 
 Construction stays in an owned staged directory with `.incomplete`, which startup rejects. That marker is excluded from the ZIP. Only after ZIP and receipt succeed does the builder move the directory to the verified fresh final destination and remove the marker. ZIP/receipt failures leave no consumer-visible completed directory. Publication across separate output files is not an atomic filesystem transaction; failed fragments are retained without a successful completion claim. Preserve partial failures and choose new paths instead of overwriting a candidate.
 
@@ -40,7 +42,9 @@ Extract the complete ZIP and open `start.cmd`. The bundled Python starts with is
 
 User defaults: `%LOCALAPPDATA%\EmoteCap\data` and optional `%LOCALAPPDATA%\EmoteCap\settings.env`. Flags are `--data-dir`, `--env-file`, `--port`, `--blender`, `--no-browser`, with absolute paths recommended. Private paths must be outside the verified package. The packaged Web root is fixed; abbreviated/alternate `--web-dir` overrides are rejected. A private path inside the package would change its contents and break the next integrity check, so startup rejects it before application import.
 
-FBX needs a separate Blender installation; current real qualification is4.5.14LTS. No Blender/Unity executable is bundled. A missing/corrupt/extra payload file fails before app/data/browser; hashes detect changes and do not authenticate a publisher signature. Unity/human/licensing/vendor gates remain pending.
+Studio starts with SDK processing unchecked. Granting it does not start the camera; permission lasts for this session and resets on reload. Withdrawing it stops processing while preserving captured frames. Images/video are processed on-device, but the upstream SDK separately discloses Google performance/utilization metrics; actual SDK inference/network qualification remains pending. Optional Gemini source uploads have separate consent. Read the bundled `START-HERE.txt` and `notices/README.txt`.
+
+FBX needs a separate Blender installation; current real qualification is4.5.14LTS. No Blender/Unity executable is bundled. A missing/corrupt/extra payload file, including a licensing text, fails before app/data/browser; hashes detect changes and do not authenticate a publisher signature. Unity/human/licensing/vendor gates remain pending.
 
 ## Actual preparation evidence
 

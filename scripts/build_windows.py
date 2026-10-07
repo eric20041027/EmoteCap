@@ -11,14 +11,16 @@ import uuid
 from package_files import (MAX_MANIFEST_BYTES, MAX_TOTAL_BYTES, PackageError, copy_tree, extract_tar,
                           file_inventory, ordinary_path, safe_name, sha256_file, verify_inventory,
                           write_json, zip_payload)
+from package_notices import copy_notices, validate_notices
 
-PENDING_GATES = ['Owner MIT/contributor/image rights','Complete native/vendor redistribution notices',
+PENDING_GATES = ['Owner MIT/contributor/all-four-media rights','Complete native/vendor redistribution assessment',
+    'Actual SDK inference/network qualification',
     'Actual Unity receiver compilation and two redistributable rigs','Authorized physical capture qualification',
     'Target-laptop performance qualification','Actual clean-machine startup','Five new Unity users acceptance',
     'Owner-approved public source/tag/release']
 ARCHIVE_PATHS = ['server/emotecap_server','server/blender','contracts/bones.json','packaging/windows',
     'packaging/python-runtime.json','server/uv.lock','server/pyproject.toml','web/package-lock.json',
-    'web/scripts/mediapipe-assets.json']
+    'web/scripts/mediapipe-assets.json','third_party/inventory.json','third_party/licenses']
 PUBLIC_PREFIXES = {'assets','models','mediapipe','samples'}
 PUBLIC_SUFFIXES = {'.js','.mjs','.css','.wasm','.task','.emotecap','.png','.jpg','.jpeg','.svg','.woff','.woff2'}
 
@@ -101,6 +103,7 @@ def build(repo: Path, prepared: Path, destination: Path, archive: Path) -> dict:
             if any(part.startswith('.') or part=='__pycache__' for part in name.split('/')):
                 raise PackageError('Fixed source archive contains private/cache files')
         staged=work/'candidate.staged'
+        material=validate_notices(snapshot,prepared,public_inventory)
         copy_tree(prepared/'payload',staged)
         incomplete=staged/'.incomplete'
         with incomplete.open('xb') as marker:
@@ -109,6 +112,7 @@ def build(repo: Path, prepared: Path, destination: Path, archive: Path) -> dict:
             copy_tree(snapshot/name,staged/'app'/name)
         copy_tree(repo/'web/dist',staged/'app/web/dist')
         verify_inventory(staged/'app/web/dist',public_inventory)
+        licensing_summary=copy_notices(snapshot,staged,material,head)
         for name in ('bootstrap.py','start.cmd','START-HERE.txt'):
             source=snapshot/'packaging/windows'/name
             with source.open('rb') as incoming,(staged/name).open('xb') as output:
@@ -117,7 +121,7 @@ def build(repo: Path, prepared: Path, destination: Path, archive: Path) -> dict:
             raise PackageError('Source checkout changed during candidate construction')
         locks={name:sha256_file(snapshot/name) for name in ('server/uv.lock','server/pyproject.toml','web/package-lock.json')}
         manifest={'schema':'emotecap-windows-candidate-v1','platform':'windows11-x64','sourceCommit':head,
-            'runtime':receipt['runtime'],'sourceLocks':locks,
+            'runtime':receipt['runtime'],'sourceLocks':locks,'licensingMaterial':licensing_summary,
             'webBuildSha256':hashlib.sha256(json.dumps(public_inventory,sort_keys=True,separators=(',',':')).encode()).hexdigest(),
             'files':[entry for entry in file_inventory(staged) if entry['path']!='.incomplete'],
             'releaseGate':'pending','pendingGates':PENDING_GATES}

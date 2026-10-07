@@ -42,7 +42,62 @@ def build_inputs(tmp_path):
     files.write_json(prepared/'prepared.json',{'schema':'emotecap-prepared-windows-v1','runtime':pins,
         'serverSourceHashes':{name:files.sha256_file(repo/'server'/name) for name in ('uv.lock','pyproject.toml')},
         'files':files.file_inventory(payload),'releaseGate':'pending'})
+    notice=repo/'third_party/licenses/owned/LICENSE';notice.parent.mkdir(parents=True)
+    notice.write_bytes(b'Owned license fixture\r\n')
+    sdk=repo/'web/dist/mediapipe/wasm/vision.wasm';sdk.parent.mkdir(parents=True)
+    sdk.write_bytes(b'owned wasm fixture')
+    context_paths=('server/pyproject.toml','server/uv.lock','web/package-lock.json',
+        'web/scripts/mediapipe-assets.json','packaging/python-runtime.json')
+    material={'schema':'emotecap-third-party-material-v1','assessment':'draft-supplied-evidence-not-redistribution-approval',
+        'context':{'sourceLockSha256':{name:files.sha256_file(repo/name) for name in context_paths},
+            'preparedReceiptSha256':files.sha256_file(prepared/'prepared.json'),'runtimeSource':pins},
+        'files':[{'path':'licenses/owned/LICENSE','size':notice.stat().st_size,'sha256':files.sha256_file(notice),
+            'origin':{'kind':'owned-synthetic-fixture','input':'owned/LICENSE'}}],
+        'components':[{'name':'owned SDK fixture','version':'1','kind':'web-runtime',
+            'status':'supplied-material-assessment-pending','suppliedLicenses':['licenses/owned/LICENSE'],
+            'prebuiltSdkFiles':[{'path':'web/node_modules/@mediapipe/tasks-vision/wasm/vision.wasm',
+                'size':sdk.stat().st_size,'sha256':files.sha256_file(sdk)}]}],
+        'nativeBinaryFiles':[],'pending':['Owned fixture has no redistribution approval']}
+    files.write_json(repo/'third_party/inventory.json',material)
+    git(repo,'add','.');git(repo,'commit','-qm','owned licensing fixture')
     return repo,prepared
+
+def test_candidate_preserves_exact_notice_bytes_and_pending_summary(build_inputs,tmp_path):
+    repo,prepared=build_inputs;output=tmp_path/'candidate'
+    result=builder.build(repo,prepared,output,tmp_path/'candidate.zip')
+    assert (output/'notices/third_party/licenses/owned/LICENSE').read_bytes()==b'Owned license fixture\r\n'
+    assert (output/'notices/third_party/inventory.json').read_bytes()==(repo/'third_party/inventory.json').read_bytes()
+    summary=result['manifest']['licensingMaterial']
+    assert summary['assessment']=='pending' and summary['textFiles']==1
+    assert summary['sourceIndexSha256']==files.sha256_file(repo/'third_party/inventory.json')
+    assert git(repo,'rev-parse','HEAD') in (output/'notices/README.txt').read_text()
+
+@pytest.mark.parametrize('change',['missing-index','text','source-pin','extra-text','case-duplicate',
+    'traversal','approved','unreferenced','native','wasm','extra-wasm','binary'])
+def test_invalid_notice_material_is_rejected_before_complete_candidate(build_inputs,tmp_path,change):
+    repo,prepared=build_inputs;index=repo/'third_party/inventory.json'
+    value=json.loads(index.read_bytes());notice=repo/'third_party/licenses/owned/LICENSE'
+    if change=='missing-index':index.unlink()
+    elif change=='text':notice.write_bytes(b'changed but source-committed')
+    elif change=='extra-text':(notice.parent/'extra.txt').write_text('extra')
+    elif change=='wasm':(repo/'web/dist/mediapipe/wasm/vision.wasm').write_bytes(b'changed')
+    elif change=='extra-wasm':(repo/'web/dist/mediapipe/wasm/extra.wasm').write_bytes(b'owned unrecorded SDK')
+    else:
+        if change=='source-pin':value['context']['sourceLockSha256']['web/package-lock.json']='0'*64
+        elif change=='case-duplicate':value['files'].append({**value['files'][0],'path':'licenses/OWNED/LICENSE'})
+        elif change=='traversal':value['files'][0]['path']='licenses/../outside/LICENSE'
+        elif change=='approved':value['assessment']='approved'
+        elif change=='unreferenced':value['components'][0]['suppliedLicenses']=[]
+        elif change=='native':value['nativeBinaryFiles']=[{'path':'deps/fake.dll','size':1,'sha256':'0'*64}]
+        elif change=='binary':
+            notice.write_bytes(b'\0owned binary')
+            value['files'][0].update(size=notice.stat().st_size,sha256=files.sha256_file(notice))
+        index.write_text(json.dumps(value),encoding='utf-8')
+    git(repo,'add','.')
+    if git(repo,'status','--porcelain'):git(repo,'commit','-qm','owned invalid material')
+    output=tmp_path/'candidate'
+    with pytest.raises(files.PackageError):builder.build(repo,prepared,output,tmp_path/'candidate.zip')
+    assert not output.exists() and not (tmp_path/'candidate.zip.receipt.json').exists()
 
 def test_two_builds_have_identical_zip_bytes(build_inputs,tmp_path):
     repo,prepared=build_inputs
