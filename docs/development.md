@@ -10,6 +10,8 @@ In `web/`:
 ```text
 npm ci
 npm run test:assets
+npm run test:security
+npm run audit:deps
 npm test
 npm run build
 ```
@@ -25,6 +27,11 @@ verifies their SHA256. Valid caches can be reused offline. The scripts use
 Node system certificates and environment proxy support; configure your
 normal proxy/certificate environment if necessary. Never disable TLS
 verification or replace a recorded digest just to make a download pass.
+
+The security characterization checks that the installed source-map consumer
+rejects dangerous offsets while preserving normal mappings. The dependency
+audit queries the npm registry and requires network access; a registry error
+is not a clean audit.
 
 ## Run locally
 

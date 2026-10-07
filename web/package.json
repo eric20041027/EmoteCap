@@ -11,7 +11,9 @@
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:assets": "node --test scripts/asset-integrity.test.mjs"
+    "test:assets": "node --test scripts/asset-integrity.test.mjs",
+    "test:security": "node --test scripts/dependency-security.test.mjs",
+    "audit:deps": "npm audit --audit-level=high"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^1.0.1",

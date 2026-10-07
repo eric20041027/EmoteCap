@@ -29,6 +29,10 @@ jobs:
         working-directory: web
       - run: npm run test:assets
         working-directory: web
+      - run: npm run test:security
+        working-directory: web
+      - run: npm run audit:deps
+        working-directory: web
       - run: npm test
         working-directory: web
       - run: npm run build
