@@ -189,10 +189,22 @@ def _annotation(item, measured):
     return result
 
 
+def _measured(packet):
+    timing = packet['measurement']
+    cutoff = timing['startedMs']+timing['warmupMs']
+    return [row for row in packet['samples'] if row['startedMs'] >= cutoff]
+
+
+def _coverage(packet):
+    def interval(rows):
+        return [rows[0]['inputTimeS'], rows[-1]['inputTimeS']] if rows else None
+    return {'overall':interval(packet['samples']), 'measured':interval(_measured(packet))}
+
+
 def _summary(packet):
     timing = packet['measurement']
     cutoff = timing['startedMs']+timing['warmupMs']
-    measured = [row for row in packet['samples'] if row['startedMs'] >= cutoff]
+    measured = _measured(packet)
     overall = {status:sum(row['status'] == status for row in packet['samples']) for status in STATUSES}
     statuses = {status:sum(row['status'] == status for row in measured) for status in STATUSES}
     durations = sorted(row['finishedMs']-row['startedMs'] for row in measured)
@@ -202,6 +214,7 @@ def _summary(packet):
         'runId':packet['runId'], 'sourceCommit':packet['sourceCommit'], 'inputSha256':packet['inputSha256'],
         'sourceKind':packet['sourceKind'], 'environment':dict(packet['environment']),
         'settings':dict(packet['settings']), 'measurement':dict(timing),
+        'inputCoverageS':_coverage(packet),
         'counts':{'totalAttempts':len(packet['samples']), 'measuredAttempts':count,
                   'warmupAttempts':len(packet['samples'])-count, 'statuses':overall, 'measuredStatuses':statuses},
         'metrics':{'effectiveFps':successful*1000/(timing['finishedMs']-cutoff),
@@ -229,6 +242,8 @@ def compare(baseline: dict, candidate: dict) -> dict:
     for key in ('clock', 'latencyDefinition', 'warmupMs'):
         if baseline['measurement'][key] != candidate['measurement'][key]:
             raise MeasurementError('Comparison measurement definitions differ')
+    if _coverage(baseline) != _coverage(candidate):
+        raise MeasurementError('Comparison evaluated source intervals differ')
     left, right = _summary(baseline), _summary(candidate)
     deltas = {key:right['metrics'][key]-value if value is not None and right['metrics'][key] is not None else None
               for key, value in left['metrics'].items()}

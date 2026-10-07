@@ -220,3 +220,25 @@ def test_cli_compares_exact_raw_inputs(packet,tmp_path):
     result=json.loads(output.read_bytes())
     assert result['inputs']['baseline']==hashlib.sha256(baseline.read_bytes()).hexdigest()
     assert result['result']['deltas']['effectiveFps']==pytest.approx(.25)
+
+
+@pytest.mark.parametrize('portion',['disjoint','warmup-only','measured-only'])
+def test_comparison_refuses_different_evaluated_source_intervals(packet,portion):
+    candidate=copy.deepcopy(packet);candidate['runId']=str(uuid.uuid4())
+    if portion=='disjoint':
+        for row in candidate['samples']:
+            row['inputTimeS']+=100
+            if row['frame'] is not None:row['frame']['t']+=100
+    else:
+        index=0 if portion=='warmup-only' else 1
+        candidate['samples'][index]['inputTimeS']+=.25
+        candidate['samples'][index]['frame']['t']+=.25
+    with pytest.raises(measurements.MeasurementError):measurements.compare(packet,candidate)
+
+
+def test_same_source_intervals_allow_different_interior_cadence(packet):
+    candidate=copy.deepcopy(packet);candidate['runId']=str(uuid.uuid4())
+    candidate['samples'][2]['inputTimeS']=2.5;candidate['samples'][2]['frame']['t']=2.5
+    result=measurements.compare(packet,candidate)
+    assert result['baseline']['inputCoverageS']=={'overall':[0,4],'measured':[1,4]}
+    assert result['candidate']['inputCoverageS']==result['baseline']['inputCoverageS']
