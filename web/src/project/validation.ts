@@ -183,6 +183,6 @@ export function assertOriginalTransition(previous: ProjectDocument, next: Projec
       requireValue(a.t === b.t && a.h.every((v,k)=>v===b.h[k]) && a.r.every((v,k)=>v===b.r[k]), 'Original take frames cannot be rewritten.');
     }
     const editsChanged = JSON.stringify(take.clips) !== JSON.stringify(old.clips) || JSON.stringify(take.undo) !== JSON.stringify(old.undo);
-    requireValue(take.clipRevision >= old.clipRevision && (!editsChanged || take.clipRevision > old.clipRevision || old.status === 'recording'), 'Clip edit revision must increase.');
+    requireValue(take.clipRevision >= old.clipRevision && (!editsChanged || take.clipRevision > old.clipRevision), 'Clip edit revision must increase.');
   }
 }

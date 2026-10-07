@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { tposeFrame } from '../motion/contract';
-import { addTake, appendTakeFrames, createProject, editClip, finishTake, removeTake } from './model';
+import { addTake, appendTakeFrames, createProject, editClip, finishTake, removeTake, replaceClips } from './model';
 import { provenance, rawProject, readyProject, type Mutable } from './testData';
 import { MAX_PROJECT_FRAMES, MAX_TAKE_FRAMES } from './types';
 import { assertOriginalTransition, parseProject, ProjectDataError } from './validation';
@@ -93,4 +93,12 @@ it('permits append/completion but rejects rewriting a recording prefix or proven
   expect(()=>assertOriginalTransition(previous,parseProject(raw))).toThrow(/original/i);
   const meta=structuredClone(appended) as Mutable<typeof appended>;meta.takes[0].provenance.smoothing='high';
   expect(()=>assertOriginalTransition(previous,parseProject(meta))).toThrow(/original/i);
+});
+
+it('rejects reuse of a clip-edit revision even during recording',()=>{
+  const empty=addTake(createProject(),{name:'Camera',source:'camera',provenance:provenance()});
+  const id=empty.takes[0].id, frames=appendTakeFrames(empty,id,[tposeFrame(0),tposeFrame(1)]);
+  const previous=replaceClips(frames,id,[{id:crypto.randomUUID(),name:'Before',start:0,end:1,loop:false,description:''}]);
+  const raw=structuredClone(previous) as Mutable<typeof previous>;raw.revision++;raw.takes[0].clips[0].name='After';
+  expect(()=>assertOriginalTransition(previous,parseProject(raw))).toThrow(/revision/i);
 });

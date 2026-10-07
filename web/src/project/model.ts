@@ -27,6 +27,10 @@ function defaultClips(frames: readonly MotionFrame[]): readonly ProjectClip[] {
   const duration=frames.at(-1)?.t ?? 0;
   return parseClips(duration>=0.1 ? [{id:crypto.randomUUID(),name:'Clip_01',start:0,end:duration,loop:false,description:''}] : [],duration);
 }
+function finalizedEdits(take:ProjectTake):Pick<ProjectTake,'clips'|'clipRevision'> {
+  const clips=take.clips.length?take.clips:defaultClips(take.frames);
+  return {clips,clipRevision:clips.length && !take.clips.length?integer(take.clipRevision+1,'Clip revision'):take.clipRevision};
+}
 export interface NewTake {
   name:string; source:ProjectTake['source']; provenance:TakeProvenance; frames?:readonly MotionFrame[];
 }
@@ -51,13 +55,12 @@ export function finishTake(project:ProjectDocument,id:string):ProjectDocument {
   return updateTake(project,id,take=>{
     if(take.status!=='recording') throw new ProjectDataError('Only a recording take can be finished.');
     if(!take.frames.length) throw new ProjectDataError('Cannot finish an empty take.');
-    return {...take,status:'complete',clips:take.clips.length?take.clips:defaultClips(take.frames)};
+    return {...take,status:'complete',...finalizedEdits(take)};
   });
 }
 export function recoverProject(project:ProjectDocument):ProjectDocument {
   if(!project.takes.some(t=>t.status==='recording')) return project;
-  return changed(project,project.takes.map(t=>t.status!=='recording'?t:Object.freeze({...t,status:'interrupted' as const,
-    clips:t.clips.length?t.clips:defaultClips(t.frames)})));
+  return changed(project,project.takes.map(t=>t.status!=='recording'?t:Object.freeze({...t,status:'interrupted' as const,...finalizedEdits(t)})));
 }
 export function selectTake(project:ProjectDocument,id:string|null):ProjectDocument {
   if(id!==null) takeById(project,id);

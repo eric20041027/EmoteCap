@@ -110,7 +110,7 @@ Task completion command: from repository root, `bash -c 'cd web && node node_mod
 - `remove(id,expectedRevision:number):Promise<void>` deletes its document, summary and media in one transaction and checks the revision.
 - Exports `ProjectConflictError` and `ProjectStorageError` with reason quota/blocked/unavailable/write. Resolve writes only on transaction complete; request strict durability; close on version change.
 
-- [ ] **Step 1: Install the pinned test adapter and write behavior tests.**
+- [x] **Step 1: Install the pinned test adapter and write behavior tests.**
 
 Run `npm install --save-dev --save-exact fake-indexeddb@6.2.5 --ignore-scripts` in web using the pinned npm. Expected: only the named new dev dependency and its lock record, no unrelated package upgrades; audit clean.
 
@@ -130,11 +130,11 @@ expect(await store.load(project.id)).toEqual(originalProject);
 
 Also verify unavailable factory, newer/corrupt database schema, late failed/blocked open closure, invalid project and media mismatch cannot publish partial work.
 
-- [ ] **Step 2: Observe RED.**
+- [x] **Step 2: Observe RED.**
 
 Run `node node_modules/vitest/vitest.mjs run src/project/store.test.ts`. Expected: repository behaviors absent; minimal loaded no-op exports may establish a clean missing-save/restore assertion.
 
-- [ ] **Step 3: Implement native transactions.**
+- [x] **Step 3: Implement native transactions.**
 
 Version1 stores `projects` keyPath id, `summaries` keyPath id, and `media` keyPath [projectId,takeId] with projectId index. Use callbacks during active transactions; do not await unrelated work inside them. Read current project then CAS/original checks before writes. Queue document, summary, retained-media checks/puts and deletion of orphans in the same readwrite transaction. Keep a captured failure when calling abort because transaction.error may be null. A request success does not resolve the save.
 
@@ -148,11 +148,11 @@ const fail = (error: unknown) => { failure = error; tx.abort(); };
 
 Open errors reject clearly; reject blocked opens with a close-other-tabs message and close a connection delivered after rejection. List only summaries and validate them. Read/load results only after readonly transaction completion; parsing corrupt stored data rejects without resetting it. Close connection on versionchange, making later operations fail visibly.
 
-- [ ] **Step 4: Verify transaction behavior and types.**
+- [x] **Step 4: Verify transaction behavior and types.**
 
 Run all src/project tests and TypeScript. Expected: all pass, rollback leaves the previous document/summary/media intact, no swallowed/unhandled failures.
 
-- [ ] **Step 5: Commit.**
+- [x] **Step 5: Commit.**
 
 ```text
 git add web/src/project/store.ts web/src/project/store.test.ts web/package.json web/package-lock.json
