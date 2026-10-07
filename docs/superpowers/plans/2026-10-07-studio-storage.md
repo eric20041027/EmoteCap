@@ -41,7 +41,7 @@
 
 ### Task 1: Validated immutable project domain
 
-**Files:** Create `web/src/project/types.ts`, `validation.ts`, `model.ts`, `model.test.ts`, `validation.test.ts`.
+**Files:** Create `web/src/project/types.ts`, `validation.ts`, `model.ts`, `model.test.ts`, `validation.test.ts`, and shared synthetic `testData.ts`.
 
 **Interfaces:**
 - Consumes `MotionFrame`, `BONE_COUNT`, `CONTRACT_VERSION`, `CLIP_NAME_PATTERN` from `../motion/contract`.
@@ -54,7 +54,7 @@
 - `setTakeMedia(project,takeId,descriptor|null)` validates per-take/project totals.
 - `parseProject(value: unknown): ProjectDocument`, `parseSummary(value: unknown): ProjectSummary`, `assertOriginalTransition(previous,next): void`; errors use `ProjectDataError`. Unknown fields fail rather than being copied.
 
-- [ ] **Step 1: Write behavior tests first.** Use synthetic tpose frames and UUID fixtures. Pin creation/copy ownership, original immutability, clip-edit/undo revision, recording append/finalize/recovery, draft naming, selection/removal, all limits and media totals. Initial creation characterization:
+- [x] **Step 1: Write behavior tests first.** Use synthetic tpose frames and UUID fixtures. Pin creation/copy ownership, original immutability, clip-edit/undo revision, recording append/finalize/recovery, draft naming, selection/removal, all limits and media totals. Initial creation characterization:
 
 ```typescript
 it('creates a versioned Unicode project with a stable identity', () => {
@@ -68,11 +68,11 @@ it('creates a versioned Unicode project with a stable identity', () => {
 
 Validation tests mutate a serialized valid synthetic project: schemaVersion=2; contractVersion=1; fps/secret extra fields; NaN/string/sparse rotations; norm outside limits; nonzero horizontal hips; out-of-order/too-long timeline; duplicate IDs; missing active take; out-of-take clip; oversized counts/history/text/media. Roundtrip preserves provenance and freezes owned nested arrays. Test a previous completed original modified in a later document is rejected, and a recording prefix rewrite is rejected.
 
-- [ ] **Step 2: Run the tests to see the absent feature fail.**
+- [x] **Step 2: Run the tests to see the absent feature fail.**
 
 Run `node node_modules/vitest/vitest.mjs run src/project/model.test.ts src/project/validation.test.ts` in web. Establish a clean failing creation assertion using a minimal module returning only its input name if needed to load the test; do not count a test typo as RED. Expected: project fields/behavior are missing before implementation.
 
-- [ ] **Step 3: Implement the domain.** Use explicit owned-field readers with key allowlists; check array bounds before loops, then finite numeric/timeline/norm/reference bounds. UUIDs come from crypto.randomUUID. Freeze owned frame buffers, clips/history, provenance and document arrays. Model mutations reuse unchanged immutable originals; only capture appends allocate frame copies.
+- [x] **Step 3: Implement the domain.** Use explicit owned-field readers with key allowlists; check array bounds before loops, then finite numeric/timeline/norm/reference bounds. UUIDs come from crypto.randomUUID. Freeze owned frame buffers, clips/history, provenance and document arrays. Model mutations reuse unchanged immutable originals; only capture appends allocate frame copies.
 
 ```typescript
 function changed(project: ProjectDocument, takes: readonly ProjectTake[],
@@ -85,11 +85,11 @@ function changed(project: ProjectDocument, takes: readonly ProjectTake[],
 
 Default a complete/recovered take to one full-range clip only if duration >=0.1s. Clip changes push the previous list, retain the newest 20 history entries, and increment clipRevision. Undo restores the list and increments clipRevision again. Parser accepts temporarily invalid draft names; export validity remains the existing contract's responsibility. The transition guard compares existing original frame/provenance/source/creation values, permits only a recording prefix append/status completion, and permits explicit take removal.
 
-- [ ] **Step 4: Verify domain tests and types.**
+- [x] **Step 4: Verify domain tests and types.**
 
 Run the two test files and `node node_modules/typescript/bin/tsc --noEmit`. Expected: all new tests pass and types pass; arrays/provenance unchanged across edits and undo.
 
-- [ ] **Step 5: Commit.**
+- [x] **Step 5: Commit.**
 
 ```text
 git add web/src/project/types.ts web/src/project/validation.ts web/src/project/model.ts web/src/project/model.test.ts web/src/project/validation.test.ts
