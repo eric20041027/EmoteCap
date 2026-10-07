@@ -70,7 +70,7 @@ class CaptureCheckpoint {
 
 The hook returns `{session,state}` and subscribes via useSyncExternalStore. Session mount ownership must tolerate React effect replay; disposed/late opening callbacks cannot publish or leak an IDB connection. captureProvenance reads pinned app/tracker versions and model SHA256 metadata; it records only known calibration state, source quality and selected settings.
 
-- [ ] **Step 1: Write failing restoration and preservation tests.**
+- [x] **Step 1: Write failing restoration and preservation tests.**
 
 ```typescript
 const db=await openProjectStore({factory:new IDBFactory(),name:crypto.randomUUID()});
@@ -82,11 +82,11 @@ expect(studio.getSnapshot().project.name).toBe('Saved project');
 
 Add actual repository reload/edit/undo and recording-prefix recovery; unavailable storage still exposes a memory project; failed saves block switching; latest snapshot can still be encoded after failure; stale-tab writes cannot overwrite; explicit saved-copy reopen; source retention add/remove, missing source, per-project media cap and wrong-take attachments; explicit discard required for unretained sources. Late initialization/disposal and concurrent navigation must not publish stale work. With fake timers and the real repository, checkpoint at4999ms stores no extra frames,5000ms stores the exact prefix, stop flushes the tail, empty stop removes the empty capture.
 
-- [ ] **Step 2: Observe behavioral RED.**
+- [x] **Step 2: Observe behavioral RED.**
 
 Run `node node_modules/vitest/vitest.mjs run src/studio/session.test.ts` from web. If needed use a minimal loadable constructor/initialize/getSnapshot returning an untouched draft, so the saved-name assertion fails instead of a missing-module error. Run checkpoint/provenance cases after their tests are written and before implementation.
 
-- [ ] **Step 3: Implement the session and coordinator.**
+- [x] **Step 3: Implement the session and coordinator.**
 
 ```typescript
 const loaded=await store.load(selectedId);
@@ -102,7 +102,7 @@ session.update(p=>appendTakeFrames(p,takeId,readFrames().slice(stored.frames.len
 
 Install only parsed complete decoded results; media must belong to existing takes and match descriptors/limits. Keep choice supplies blobs to autosave; removing choice stages deletion and retains the memory source until explicitly discarded. List summaries refresh after completed writes. One navigation operation may run at a time. Errors remain visible; retries do not load over pending work. A failed initial open preserves the memory document when storage is retried. Checkpoint interval is disposed on finish/unmount; capturing stores provenance at start, not at later settings changes.
 
-- [ ] **Step 4: Verify and commit.**
+- [x] **Step 4: Verify and commit.**
 
 Run all Web tests and TypeScript, compare expected restoration/prefix/conflict/media behavior against actual output, then commit `feat: connect Studio sessions to durable project recovery`. Task completion: `bash -c 'cd web && node node_modules/vitest/vitest.mjs run && node node_modules/typescript/bin/tsc --noEmit'`.
 
