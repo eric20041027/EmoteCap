@@ -1,37 +1,21 @@
 # EmoteCap — project instructions
 
-Hackathon project (HackNite 2026, submit by 07:30 EDT 2026-09-27). Ship working software fast; `main` must always run.
+EmoteCap is being prepared for an open-source product release. The original
+HackNite documents remain historical records; they are not current deadlines
+or machine-specific edit restrictions.
 
-## Read first
+Read the active product specification, the implementation plan for your task,
+`docs/development.md`, and `contracts/motion-v1.md` before implementation.
 
-1. Spec: `docs/superpowers/specs/2026-09-26-emotecap-design.md`
-2. Data contract between lanes (source of truth): `contracts/motion-v1.md` + `contracts/bones.json`
-3. Your lane's plan: `docs/superpowers/plans/`
+Keep the existing web, motion-core, server, Blender, and Unity boundaries.
+Agree file ownership before concurrent work. Preserve changes made by others.
+Motion contract changes must update documentation, fixtures, and consumers
+together; coordinate them with other active contributors.
 
-## Lanes — edit only your own folder
+Use the pinned tools and lockfiles. Run relevant tests before handing work
+off. Use behavior tests for data/algorithm changes; verify user flows with
+the actual browser and Unity where required. Report skipped/unrun checks.
 
-| Lane | Folder |
-|---|---|
-| Web | `web/` except `web/src/motion/` |
-| motion-core (Claude on the lead Mac) | `web/src/motion/` |
-| AI / Backend | `server/` |
-| Unity | `unity/` |
-
-Changing anything in `contracts/` requires telling the whole team first. Only the lead Mac edits `docs/superpowers/`.
-
-## Commands
-
-| What | Command |
-|---|---|
-| Web dev server | `cd web && npm install && npm run dev` → http://localhost:5173 |
-| Web tests | `cd web && npm test` |
-| Server | `cd server && uv sync && uv run uvicorn emotecap_server.main:app --reload --port 8787` |
-| Server tests | `cd server && uv run pytest` |
-| Regenerate fixtures | `python3 contracts/fixtures/make_fixtures.py` |
-
-## Rules
-
-- Hackathon test mode: TDD for pure logic (motion-core, server validation/export); manual checklists for UI and Unity. No coverage gate.
-- Commit messages: `feat|fix|refactor|docs|test|chore: <what>`. Small commits, `git pull --rebase` before every push.
-- Never commit `.env` or API keys. New env vars go into `.env.example`.
-- Never commit Mixamo or other third-party character models (license). Keep them in your local Unity project.
+Never commit secrets, private recordings, runtime data, or third-party
+characters. New settings belong in `.env.example` without real values.
+Preserve project history and require the release checklist before publishing.

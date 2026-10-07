@@ -74,8 +74,8 @@ The browser app and the server are all you need to capture, preview, record and 
 
 | Tool | Version | Needed for |
 |---|---|---|
-| [Node.js](https://nodejs.org/) | 22 or newer (tested on 26) | the web app |
-| [uv](https://docs.astral.sh/uv/getting-started/installation/) | any recent (it installs Python 3.12 for you) | the server |
+| [Node.js](https://nodejs.org/) | 24.19.0 (npm 11.21.0) | the web app |
+| [uv](https://docs.astral.sh/uv/getting-started/installation/) | 0.12.6 (Python 3.12.14) | the server |
 | [Blender](https://www.blender.org/download/) | 4.4 or newer (tested on 5.1) | FBX export (optional) |
 | [Unity](https://unity.com/download) | Unity 6 recommended (tested on 6000.5; the package targets 2021.3+) | Live Link and clips in Unity (optional) |
 | Chrome or Safari, and a webcam | Safari also lists an iPhone through Continuity Camera | capture |
@@ -102,14 +102,14 @@ Open `.env` and set:
 ```bash
 # Terminal 1: the server, on http://localhost:8787
 cd server
-uv sync
-uv run uvicorn emotecap_server.main:app --port 8787
+uv sync --frozen --python 3.12.14
+uv run --frozen --python 3.12.14 uvicorn emotecap_server.main:app --host 127.0.0.1 --port 8787
 ```
 
 ```bash
 # Terminal 2: the web app, on http://localhost:5173
 cd web
-npm install
+npm ci
 npm run dev
 ```
 
@@ -142,7 +142,11 @@ Already have a video? **Import video** turns it into a take instead; start the v
 
 ## Tests
 
-`cd web && npm test` (220+ tests: motion solver, filters, calibration, video import, hand tracking, UI logic) · `cd server && uv run pytest` (350+ tests: export, relay, Gemini slicing and model fallback with a mocked API, a real Blender smoke test).
+Run `npm run test:assets`, `npm test`, and `npm run build` in `web/`.
+Run `uv run --frozen --python 3.12.14 pytest -q -m "not slow"` in `server/`.
+Real Blender smoke tests are separate (`-m slow`); Unity and camera checks
+remain separate release requirements. See [Development](docs/development.md)
+for the pinned tools, network setup, and what each check proves.
 
 ---
 
@@ -150,4 +154,3 @@ Already have a video? **Import video** turns it into a take instead; start the v
   <img src="docs/media/dozed-off.gif" alt="The Live Link character slumped on the floor with Z z z above it" width="420"><br>
   <sub>🏆 <b>Team EmoteCap: Overall Winners at <a href="https://ushackathons.com/events/hacknite">HackNite Hackathon 2026</a></b><br>We built it overnight. Our Live Link actor didn't quite make it to morning.</sub>
 </div>
-
