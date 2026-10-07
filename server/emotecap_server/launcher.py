@@ -37,6 +37,14 @@ def validate_web_root(web_dir: Path,data_dir: Path,env_file: Path) -> Path:
         config = env_file.resolve()
         if private.is_relative_to(public) or public.is_relative_to(private) or config.is_relative_to(public):
             raise StartupError('Choose private data and settings outside the Web build folder')
+        if config.exists():
+            if not config.is_file():
+                raise StartupError('Selected settings path must be a readable regular file; choose --env-file')
+            try:
+                with config.open('rb'):
+                    pass
+            except OSError:
+                raise StartupError('Selected settings file cannot be read; choose a readable --env-file') from None
         return public
     except OSError:
         raise StartupError('Cannot read the Web build or selected local paths') from None

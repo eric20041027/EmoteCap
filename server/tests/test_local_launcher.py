@@ -64,6 +64,17 @@ def test_static_does_not_follow_links_even_to_a_hidden_internal_file(tmp_path,mo
     monkeypatch.setattr(Path,'is_symlink',lambda p:p==alias or original(p))
     assert static_client(public).get('/assets/alias.js').status_code==404
 
+@pytest.mark.parametrize('kind',['missing-asset','asset-directory'])
+def test_static_never_serves_implicit_html_fallbacks(tmp_path,kind):
+    public=public_tree(tmp_path);marker='synthetic private fallback marker'
+    (public/'404.html').write_text(marker)
+    directory=public/'assets/directory.js';directory.mkdir()
+    (directory/'index.html').write_text(marker)
+    path='/assets/missing.js' if kind=='missing-asset' else '/assets/directory.js/'
+    response=static_client(public).get(path)
+    assert response.status_code==404
+    assert marker not in response.text
+
 def test_valid_unicode_public_root_and_private_data(tmp_path):
     public=public_tree(tmp_path)
     assert launcher.validate_web_root(public,tmp_path/'私有 data',tmp_path/'私有 settings.env')==public.resolve()
@@ -120,6 +131,26 @@ def test_busy_port_fails_before_stateful_app_import(tmp_path,monkeypatch):
         occupied.bind(('127.0.0.1',0))
         assert launcher.main(args(public,tmp_path,occupied.getsockname()[1]))==1
     assert not called and not (tmp_path/'data').exists()
+
+@pytest.mark.parametrize('kind',['directory','unreadable-file'])
+def test_invalid_existing_settings_fail_before_app_import(tmp_path,monkeypatch,capsys,kind):
+    public=public_tree(tmp_path);config=tmp_path/'settings.env';called=[]
+    if kind=='directory':config.mkdir()
+    else:
+        config.write_text('SYNTHETIC_SETTING=value')
+        original=Path.open
+        def unreadable(path,*a,**kw):
+            if path==config:raise PermissionError('Synthetic unreadable configuration')
+            return original(path,*a,**kw)
+        monkeypatch.setattr(Path,'open',unreadable)
+    def must_not_load(*a):
+        called.append(1)
+        raise launcher.StartupError('Unexpected stateful import')
+    monkeypatch.setattr(launcher,'_load_application',must_not_load)
+    assert launcher.main(args(public,tmp_path,available_port()))==1
+    assert not called and not (tmp_path/'data').exists()
+    output=capsys.readouterr()
+    assert 'settings' in output.err.lower() and 'ready at' not in output.out.lower()
 
 def available_port():
     with socket.socket() as probe:
@@ -185,6 +216,14 @@ def test_fresh_missing_build_process_is_nonzero_and_leaves_private_data_absent(t
         cwd=ROOT/'server',capture_output=True,timeout=10)
     assert result.returncode!=0 and not (tmp_path/'data').exists()
     assert b'build' in result.stderr.lower()+result.stdout.lower()
+
+def test_fresh_directory_settings_process_is_nonzero_without_private_data(tmp_path):
+    public=public_tree(tmp_path);(tmp_path/'settings.env').mkdir()
+    result=subprocess.run([sys.executable,'-m','emotecap_server.launcher',*args(public,tmp_path,available_port())],
+        cwd=ROOT/'server',capture_output=True,timeout=10)
+    assert result.returncode!=0 and not (tmp_path/'data').exists()
+    assert b'settings' in result.stderr.lower()
+    assert b'ready at' not in result.stdout.lower()
 
 def test_empty_optional_env_override_keeps_legacy_root_env():
     script='''import dotenv

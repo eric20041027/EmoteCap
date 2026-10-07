@@ -44,6 +44,8 @@ Windows server jobs/downloads/media inventory use `%LOCALAPPDATA%\EmoteCap\data`
 
 Available local flags: `--data-dir`, `--env-file`, `--web-dir`, `--blender`, `--port`and`--no-browser`. Prefer absolute paths; wrapper-relative paths are interpreted in `server/`, where uv starts the process. `--port`defaults to8787and takes precedence over dotenv PORTfor this entry. There is no API-key command-line option.
 
+An absent settings file is optional. If the selected path exists, it must be a readable regular file; a directory or unreadable file stops startup before creating server data or claiming readiness.
+
 The direct development server remains supported with its previous defaults. Only the opt-in `EMOTECAP_DATA_DIR`and`EMOTECAP_ENV_FILE`settings select different server data/env locations; the source launcher sets these before a fresh-process main import.
 
 Projects/takes are saved in the browser for the exact origin. Before switching from a development address such as localhost:5173, changing port/address/browser, or moving to another machine, download an `.emotecap`project backup and import it at the new address. Server jobs in the old repo `server/data`are separate; choose that existing data directory explicitly if you need its inventory, without moving it into a public folder.

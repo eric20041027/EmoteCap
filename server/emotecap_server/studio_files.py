@@ -31,7 +31,7 @@ class StudioFiles(StaticFiles):
             candidate /= part
             if is_link(candidate):
                 raise HTTPException(404)
-        response = await super().get_response(path,scope)
+        response = await super().get_response('index.html' if index else path,scope)
         if response.status_code < 400:
             if not index:
                 response.headers['content-type'] = MIME[Path(path).suffix.lower()]
@@ -46,4 +46,4 @@ class StudioFiles(StaticFiles):
 
 def attach_studio(app: FastAPI,web_dir: Path) -> None:
     app.add_middleware(TrustedHostMiddleware,allowed_hosts=['127.0.0.1','localhost'],www_redirect=False)
-    app.mount('/',StudioFiles(directory=web_dir,html=True,follow_symlink=False),name='studio')
+    app.mount('/',StudioFiles(directory=web_dir,html=False,follow_symlink=False),name='studio')
