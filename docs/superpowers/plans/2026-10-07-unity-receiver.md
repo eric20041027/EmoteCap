@@ -38,8 +38,8 @@
 
 Editor tests own `LiveFixtures`: `TestCredentials()` parses fixed UUIDv4/dummy secret; `ValidHello(streamId)` builds exact sink acknowledgement with canonical bone strings and future expiry; `ValidFrame(t)` emits type/frame,t,h=[0,.95,0],r=[0,0,0,1]x48. These are synthetic fixtures, never actual credentials or recordings.
 
-- [ ] **Step1: Establish real editor preflight before code claims.** Save minimal explicit project manifest with local package/testables and pinned framework; invoke installed editor batch/nographics/createProject or import at that resolved owned path. Expected: license/packages/compiler available; otherwise report exact blocker and continue independent later milestones without claiming tests. Do not open a previous user project.
-- [ ] **Step2: Write actual behavior RED.** Add Editor tests and only loadable protocol characterization shapes if needed; watch exact intended assertions fail in XML.
+- [x] **Step1: Establish real editor preflight before code claims.** Save minimal explicit project manifest with local package/testables and pinned framework; invoke installed editor batch/nographics/createProject or import at that resolved owned path. Expected: license/packages/compiler available; otherwise report exact blocker and continue independent later milestones without claiming tests. Do not open a previous user project.
+- [x] **Step2: Write actual behavior RED.** Add Editor tests and only loadable protocol characterization shapes if needed; watch exact intended assertions fail in XML.
 
 ```csharp
 [Test] public void FrameBeforeAcknowledgementIsRejected() {
@@ -49,14 +49,14 @@ Editor tests own `LiveFixtures`: `TestCredentials()` parses fixed UUIDv4/dummy s
 ```
 
 Also pin UUID/code limits, secret-free serialization, role/session/bone/version/extra/duplicate rejection, numeric bool/string/NaN/overflow, unitnorm/hips/timeline, null/newstream reset, split UTF-8 and exactly16KiB/binary boundaries. Run actual EditMode via test-unity helper; Expected behavior failures, not compiler/import/license failures.
-- [ ] **Step3: Implement minimal strict codec.** Use bounded UTF-8 bytes first, JsonTextReader MaxDepth8/DateParseNone plus JToken strict field/token types and DuplicatePropertyNameHandling.Error; no polymorphic deserialization. Validate hello before storing state; validate frame numbers before float conversion; preserve increasingdoubletime, clear stream state on every new/null hello. Build sink hello from known canonical bone names with secret only in that outbound message.
+- [x] **Step3: Implement minimal strict codec.** Use bounded UTF-8 bytes first, JsonTextReader MaxDepth8/DateParseNone plus JToken strict field/token types and DuplicatePropertyNameHandling.Error; no polymorphic deserialization. Validate hello before storing state; validate frame numbers before float conversion; preserve increasingdoubletime, clear stream state on every new/null hello. Build sink hello from known canonical bone names with secret only in that outbound message.
 
 ```csharp
 if(bytesCount+count>16384)throw new LiveProtocolException("Live message is too large");
 if(token.Type!=JTokenType.Integer&&token.Type!=JTokenType.Float)throw new LiveProtocolException("Invalid live number");
 ```
 
-- [ ] **Step4: Verify/commit.** Actual whole EditMode XML zero failures, Python fast parity and Web types; Expected all pass/real Blender deselected. Commit `feat: validate paired Unity Live Link messages`; task-done repeats actual EditMode helper. Do not claim2021.3 compatibility from a6000.5 run.
+- [x] **Step4: Verify/commit.** Actual whole EditMode XML zero failures, Python fast parity and Web types; Expected all pass/real Blender deselected. Commit `feat: validate paired Unity Live Link messages`; task-done repeats actual EditMode helper. Do not claim2021.3 compatibility from a6000.5 run.
 
 ### Task 2: Owned runtime receiver and memory-only pairing
 
