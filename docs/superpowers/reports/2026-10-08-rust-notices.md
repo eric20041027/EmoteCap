@@ -1,0 +1,17 @@
+# Rust source licensing recipient delivery
+
+PlanBASE186e6b20cedb869a3c6a5c1753466cad7585a8b4. [Spec](../specs/2026-10-08-rust-notices-design.md), [plan](../plans/2026-10-08-rust-notices.md). Inline Native implementation/material integration completed; fixed-source artifact qualification and one fresh final Python review follow. This is pending internal source-evidence delivery, not complete linked-component/rights/M1–M5acceptance.
+
+## Behavior and source trust boundary
+
+The focused Rust validator checks the evidence-file record/digest, closed metadata/counts/paths/public URLs, current server-uv/prepared context, frozen source/wheel pins, native receipt/current bytes, source-token membership, literal licensing records/ownership, compiler root terms/copyright and recomputed counts. Candidate delivery is declared true in this increment; complete binary enumeration and project-license approval stay false. It never fetches, extracts or executes dependencies. The committed source-evidence snapshot remains the trust input; validation proves correspondence rather than authenticating supplier builds or making a licensing grant.
+
+Prepared and staged native members and metadata are revalidated before copying. The exact JSON is copied into notices/third_party and revalidated against copied licensing bytes; deterministic RUST-SOURCE-ACCESS.txt exposes source archive URLs/checksums, original literal expressions, supplied term locations and unresolved manifest-only cases. The builder optionally includes only the exact tracked Rust JSON path in its fixed Git archive. All delivered JSON/text/notices enter the normal manifest/integrity check. Existing legacy pending fixtures without Rust metadata remain supported with zero Rust counts.
+
+## Actual material and watched tests
+
+All116previous licensing records/text bytes and the existing context/five pins/native/SDK inputs are preserved. Added358original crate license/attribution texts plus six compiler root LICENSE-MIT/LICENSE-APACHE/COPYRIGHTfiles. Actual inventory is48components/480texts/2,360,495bytes/54native/9SDK; Rust evidence196source records/364licensing texts/3native associations/4manifest-only cases. Index SHA256471a3d634705fe085cc6dbeef5d377864a46d45aa026e1d932bd649ee58dd5d0; evidence JSON SHA256eef484cdf75f6dd80d386804337efdee0d2ccd3eab7ad12fd0f27900610ac597. CandidateIntegrationComplete describes scoped delivery only; source-superset and unresolved rights remain explicit.
+
+Meaningful public-API RED:36failed/1existing ownership control passed, with ignored invalid metadata and missing counts/delivery; no setup/import error was counted as a product failure. Focused GREEN:122pass/1platform symlink skip. Full fast backend after actual material integration:867pass/1skip/18slow deselected in164.31s; only the existing Starlette/httpxdeprecation warning. No dependency upgrade or real Blender/Unity/GPU/camera/cloud run. Web/runtime/contracts/entry source is unchanged relative to the previously qualifiedf9d5fc2; exact existing production bytes are verified separately before construction.
+
+Evidence is retained in `.superpowers/sdd/2026-10-08-rust-notices/`; the prior Rust research and prepared runtime are readonly inputs whose directories remain intact. Qualification results, final review and every ruling/cost are appended after their gates run. No public write or root/UPM project LICENSE adoption occurred.

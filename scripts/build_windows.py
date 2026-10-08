@@ -88,8 +88,12 @@ def build(repo: Path, prepared: Path, destination: Path, archive: Path) -> dict:
         work=destination.with_name(destination.name+'.build-'+str(uuid.uuid4()))
         ordinary_path(work);work.mkdir(parents=True)
         source_archive=work/'source.tar'
+        rust_source='third_party/rust-source-evidence.json'
+        rust_tracked=_git(repo,'ls-files','-z','--',rust_source)
+        if rust_tracked not in (b'',(rust_source+'\0').encode()):raise PackageError('Rust source path is ambiguous')
+        archive_paths=ARCHIVE_PATHS+([rust_source] if rust_tracked else [])
         with source_archive.open('xb') as output:
-            result=subprocess.run(['git','-C',str(repo),'archive','--format=tar',head,*ARCHIVE_PATHS],
+            result=subprocess.run(['git','-C',str(repo),'archive','--format=tar',head,*archive_paths],
                 stdout=output,stderr=subprocess.DEVNULL,timeout=60)
         if result.returncode or source_archive.stat().st_size>MAX_TOTAL_BYTES:
             raise PackageError('Fixed source archive is incomplete or oversized')

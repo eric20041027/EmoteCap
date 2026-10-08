@@ -10,6 +10,7 @@ Use [third_party/inventory.json](third_party/inventory.json) to find exact compo
 |6Web runtime packages | Frozen package-lock and installed version match; supplied root texts copied; MediaPipe upstream source LICENSE supplementary |
 |Python3.12.14/build20260825 | Pinned official archives and prepared receipt; runtime companions and pip/vendor/embedded-wheel texts preserved |
 |OpenSSL4.0.2inside cryptography50.0.1 | Exact upstream Apache2LICENSE copied as supplemental evidence and linked to the observed native-file hash; full native/Rust coverage pending |
+| Rust source licensing corpus |358crate texts and six compiler terms/copyright files,196source-lock entries/3native associations; exact snapshot/term/native correspondence and recipient source links validated. Build/dev/other-target superset and four manifest-only cases remain explicit; complete linked-component/rights coverage pending |
 |Three certifi source copies | MPL2terms and14actual source files are declared; generated package SOURCE-ACCESS.txt identifies direct/vendor/embedded-wheel locations |
 |3MediaPipe task models | Actual bytes match committed SHA256; Google model-card Apache2evidence separate from SDK; task archive coverage pending |
 |Native DLL/PYD components | Exact metadata inventory; Microsoft runtime basis and native/static-link/source-form conditions unresolved |

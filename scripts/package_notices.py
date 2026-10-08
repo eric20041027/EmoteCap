@@ -7,6 +7,7 @@ import re
 from package_files import (PackageError, copy_tree, file_inventory, ordinary_path,
                            safe_name, sha256_file, verify_inventory)
 from source_notices import validate_source_notices
+from rust_notices import validate_rust_notices
 
 LOCK_PATHS = {'server/pyproject.toml','server/uv.lock','web/package-lock.json',
               'web/scripts/mediapipe-assets.json','packaging/python-runtime.json'}
@@ -123,8 +124,10 @@ def validate_notices(snapshot:Path,prepared:Path,public_files:list[dict])->dict:
                  'textBytes':sum(entry['size'] for entry in expected),'nativeFileRecords':len(native)}
         source=validate_source_notices(components,receipt,prepared/'payload',material,{record['path']:record for record in records})
         summary.update(source['summary'])
+        rust=validate_rust_notices(components,receipt,prepared/'payload',material,{record['path']:record for record in records},snapshot/'server/uv.lock',context['preparedReceiptSha256'])
+        summary.update(rust['summary'])
         return {'index':index,'textFiles':expected,'summary':summary,
-                'sourceContext':{'prepared':prepared,'receipt':receipt,'receiptSha256':context['preparedReceiptSha256']}}
+                'sourceContext':{'prepared':prepared,'receipt':receipt,'receiptSha256':context['preparedReceiptSha256'],'sourceLock':snapshot/'server/uv.lock'}}
     except (OSError,ValueError,KeyError,TypeError,RecursionError):
         raise PackageError('Licensing material is incomplete or invalid') from None
 
@@ -140,6 +143,10 @@ def copy_notices(snapshot:Path,staged:Path,validated:dict,source_commit:str)->di
     access=validate_source_notices(index['components'],context['receipt'],staged,source,records)
     if access['summary']!={key:validated['summary'][key] for key in access['summary']}:
         raise PackageError('Copied source-access summary differs')
+    validate_rust_notices(index['components'],context['receipt'],prepared/'payload',source,records,context['sourceLock'],context['receiptSha256'])
+    rust=validate_rust_notices(index['components'],context['receipt'],staged,source,records,context['sourceLock'],context['receiptSha256'])
+    if rust['summary']!={key:validated['summary'][key] for key in rust['summary']}:
+        raise PackageError('Copied Rust source summary differs')
     copy_tree(source/'licenses',destination/'licenses')
     verify_inventory(destination/'licenses',validated['textFiles'])
     if sha256_file(source/'inventory.json')!=validated['summary']['sourceIndexSha256']:
@@ -148,16 +155,29 @@ def copy_notices(snapshot:Path,staged:Path,validated:dict,source_commit:str)->di
         output.write(incoming.read())
     if sha256_file(destination/'inventory.json')!=validated['summary']['sourceIndexSha256']:
         raise PackageError('Copied licensing index differs')
+    if rust['dataFile'] is not None:
+        record=rust['dataFile'];incoming_path=ordinary_path(source/record['path'])
+        if incoming_path.stat().st_size!=record['size'] or sha256_file(incoming_path)!=record['sha256']:
+            raise PackageError('Rust metadata changed before copying')
+        with incoming_path.open('rb') as incoming,(destination/record['path']).open('xb') as output:
+            data=incoming.read(MAX_TEXT_BYTES+1)
+            if len(data)!=record['size']:raise PackageError('Rust metadata changed during copying')
+            output.write(data)
+        if sha256_file(destination/record['path'])!=record['sha256']:raise PackageError('Copied Rust metadata differs')
+        validate_rust_notices(index['components'],context['receipt'],staged,destination,records,context['sourceLock'],context['receiptSha256'])
     text=('EmoteCap internal candidate licensing material\n\n'
           f'Source commit: {source_commit}\n'
           f'Inventory SHA256: {validated["summary"]["sourceIndexSha256"]}\n'
           f'Exact licensing texts: {validated["summary"]["textFiles"]}\n\n'
           'Read third_party/inventory.json and the original texts under third_party/licenses/.\n'
           'Read SOURCE-ACCESS.txt for included MPL source locations and their terms.\n'
+          'Read RUST-SOURCE-ACCESS.txt when present for supplied Rust source licensing evidence.\n'
           'The index describes frozen source inputs; these paths are not app import paths.\n'
           'Material is supplied evidence, not redistribution approval or a public release.\n'
           'Owner/contributor/media, native/vendor/model/source-form and actual product gates\n'
           'remain pending. No project LICENSE is adopted by this candidate.\n')
     with (staged/'notices/README.txt').open('x',encoding='utf-8',newline='\n') as output:output.write(text)
     with (staged/'notices/SOURCE-ACCESS.txt').open('x',encoding='utf-8',newline='\n') as output:output.write(access['text'])
+    if rust['dataFile'] is not None:
+        with (staged/'notices/RUST-SOURCE-ACCESS.txt').open('x',encoding='utf-8',newline='\n') as output:output.write(rust['text'])
     return dict(validated['summary'])

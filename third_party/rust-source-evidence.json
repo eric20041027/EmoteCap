@@ -1,7 +1,7 @@
 {
   "assessment": "source-material-collected-not-redistribution-approval",
   "binaryDependencyEnumerationComplete": false,
-  "candidateIntegrationComplete": false,
+  "candidateIntegrationComplete": true,
   "compilerSourceFiles": [
     {
       "commit": "48a229ceaefd4985c50990b14116b6d856af0985",

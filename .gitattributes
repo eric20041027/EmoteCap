@@ -1,6 +1,7 @@
 # Keep copied licensing evidence byte-identical across Git EOL settings.
 /third_party/licenses/** -text -whitespace
 /third_party/inventory.json text eol=lf
+/third_party/rust-source-evidence.json text eol=lf
 
 # The inventory pins these committed input bytes.
 /server/pyproject.toml text eol=lf
