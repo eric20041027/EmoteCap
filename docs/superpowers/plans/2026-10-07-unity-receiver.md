@@ -68,7 +68,7 @@ Produces readonly `ConnectionGeneration`, `AcceptedFrameCount`, `LastFrameTimest
 
 Runtime tests own `CreateTestReceiver()`: ReceiverRigFactory creates an original minimal T-pose Humanoid hierarchy with required body joints, a HumanDescription/AvatarBuilder avatar and Animator, then attaches the component with a controlled transport. `InjectLateFrame(receiver,generation,json)` completes that test transport's pending receive after disable/reconnect; it cannot bypass the actual codec/generation checks. `WaitForAcceptedFrame(receiver)` yields frames with a5second test deadline and fails if the counter stayszero. The factory is test-only; two redistributable sample rigs/FBX playback remain the following quality gate.
 
-- [ ] **Step1: Write PlayMode/lifecycle RED.** Use explicit injected local transport only for controllable stalls, actual Unity GameObjects/Animator data and real codec; no string scanning as behavioral proof.
+- [x] **Step1: Write PlayMode/lifecycle RED.** Use explicit injected local transport only for controllable stalls, actual Unity GameObjects/Animator data and real codec; no string scanning as behavioral proof.
 
 ```csharp
 [UnityTest] public IEnumerator DisableRejectsLateFrame() {
@@ -79,14 +79,14 @@ Runtime tests own `CreateTestReceiver()`: ReceiverRigFactory creates an original
 ```
 
 Also Stop/destroy/new Connect while ack/receive pending, no retry on1008/bad ack,2snormal reconnect/5sdeadline, secrets absent from EditorJsonUtility scene serialization/status, fragment/binary limits, latest-frame replacement, stream reset and target overflow preserving previous transform. Run actual filtered PlayMode; Expected failures inspected.
-- [ ] **Step2: Implement lifecycle/Inspector.** Explicit Play-mode pairing, nonserialized strings/credentials, generation-guarded callbacks, safe constant status; owned cancellation/socketAbort/dispose and bounded read deadlines, verified hello before frames. Use latest pose only; finite retarget/height calculations. Preserve original pose math and user ground/smoothing options.
+- [x] **Step2: Implement lifecycle/Inspector.** Explicit Play-mode pairing, nonserialized strings/credentials, generation-guarded callbacks, safe constant status; owned cancellation/socketAbort/dispose and bounded read deadlines, verified hello before frames. Use latest pose only; finite retarget/height calculations. Preserve original pose math and user ground/smoothing options.
 
 ```csharp
 if(generation!=connectionGeneration||!isActiveAndEnabled)return;
 var frame=protocol.Parse(json);if(frame.type=="frame")latest=frame;
 ```
 
-- [ ] **Step3: Verify/commit.** Actual whole EditMode+PlayMode, Python fast and Web types; Expected all pass. Commit `feat: pair and stop the Unity receiver with owned lifecycle`; task-done repeats actual PlayMode helper.
+- [x] **Step3: Verify/commit.** Actual whole EditMode+PlayMode, Python fast and Web types; Expected all pass. Commit `feat: pair and stop the Unity receiver with owned lifecycle`; task-done repeats actual PlayMode helper.
 
 ### Task 3: Local relay interoperability and consumer documentation
 
