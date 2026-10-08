@@ -12,6 +12,8 @@ Uncheck the same checkbox at any time, including while capture or import is busy
 
 An operation that already started may finish. Turning processing off cannot recall metrics already sent to Google. EmoteCap does not claim to disable undocumented SDK telemetry or delete provider metrics.
 
+Closing an active model can also flush SDK metrics queued while processing was allowed. The actual Fast recording test observed two Google logger requests during withdrawal/model cleanup, after the choice was turned off. Withdrawal stops new capture/inference; it is not an immediate network block for previously collected SDK metrics.
+
 ## Separate source-video choices
 
 **Keep source video** controls local retention. **Include source video in backup** controls what is placed in a downloaded backup. **Allow sending the selected source video to Google Gemini** is a separate choice, followed by an explicit **Send selected video** action. MediaPipe permission grants none of these choices and does not authorize a Gemini upload.
