@@ -124,6 +124,81 @@ def test_timeout_stops_actual_owned_descendant(tmp_path):
     finally:
         if file.exists():kill_owned(json.loads(file.read_text())['child'])
 
+
+@pytest.mark.skipif(os.name!='nt',reason='Windows kernel process signals are platform-specific')
+@pytest.mark.parametrize('iteration',range(4))
+def test_timeout_waits_for_retained_descendant_identity(tmp_path,monkeypatch,iteration):
+    import ctypes
+    from ctypes import wintypes as w
+    api=ctypes.WinDLL('kernel32',use_last_error=True)
+    api.OpenProcess.argtypes=[w.DWORD,w.BOOL,w.DWORD];api.OpenProcess.restype=w.HANDLE
+    api.WaitForSingleObject.argtypes=[w.HANDLE,w.DWORD];api.WaitForSingleObject.restype=w.DWORD
+    api.TerminateProcess.argtypes=[w.HANDLE,w.UINT];api.CloseHandle.argtypes=[w.HANDLE]
+    file=tmp_path/'child.json';handle=None;writer=quality.write_json
+    def capture(path,value):
+        nonlocal handle
+        writer(path,value)
+        if path.name.endswith('-ownership.json'):
+            deadline=time.monotonic()+10
+            while not file.exists():
+                if time.monotonic()>=deadline:raise RuntimeError('Owned descendant did not publish identity')
+                time.sleep(.01)
+            handle=api.OpenProcess(0x00100001,False,json.loads(file.read_text())['child'])
+            assert handle,'Retain the actual descendant before timeout, without PID reuse'
+            assert api.WaitForSingleObject(handle,0)==258
+    monkeypatch.setattr(quality,'write_json',capture)
+    command=[sys._base_executable,'-c',
+        'import subprocess,sys,time,json;from pathlib import Path;'
+        'child=subprocess.Popen([sys.executable,"-c","import time;time.sleep(30)"]);'
+        'Path(sys.argv[1]).write_text(json.dumps({"child":child.pid}));time.sleep(30)',str(file)]
+    try:
+        with pytest.raises(RuntimeError,match='timed out'):
+            quality.run_owned(command,tmp_path,'timeout',1,dict(os.environ))
+        assert api.WaitForSingleObject(handle,0)==0,'Cleanup returned before the actual descendant signaled exit'
+    finally:
+        if handle:
+            if api.WaitForSingleObject(handle,0)==258:
+                api.TerminateProcess(handle,1);api.WaitForSingleObject(handle,5000)
+            api.CloseHandle(handle)
+
+
+@pytest.mark.skipif(os.name!='nt',reason='Windows job inventories are platform-specific')
+def test_new_descendant_after_inventory_cannot_claim_verified_closure(tmp_path,monkeypatch):
+    import emotecap_owned_process as processes
+    ready=tmp_path/'ready';trigger=tmp_path/'trigger';born=tmp_path/'born.json'
+    script=('import subprocess,sys,time,json;from pathlib import Path;'
+        'ready,trigger,born=map(Path,sys.argv[1:]);ready.write_text("ready");'
+        '\nwhile not trigger.exists():time.sleep(.01)\n'
+        'child=subprocess.Popen([sys.executable,"-c","import time;time.sleep(30)"]);'
+        'born.write_text(json.dumps({"child":child.pid}));time.sleep(30)')
+    original=processes.retain_job_processes
+    def inventory_then_birth(job):
+        handles=original(job)
+        try:
+            trigger.write_text('spawn an actual late descendant')
+            deadline=time.monotonic()+10
+            while not born.exists():
+                if time.monotonic()>=deadline:raise RuntimeError('Late descendant did not publish identity')
+                time.sleep(.01)
+            return handles
+        except BaseException:
+            for handle in handles:processes.api.CloseHandle(handle)
+            raise
+    owned=processes.OwnedProcess([sys._base_executable,'-c',script,str(ready),str(trigger),str(born)],
+        stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    try:
+        deadline=time.monotonic()+10
+        while not ready.exists():
+            if time.monotonic()>=deadline:raise RuntimeError('Owned parent did not become ready')
+            time.sleep(.01)
+        monkeypatch.setattr(processes,'retain_job_processes',inventory_then_birth)
+        with pytest.raises(RuntimeError,match='inventory changed during termination'):
+            owned.close()
+        assert not owned.closed,'An incomplete process inventory cannot qualify cleanup'
+        assert owned.process.poll() is not None
+    finally:
+        owned.close()
+
 def test_interrupt_stops_actual_direct_child(tmp_path,monkeypatch):
     original=subprocess.Popen;processes=[]
     class Interrupted(original):

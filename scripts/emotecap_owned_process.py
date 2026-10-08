@@ -39,6 +39,9 @@ if os.name == 'nt':
         ('Thread32Next', [w.HANDLE, ctypes.POINTER(ThreadEntry)], w.BOOL),
         ('OpenThread', [w.DWORD, w.BOOL, w.DWORD], w.HANDLE),
         ('ResumeThread', [w.HANDLE], w.DWORD),
+        ('OpenProcess', [w.DWORD, w.BOOL, w.DWORD], w.HANDLE),
+        ('IsProcessInJob', [w.HANDLE, w.HANDLE, ctypes.POINTER(w.BOOL)], w.BOOL),
+        ('WaitForSingleObject', [w.HANDLE, w.DWORD], w.DWORD),
         ('CloseHandle', [w.HANDLE], w.BOOL),
     ):
         function = getattr(api, name)
@@ -73,6 +76,46 @@ if os.name == 'nt':
         finally:
             api.CloseHandle(snapshot)
 
+    def retain_job_processes(job):
+        """Keep kernel identities before asynchronous job termination removes PIDs."""
+        capacity = 64
+        handles = []
+        try:
+            while capacity <= 4096:
+                class ProcessIds(ctypes.Structure):
+                    _fields_ = [('assigned', w.DWORD), ('listed', w.DWORD),
+                                ('ids', ctypes.c_size_t * capacity)]
+                state = ProcessIds()
+                success = api.QueryInformationJobObject(job, 3, ctypes.byref(state), ctypes.sizeof(state), None)
+                if not success and ctypes.get_last_error() != 234:  # ERROR_MORE_DATA
+                    checked(success)
+                if not success or state.listed < state.assigned:
+                    capacity = max(capacity * 2, state.assigned)
+                    continue
+                if state.listed > capacity:
+                    raise RuntimeError('Invalid owned process inventory')
+                for pid in state.ids[:state.listed]:
+                    handle = api.OpenProcess(0x00101000, False, pid)  # synchronize/query only
+                    if not handle:
+                        if ctypes.get_last_error() == 87:  # Already exited and released.
+                            continue
+                        checked(handle)
+                    try:
+                        member = w.BOOL()
+                        checked(api.IsProcessInJob(handle, job, ctypes.byref(member)))
+                        if member.value:
+                            handles.append(handle)
+                            handle = None
+                    finally:
+                        if handle:
+                            api.CloseHandle(handle)
+                return handles
+            raise RuntimeError('Owned process inventory exceeds qualification budget')
+        except BaseException:
+            for handle in handles:
+                api.CloseHandle(handle)
+            raise
+
 
 class OwnedProcess:
     """Create suspended on Windows; assign the job before executing user code."""
@@ -100,9 +143,17 @@ class OwnedProcess:
     def close(self):
         if self.closed:
             return
+        handles = []
         try:
             if self.job is not None:
-                checked(api.TerminateJobObject(self.job, 1))
+                try:
+                    initial = Accounting()
+                    checked(api.QueryInformationJobObject(self.job, 1, ctypes.byref(initial), ctypes.sizeof(initial), None))
+                    handles = retain_job_processes(self.job)
+                    if len(handles) < initial.active:
+                        raise RuntimeError('Owned process inventory changed during termination')
+                finally:
+                    checked(api.TerminateJobObject(self.job, 1))
             elif self.process is not None and os.name != 'nt':
                 try:
                     os.killpg(self.process.pid, signal.SIGKILL)
@@ -114,16 +165,26 @@ class OwnedProcess:
                 self.process.wait(timeout=10)
             if self.job is not None:
                 deadline = time.monotonic() + 10
+                for handle in handles:
+                    result = api.WaitForSingleObject(handle, max(0, int((deadline - time.monotonic()) * 1000)))
+                    if result == 0xffffffff:
+                        raise ctypes.WinError(ctypes.get_last_error())
+                    if result != 0:
+                        raise RuntimeError('Owned descendant did not signal termination')
                 while True:
                     state = Accounting()
                     checked(api.QueryInformationJobObject(self.job, 1, ctypes.byref(state), ctypes.sizeof(state), None))
                     if state.active == 0:
+                        if state.total != initial.total:
+                            raise RuntimeError('Owned process inventory changed during termination')
                         break
                     if time.monotonic() >= deadline:
                         raise RuntimeError('Owned process tree did not become terminal')
                     time.sleep(.01)
             self.closed = True
         finally:
+            for handle in handles:
+                api.CloseHandle(handle)
             if self.job is not None:
                 api.CloseHandle(self.job)
                 self.job = None
