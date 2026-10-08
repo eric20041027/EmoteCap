@@ -66,7 +66,7 @@ MediaPipe processes image/video inputs on the device and its APIs send performan
 
 Read [CONTRIBUTING](CONTRIBUTING.md), [development checks](docs/development.md), [SECURITY](SECURITY.md) and [CHANGELOG](CHANGELOG.md). Motion/relay/archives have versioned contracts; keep their consumers coordinated. Publication requires the [release checklist](docs/release-checklist.md), fresh validation and explicit owner approval.
 
-Project license and contributor/media rights remain pending the [MIT proposal](docs/release-license-proposal.md). No project license grant or third-party redistribution approval is implied by this preview. Dependency/model/runtime notices are assessed separately.
+Project-owned code, documentation and original assets are [MIT licensed](LICENSE), following the owner's [confirmed rights record](docs/release-license-proposal.md). Dependencies, models and runtimes retain their upstream terms; complete redistribution assessment and formal release acceptance remain separate.
 
 ## Origin
 

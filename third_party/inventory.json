@@ -6252,7 +6252,6 @@
     }
   ],
   "pending": [
-    "Owner project/contributor/all-four-media rights",
     "MediaPipe prebuilt WASM/native third-party attribution coverage",
     "Microsoft runtime redistribution basis",
     "Model task archive embedded-asset coverage",

@@ -1,4 +1,6 @@
 # Keep copied licensing evidence byte-identical across Git EOL settings.
+/LICENSE text eol=lf
+/unity/com.emotecap.mocap/LICENSE.md text eol=lf
 /third_party/licenses/** -text -whitespace
 /third_party/inventory.json text eol=lf
 /third_party/rust-source-evidence.json text eol=lf

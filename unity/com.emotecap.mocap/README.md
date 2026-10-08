@@ -41,3 +41,7 @@ Import **Starter Rigs** in Package Manager, choose **EmoteCap → Create Starter
 Use localhost/127.0.0.1/::1and the local service port,8787by default. Ordinary disconnection retries after2seconds; invalid/expired/revoked pairing or incompatible messages stop retries and require an explicit new Connect. Studio Stop requests revocation; a service restart invalidates all old codes. Do not paste a code before entering Play mode: domain reload deliberately does not preserve it.
 
 For Avatar/controller, expiry and source troubleshooting and actual test commands, see [receiver guide](Documentation~/paired-receiver.md). [Dependency material](ThirdParty~/notice-inventory.json) records the frozen JSON dependency and exact upstream terms; it does not grant a project license or complete redistribution approval.
+
+## License
+
+Project-owned package code, documentation and original samples are MIT licensed; see [LICENSE.md](LICENSE.md). [Dependency material](ThirdParty~/notice-inventory.json) retains the upstream terms and does not establish complete binary redistribution approval.

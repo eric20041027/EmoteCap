@@ -1,6 +1,7 @@
 {
   "name": "com.emotecap.mocap",
   "version": "0.2.0",
+  "license": "MIT",
   "displayName": "EmoteCap Mocap",
   "description": "Webcam motion capture for Unity: automatic Humanoid import of EmoteCap FBX clips and a Live Link receiver.",
   "unity": "6000.5",

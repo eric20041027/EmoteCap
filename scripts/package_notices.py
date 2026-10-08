@@ -19,6 +19,16 @@ SDK_WASM_PREFIX = 'web/node_modules/@mediapipe/tasks-vision/wasm/'
 ASSESSMENT = 'draft-supplied-evidence-not-redistribution-approval'
 STATUSES = {'supplied-material-assessment-pending','native-and-vendor-coverage-pending',
             'model-card-observed-task-archive-coverage-pending'}
+# Canonical MIT text/header approved by the owner on 2026-10-08.
+PROJECT_MIT_SHA256 = 'b95395a1999f99bf8d392caec287ff427dc69981fe1d5f97a83ca98fd4dc2406'
+
+
+def project_license_record(snapshot:Path)->dict|None:
+    path=ordinary_path(snapshot/'LICENSE')
+    if not path.exists():return None
+    if not path.is_file() or path.stat().st_size!=1078 or sha256_file(path)!=PROJECT_MIT_SHA256:
+        raise PackageError('Project license differs from the owner-approved MIT text')
+    return {'path':'LICENSE','size':1078,'sha256':PROJECT_MIT_SHA256,'spdx':'MIT'}
 
 def _object(pairs):
     result={}
@@ -122,7 +132,8 @@ def validate_notices(snapshot:Path,prepared:Path,public_files:list[dict])->dict:
         if not isinstance(index['pending'],list) or not index['pending'] or any(not isinstance(v,str) for v in index['pending']):
             raise PackageError('Licensing assessment gaps must remain explicit')
         summary={'assessment':'pending','sourceIndexSha256':sha256_file(path),'textFiles':len(expected),
-                 'textBytes':sum(entry['size'] for entry in expected),'nativeFileRecords':len(native)}
+                 'textBytes':sum(entry['size'] for entry in expected),'nativeFileRecords':len(native),
+                 'projectLicense':project_license_record(snapshot)}
         source=validate_source_notices(components,receipt,prepared/'payload',material,{record['path']:record for record in records})
         summary.update(source['summary'])
         rust=validate_rust_notices(components,receipt,prepared/'payload',material,{record['path']:record for record in records},snapshot/'server/uv.lock',context['preparedReceiptSha256'])
@@ -135,6 +146,9 @@ def validate_notices(snapshot:Path,prepared:Path,public_files:list[dict])->dict:
 
 def copy_notices(snapshot:Path,staged:Path,validated:dict,source_commit:str)->dict:
     if not re.fullmatch('[0-9a-f]{40}',source_commit):raise PackageError('Notice source commit is invalid')
+    project=project_license_record(snapshot)
+    if project!=validated['summary']['projectLicense']:
+        raise PackageError('Project license changed after notice admission')
     source=ordinary_path(snapshot/'third_party');destination=ordinary_path(staged/'notices/third_party')
     if destination.exists():raise PackageError('Notice destination must be fresh')
     context=validated['sourceContext'];prepared=context['prepared']
@@ -176,8 +190,10 @@ def copy_notices(snapshot:Path,staged:Path,validated:dict,source_commit:str)->di
           'Read RUST-SOURCE-ACCESS.txt when present for supplied Rust source licensing evidence.\n'
           'The index describes frozen source inputs; these paths are not app import paths.\n'
           'Material is supplied evidence, not redistribution approval or a public release.\n'
-          'Owner/contributor/media, native/vendor/model/source-form and actual product gates\n'
-          'remain pending. No project LICENSE is adopted by this candidate.\n')
+          'Native/vendor/model/source-form and actual product release gates remain pending.\n'
+          + ('Project-owned material is licensed under MIT; read LICENSE at the candidate root.\n'
+             'Third-party material retains its own terms; MIT is not a redistribution approval.\n'
+             if project else 'Owner/contributor/media rights remain pending. No project LICENSE is adopted by this candidate.\n'))
     with (staged/'notices/README.txt').open('x',encoding='utf-8',newline='\n') as output:output.write(text)
     with (staged/'notices/SOURCE-ACCESS.txt').open('x',encoding='utf-8',newline='\n') as output:output.write(access['text'])
     if rust['dataFile'] is not None:

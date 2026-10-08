@@ -12,9 +12,10 @@ import zipfile
 from package_files import (MAX_MANIFEST_BYTES, MAX_TOTAL_BYTES, PackageError, copy_tree, extract_tar,
                           file_inventory, ordinary_path, safe_name, sha256_file, verify_inventory,
                           write_json, zip_payload,MAX_FILE_BYTES,MAX_FILES)
-from package_notices import copy_notices, validate_notices
+from package_notices import copy_notices, validate_notices, project_license_record
 
-PENDING_GATES = ['Owner MIT/contributor/all-four-media rights','Complete native/vendor redistribution assessment',
+OWNER_RIGHTS_GATE = 'Owner MIT/contributor/all-four-media rights'
+PENDING_GATES = [OWNER_RIGHTS_GATE,'Complete native/vendor redistribution assessment',
     'Actual SDK inference/network qualification',
     'Actual Unity receiver compilation and two redistributable rigs','Authorized physical capture qualification',
     'Target-laptop performance qualification','Actual clean-machine startup','Five new Unity users acceptance',
@@ -122,7 +123,11 @@ def build(repo: Path, prepared: Path, destination: Path, archive: Path) -> dict:
         rust_source='third_party/rust-source-evidence.json'
         rust_tracked=_git(repo,'ls-files','-z','--',rust_source)
         if rust_tracked not in (b'',(rust_source+'\0').encode()):raise PackageError('Rust source path is ambiguous')
-        archive_paths=ARCHIVE_PATHS+([rust_source] if rust_tracked else [])
+        license_tracked=_git(repo,'ls-files','-z','--','LICENSE')
+        if license_tracked not in (b'',b'LICENSE\0'):raise PackageError('Project license path is ambiguous')
+        if (repo/'LICENSE').exists() and not license_tracked:
+            raise PackageError('Project license must be committed, not ignored or untracked')
+        archive_paths=ARCHIVE_PATHS+([rust_source] if rust_tracked else [])+(['LICENSE'] if license_tracked else [])
         with source_archive.open('xb') as output:
             result=subprocess.run(['git','-C',str(repo),'archive','--format=tar',head,*archive_paths],
                 stdout=output,stderr=subprocess.DEVNULL,timeout=60)
@@ -155,6 +160,18 @@ def build(repo: Path, prepared: Path, destination: Path, archive: Path) -> dict:
         copy_tree(repo/'web/dist',staged/'app/web/dist')
         verify_inventory(staged/'app/web/dist',public_inventory)
         licensing_summary=copy_notices(snapshot,staged,material,head)
+        project=project_license_record(snapshot)
+        if bool(project)!=bool(license_tracked) or project!=licensing_summary['projectLicense']:
+            raise PackageError('Project license changed during candidate construction')
+        if project:
+            with (snapshot/'LICENSE').open('rb') as incoming,(staged/'LICENSE').open('xb') as output:
+                body=incoming.read(project['size']+1)
+                if len(body)!=project['size'] or hashlib.sha256(body).hexdigest()!=project['sha256']:
+                    raise PackageError('Project license changed while copying')
+                output.write(body)
+            if sha256_file(staged/'LICENSE')!=project['sha256']:
+                raise PackageError('Copied project license differs from admitted source')
+            frozen.append(dict(source_records['LICENSE']))
         frozen.extend({**entry,'path':'notices/'+entry['path']} for entry in material['noticeFiles'])
         for name in ('bootstrap.py','start.cmd','START-HERE.txt'):
             source=snapshot/'packaging/windows'/name
@@ -170,7 +187,7 @@ def build(repo: Path, prepared: Path, destination: Path, archive: Path) -> dict:
             'runtime':receipt['runtime'],'sourceLocks':locks,'licensingMaterial':licensing_summary,
             'webBuildSha256':hashlib.sha256(json.dumps(public_inventory,sort_keys=True,separators=(',',':')).encode()).hexdigest(),
             'files':frozen,
-            'releaseGate':'pending','pendingGates':PENDING_GATES}
+            'releaseGate':'pending','pendingGates':[gate for gate in PENDING_GATES if not (project and gate==OWNER_RIGHTS_GATE)]}
         write_json(staged/'manifest.json',manifest)
         manifest_path=staged/'manifest.json'
         manifest_record={'path':'manifest.json','size':manifest_path.stat().st_size,'sha256':sha256_file(manifest_path)}

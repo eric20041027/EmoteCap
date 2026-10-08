@@ -32,12 +32,14 @@ Hashes detect changed bytes; they are not a publisher signature.
 Read notices/README.txt, notices/third_party/inventory.json and the original
 licensing texts in notices/third_party/licenses/. Their bytes are included
 in the package manifest. This is supplied licensing evidence, with native,
-vendor/model/source-form and owner rights still pending; not legal approval.
+vendor/model/source-form conditions still pending; not complete redistribution approval.
+Project-owned material is MIT licensed; read the root LICENSE. Upstream
+components retain their own licensing texts and source-access terms.
 Read notices/SOURCE-ACCESS.txt for the three bundled certifi source locations,
 MPL terms and the embedded ensurepip wheel's source entries. Other native and
 SDK/vendor conditions remain under assessment.
 
 This is a LOCAL DEVELOPMENT CANDIDATE, not an approved public release.
 Unity receiver/two rigs, clean-machine and new-user acceptance, physical
-camera/SDK-network/laptop qualification, owner licensing and complete vendor assessment
+camera/SDK-network/laptop qualification and complete vendor assessment
 are pending. See the source repository's docs/release-progress.md.

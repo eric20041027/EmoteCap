@@ -57,9 +57,9 @@ Linux/macOS 原始碼開發可在相同建置後使用根目錄 `./start.sh`。�
 
 範例、追蹤、本機切段、備份與匯出不需要 Gemini 金鑰。原始碼設定使用根目錄私有 `.env`；安裝包設定使用 `%LOCALAPPDATA%\EmoteCap\settings.env`。不要把金鑰、設定或私人影片放入公開 Web 目錄。服務端工作與瀏覽器專案是不同的儲存位置。
 
-Windows 安裝包目前是內部候選版，還需重建納入新的 SDK 同意畫面、確認授權與第三方通知，並完成乾淨機器與新使用者驗收。[候選版說明](windows-candidate.md)、[發布檢查表](release-checklist.md)。
+Windows 安裝包目前是內部候選版；新的來源已採 MIT，發行物需重建以攜帶本次授權文本與來源紀錄，並完成第三方散布評估、乾淨機器與新使用者驗收。[候選版說明](windows-candidate.md)、[發布檢查表](release-checklist.md)。
 
-專案 MIT 授權與原作者、共同貢獻者、四個既有媒體檔案的發布權利尚待確認，不能由公開儲存庫推定。[授權提案](release-license-proposal.md)。參與開發請看 [CONTRIBUTING](../CONTRIBUTING.md)、安全問題請看 [SECURITY](../SECURITY.md)。
+專案自行擁有權利的程式碼、文件與原創素材已採用 [MIT 授權](../LICENSE)。擁有者已確認原始內容、另一位貢獻者的授權依據，以及四個媒體檔案均為自行產出；見[中文確認紀錄](release-license-proposal.zh-TW.md)。第三方套件／模型保留原授權，完整散布與正式發行驗收仍待完成。參與開發請看 [CONTRIBUTING](../CONTRIBUTING.md)、安全問題請看 [SECURITY](../SECURITY.md)。
 
 
 ## 不用鏡頭即可播放的 Unity 範例

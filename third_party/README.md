@@ -1,6 +1,6 @@
 # Frozen third-party material
 
-[inventory.json](inventory.json) records the observed frozen inputs and exact copied text hashes. It is **draft supplied evidence, not redistribution approval**. Preserve original text bytes/attribution; do not replace them with the project's proposed MIT license.
+[inventory.json](inventory.json) records the observed frozen inputs and exact copied text hashes. It is **draft supplied evidence, not redistribution approval**. Preserve original text bytes/attribution; the project's owner-approved [MIT license](../LICENSE) applies to project-owned material and does not replace upstream terms. Historical corpus flags are source-specific observations, not the current owner's approval record.
 
 The [redistribution assessment](../docs/redistribution-assessment.md) adds observed PE imports, the separate actual OpenSSL4dependency, all three bundled certifi source locations, task-archive members and exact npmSDKtarball comparison. The [source-notice increment](../docs/superpowers/plans/2026-10-08-source-notices.md) now integrates verified supplemental texts and source declarations; its package validator requires correspondence with the actual prepared sources. Broader pending assessment is not approved by these checks.
 

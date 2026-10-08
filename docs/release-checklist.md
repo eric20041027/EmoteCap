@@ -12,11 +12,12 @@ This is a required gate for a formal release, not a claim that the rebuild has p
 
 ## Rights and notices
 
-- [ ] Obtain the owner's project-license choice and publication authority, including the original README contribution by leokao0806.
-- [ ] Resolve rights for all four existing media files: hero.gif, dozed-off.gif, import-video.jpg, gemini-slicing.jpg. Preserve or remove only through an authorized reviewed change; hiding embeds does not resolve distribution rights.
+- [x] Owner approved MIT/header and original project source rights on2026-10-08, including the permission basis for leokao0806's README contribution; [record](release-license-proposal.md). Formal tag/release approval remains separate.
+- [x] Owner confirmed all four media files are self-produced with no third-party material and approved their publication: hero.gif, dozed-off.gif, import-video.jpg, gemini-slicing.jpg; [record](release-license-proposal.zh-TW.md).
 - [ ] Establish separate rights for the three hashed model assets, SDK/WASM, exact npm/Python/runtime/native dependencies and any UPM dependency/fixture. Copy required full license/notice texts with source/version/hash inventory.
 - [ ] Resolve native runtime redistribution conditions, including Microsoft runtime components; supplied Python licenses alone are not that approval.
-- [ ] Add the approved project LICENSE and complete notices; do not infer a license from public repository visibility.
+- [x] Add the owner-approved project MIT LICENSE to source and standalone UPM; new Windows builds deliver/hash-bind it.
+- [ ] Complete third-party notices and redistribution assessment for all included upstream material. The project LICENSE does not replace their terms.
 
 ## Actual product acceptance
 
@@ -36,4 +37,4 @@ This is a required gate for a formal release, not a claim that the rebuild has p
 - [ ] Obtain explicit approval for the new public push/PR/tag/release actions. M1 draft-PR approval does not authorize M2–M5 publication or remote main merge.
 - [ ] Publish only the approved contents and verify the resulting URLs/digests/state; attach any created PR to the task. Record publication separately from local completion.
 
-No item is checked in this initial checklist. Existing qualification is linked in the progress ledger; completing this document does not create a license, merge, tag or release.
+Checked rights items rely on the owner's explicit2026-10-08confirmation. Existing software/artifact qualifications retain their linked source scopes; remaining boxes are not waived. This document does not merge, tag or publish a release.

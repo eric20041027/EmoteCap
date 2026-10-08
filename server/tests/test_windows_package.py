@@ -74,6 +74,101 @@ def test_candidate_preserves_exact_notice_bytes_and_pending_summary(build_inputs
     assert summary['sourceIndexSha256']==files.sha256_file(repo/'third_party/inventory.json')
     assert git(repo,'rev-parse','HEAD') in (output/'notices/README.txt').read_text()
 
+
+def commit_project_license(repo, body=None):
+    (repo/'LICENSE').write_bytes((ROOT/'LICENSE').read_bytes() if body is None else body)
+    git(repo,'add','LICENSE');git(repo,'commit','-qm','owner-approved project license')
+
+
+def test_project_license_is_delivered_and_source_bound(build_inputs,tmp_path):
+    repo,prepared=build_inputs;commit_project_license(repo)
+    output=tmp_path/'candidate';archive=tmp_path/'candidate.zip'
+    result=builder.build(repo,prepared,output,archive)
+    expected=(ROOT/'LICENSE').read_bytes()
+    assert (output/'LICENSE').read_bytes()==expected
+    record=result['manifest']['licensingMaterial']['projectLicense']
+    assert record=={'path':'LICENSE','size':len(expected),'sha256':hashlib.sha256(expected).hexdigest(),'spdx':'MIT'}
+    assert {k:v for k,v in record.items() if k!='spdx'} in result['manifest']['files']
+    import zipfile
+    with zipfile.ZipFile(archive) as package:assert package.read('LICENSE')==expected
+    assert 'Project-owned material is licensed under MIT' in (output/'notices/README.txt').read_text()
+    assert 'No project LICENSE is adopted' not in (output/'notices/README.txt').read_text()
+    assert 'Owner MIT/contributor/all-four-media rights' not in result['manifest']['pendingGates']
+    assert 'Complete native/vendor redistribution assessment' in result['manifest']['pendingGates']
+    assert result['manifest']['releaseGate']=='pending'
+
+
+def test_project_license_absence_preserves_historical_pending_state(build_inputs,tmp_path):
+    repo,prepared=build_inputs;output=tmp_path/'candidate'
+    result=builder.build(repo,prepared,output,tmp_path/'candidate.zip')
+    assert result['manifest']['licensingMaterial'].get('projectLicense') is None
+    assert not (output/'LICENSE').exists()
+    assert 'No project LICENSE is adopted' in (output/'notices/README.txt').read_text()
+    assert 'Owner MIT/contributor/all-four-media rights' in result['manifest']['pendingGates']
+
+
+@pytest.mark.parametrize('autocrlf',['false','true','input'])
+def test_project_license_git_checkout_preserves_approved_bytes(build_inputs,autocrlf):
+    repo,_=build_inputs;commit_project_license(repo)
+    path=repo/'unity/com.emotecap.mocap/LICENSE.md';path.parent.mkdir(parents=True)
+    path.write_bytes((ROOT/'LICENSE').read_bytes())
+    git(repo,'add','.');git(repo,'commit','-qm','standalone package MIT')
+    git(repo,'config','core.autocrlf',autocrlf)
+    (repo/'LICENSE').unlink();path.unlink()
+    git(repo,'checkout-index','--force','--all')
+    assert (repo/'LICENSE').read_bytes()==(ROOT/'LICENSE').read_bytes()
+    assert path.read_bytes()==(ROOT/'LICENSE').read_bytes()
+
+
+def test_project_license_noncanonical_text_is_rejected(build_inputs,tmp_path):
+    repo,prepared=build_inputs;commit_project_license(repo,b'MIT plus unapproved changed terms')
+    with pytest.raises(files.PackageError):builder.build(repo,prepared,tmp_path/'candidate',tmp_path/'candidate.zip')
+    assert not (tmp_path/'candidate').exists() and not (tmp_path/'candidate.zip.receipt.json').exists()
+
+
+def test_project_license_ignored_by_git_is_rejected(build_inputs,tmp_path):
+    repo,prepared=build_inputs
+    with (repo/'.gitignore').open('a') as ignore:ignore.write('LICENSE\n')
+    git(repo,'add','.gitignore');git(repo,'commit','-qm','ignored license fixture')
+    (repo/'LICENSE').write_bytes((ROOT/'LICENSE').read_bytes())
+    assert git(repo,'status','--porcelain')==''
+    with pytest.raises(files.PackageError):builder.build(repo,prepared,tmp_path/'candidate',tmp_path/'candidate.zip')
+    assert not (tmp_path/'candidate').exists()
+
+
+def test_project_license_changed_after_notice_validation_is_rejected(build_inputs,tmp_path,monkeypatch):
+    repo,prepared=build_inputs;commit_project_license(repo)
+    original=builder.copy_notices
+    def change(snapshot,staged,material,head):
+        result=original(snapshot,staged,material,head)
+        (snapshot/'LICENSE').write_bytes(b'changed after admission')
+        return result
+    monkeypatch.setattr(builder,'copy_notices',change)
+    with pytest.raises(files.PackageError):builder.build(repo,prepared,tmp_path/'candidate',tmp_path/'candidate.zip')
+    assert not (tmp_path/'candidate').exists() and not (tmp_path/'candidate.zip.receipt.json').exists()
+
+
+def test_project_license_missing_from_committed_snapshot_cannot_downgrade(build_inputs,tmp_path,monkeypatch):
+    repo,prepared=build_inputs;commit_project_license(repo)
+    original=builder.validate_notices
+    def drop(snapshot,prepared,public):
+        (snapshot/'LICENSE').unlink()
+        return original(snapshot,prepared,public)
+    monkeypatch.setattr(builder,'validate_notices',drop)
+    with pytest.raises(files.PackageError):builder.build(repo,prepared,tmp_path/'candidate',tmp_path/'candidate.zip')
+    assert not (tmp_path/'candidate').exists() and not (tmp_path/'candidate.zip.receipt.json').exists()
+
+
+def test_project_license_dropped_from_archive_is_rejected(build_inputs,tmp_path,monkeypatch):
+    repo,prepared=build_inputs;commit_project_license(repo)
+    original=builder.zip_payload
+    def drop(staged,archive,**options):
+        if (staged/'LICENSE').exists():(staged/'LICENSE').unlink()
+        return original(staged,archive,**options)
+    monkeypatch.setattr(builder,'zip_payload',drop)
+    with pytest.raises(files.PackageError):builder.build(repo,prepared,tmp_path/'candidate',tmp_path/'candidate.zip')
+    assert not (tmp_path/'candidate').exists() and not (tmp_path/'candidate.zip.receipt.json').exists()
+
 @pytest.mark.parametrize('change',['missing-index','text','source-pin','extra-text','case-duplicate',
     'traversal','approved','unreferenced','native','wasm','extra-wasm','binary'])
 def test_invalid_notice_material_is_rejected_before_complete_candidate(build_inputs,tmp_path,change):

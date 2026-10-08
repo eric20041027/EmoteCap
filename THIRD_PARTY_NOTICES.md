@@ -1,6 +1,6 @@
 # Third-party notices — draft evidence
 
-This source checkout includes [frozen inventory and licensing material](third_party/README.md) for the observed Web/server/Windows-runtime inputs. It is not a completed licensing assessment or an approved public package. Project MIT/contributor/media approval and native/vendor/source-form coverage remain pending.
+This source checkout includes [frozen inventory and licensing material](third_party/README.md) for the observed Web/server/Windows-runtime inputs. Project-owned material is covered by the owner-approved [MIT LICENSE](LICENSE) and [rights record](docs/release-license-proposal.md). Upstream dependencies/models retain their own terms; complete native/vendor/source-form assessment and formal distribution remain pending.
 
 Use [third_party/inventory.json](third_party/inventory.json) to find exact component names/versions, declared licenses, upstream/supplied origins, npm integrity, native binary metadata and each copied text's path/size/SHA256. All copied texts remain under `third_party/licenses/`; their terms and attribution are retained verbatim. No model, native library, character, card PDF or recording is copied into that directory.
 
