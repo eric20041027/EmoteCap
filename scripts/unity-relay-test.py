@@ -21,6 +21,8 @@ ROOT=Path(__file__).resolve().parents[1]
 WORK=ROOT/'.superpowers/sdd/2026-10-07-unity-receiver'
 WORKSPACES=('2026-10-07-unity-receiver','2026-10-08-unity-quality')
 sys.path.insert(0,str(ROOT/'server'))
+sys.path.insert(0,str(ROOT/'scripts'))
+from emotecap_owned_process import OwnedProcess
 from fastapi import FastAPI,HTTPException,WebSocket
 from pydantic import BaseModel,ConfigDict,Field
 import uvicorn
@@ -159,12 +161,12 @@ def run(args):
         unused.bind(('127.0.0.1',0));port=unused.getsockname()[1]
     instance=str(uuid.uuid4());base=f'http://127.0.0.1:{port}'
     environment=dict(os.environ);environment['EMOTECAP_TEST_RELAY_URL']=base
-    flags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0
-    relay=None;ready=False;completed={};original_error=None;server_pid=None
+    relay=None;relay_owned=None;ready=False;completed={};original_error=None;server_pid=None
     with (output/'relay.log').open('xb') as log:
         try:
-            relay=subprocess.Popen([sys.executable,str(Path(__file__).resolve()),'--serve','--port',str(port),'--instance',instance],
-                cwd=ROOT,env=environment,stdin=subprocess.DEVNULL,stdout=log,stderr=log,creationflags=flags)
+            relay_owned=OwnedProcess([sys.executable,str(Path(__file__).resolve()),'--serve','--port',str(port),'--instance',instance],
+                cwd=ROOT,env=environment,stdin=subprocess.DEVNULL,stdout=log,stderr=log)
+            relay=relay_owned.process
             write_json(output/'ownership.json',{'pid':relay.pid,'port':port,'instance':instance,'fixtureSha256':FIXTURE_SHA,
                 'sourceCommit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
                 'startedUtc':datetime.now(timezone.utc).isoformat()})
@@ -187,10 +189,9 @@ def run(args):
                         '-ProjectPath',str(project),'-ResultsPath',str(results),'-UnityPath',args.unity,'-WorkspaceName',workspace_name]
                     if args.filter:command+=['-Filter',args.filter]
                     if getattr(args,'graphics',False):command+=['-EnableGraphics']
-                    child=subprocess.Popen(command,cwd=ROOT,env=environment,stdin=subprocess.DEVNULL,stdout=command_log,stderr=command_log,creationflags=flags)
-                    try:code=child.wait(timeout=600)
-                    except subprocess.TimeoutExpired:
-                        child.terminate();child.wait(timeout=10);raise RuntimeError('Owned test helper timed out')
+                    with OwnedProcess(command,cwd=ROOT,env=environment,stdin=subprocess.DEVNULL,stdout=command_log,stderr=command_log) as child:
+                        try:code=child.wait(timeout=600)
+                        except subprocess.TimeoutExpired:raise RuntimeError('Owned test helper timed out')
                 completed[mode]={'exitCode':code,'results':str(results)}
                 if code:raise RuntimeError('Actual Unity tests failed; XML and logs retained')
             info=request(base,'/fixture/info');write_json(output/'final-fixture-state.json',info)
@@ -201,10 +202,13 @@ def run(args):
                 if ready and relay.poll() is None:
                     try:request(base,'/fixture/shutdown','POST')
                     except (OSError,ValueError):pass
-                try:relay.wait(timeout=10)
-                except subprocess.TimeoutExpired:relay.terminate();relay.wait(timeout=10)
+                try:
+                    if original_error is None:relay.wait(timeout=10)
+                except subprocess.TimeoutExpired:pass
+                finally:relay_owned.close()
                 write_json(output/'completion.json',{'pid':relay.pid,'serverPid':server_pid,'port':port,'exitCode':relay.returncode,
-                    'ownedProcessTerminal':relay.poll() is not None,'completedUtc':datetime.now(timezone.utc).isoformat(),'modes':completed})
+                    'ownedProcessTerminal':relay.poll() is not None,'ownedProcessTreeTerminal':relay_owned.closed,
+                    'completedUtc':datetime.now(timezone.utc).isoformat(),'modes':completed})
     if original_error is not None:raise original_error
     print(json.dumps({'status':'actual-unity-relay-tests-passed','modes':completed,'fixtureSha256':FIXTURE_SHA,'ownedRelayTerminal':True}))
 

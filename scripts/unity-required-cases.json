@@ -1,0 +1,482 @@
+{
+  "schema": "emotecap-unity-required-cases-v1",
+  "evidenceCommit": "130173ce1b44201b01edda6bc6f1a9ff5e82a55b",
+  "modes": {
+    "EditMode": [
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.DuplicateOrReversedTimesRejectAndNewStreamsResetTiming",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.EditModeCannotConnectOrSerializeAPastedCredential",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.FragmentBufferPreservesSplitUtf8AndClearsAfterCompleteMessage",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.FrameBeforeAcknowledgementIsRejected",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.IncompatibleAcknowledgementIsRejected(\"role\",\"source\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.IncompatibleAcknowledgementIsRejected(\"sessionId\",\"e31883cb-e2fb-46db-807c-3d274eed6ae8\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.IncompatibleAcknowledgementIsRejected(\"streamId\",\"bad\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.IncompatibleAcknowledgementIsRejected(\"type\",\"clip_ready\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.InvalidHelloShapeOrLifetimeIsRejected(\"missing\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.InvalidHelloShapeOrLifetimeIsRejected(\"extra\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.InvalidHelloShapeOrLifetimeIsRejected(\"reordered-bones\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.InvalidHelloShapeOrLifetimeIsRejected(\"wrong-bone\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.InvalidHelloShapeOrLifetimeIsRejected(\"expired\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.InvalidHelloShapeOrLifetimeIsRejected(\"duplicate\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.InvalidPoseCannotReachTransforms(\"negative\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.InvalidPoseCannotReachTransforms(\"bool\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.InvalidPoseCannotReachTransforms(\"string\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.InvalidPoseCannotReachTransforms(\"nan\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.InvalidPoseCannotReachTransforms(\"infinite\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.InvalidPoseCannotReachTransforms(\"overflow\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.InvalidPoseCannotReachTransforms(\"hips-horizontal\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.InvalidPoseCannotReachTransforms(\"hips-overflow\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.InvalidPoseCannotReachTransforms(\"short-rotations\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.InvalidPoseCannotReachTransforms(\"nonunit\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.InvalidPoseCannotReachTransforms(\"extra\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.InvalidPoseCannotReachTransforms(\"duplicate\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.InvalidPoseCannotReachTransforms(\"short-hips\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.InvalidPoseCannotReachTransforms(\"coerced-rotation\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.JsonNetExtensionsCannotRelaxTheWireGrammar(\"single-quotes\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.JsonNetExtensionsCannotRelaxTheWireGrammar(\"unquoted\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.JsonNetExtensionsCannotRelaxTheWireGrammar(\"trailing-comma\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.JsonNetExtensionsCannotRelaxTheWireGrammar(\"comment\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.JsonNetExtensionsCannotRelaxTheWireGrammar(\"hex\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.JsonNetExtensionsCannotRelaxTheWireGrammar(\"plus\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.MalformedCredentialsCannotBeUsed(null)",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.MalformedCredentialsCannotBeUsed(\"\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.MalformedCredentialsCannotBeUsed(\"short\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.MalformedCredentialsCannotBeUsed(\"48e7caaf-68f4-1676-a0a3-d8bc04471b8e.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.MalformedCredentialsCannotBeUsed(\"48e7caaf-68f4-4676-70a3-d8bc04471b8e.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.MalformedCredentialsCannotBeUsed(\"48E7caaf-68f4-4676-a0a3-d8bc04471b8e.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.MalformedCredentialsCannotBeUsed(\"48e7caaf-68f4-4676-a0a3-d8bc04471b8e.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa=\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.MalformedOrDeepJsonIsRejected(\"[]\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.MalformedOrDeepJsonIsRejected(\"null\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.MalformedOrDeepJsonIsRejected(\"{} {}\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.MalformedOrDeepJsonIsRejected(\"{bad}\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.MalformedOrDeepJsonIsRejected(\"{\\\"type\\\":\\\"hello\\\",\\\"x\\\":[[[[[[[[[0]]]]]]]]]} \")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.OversizedUtf8JsonIsRejectedBeforeParsing",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.ValidAcknowledgementAndLongLiveTimelineAreAccepted",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.ValidCredentialsProduceOnlyTheRequiredSinkHello",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.VersionMustBeExactInteger(\"true\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.VersionMustBeExactInteger(\"\\\"2\\\"\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.VersionMustBeExactInteger(\"2.0\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.VersionMustBeExactInteger(\"1\")",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.WhitespaceAndOverlongCredentialsAreRejected",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveProtocolTests.WholeMessageLimitAndInvalidUtf8ClearPendingFragments",
+        "classname": "EmoteCap.Tests.LiveProtocolTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.CanonicalFbxTests.ActualUnityGenericImportPreservesCanonicalHeadsAndBoneDirectionsAtEverySourceTime(\"Sample_Raise_Right_Arm\")",
+        "classname": "EmoteCap.Samples.Tests.CanonicalFbxTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.CanonicalFbxTests.ActualUnityGenericImportPreservesCanonicalHeadsAndBoneDirectionsAtEverySourceTime(\"Quality_Tpose\")",
+        "classname": "EmoteCap.Samples.Tests.CanonicalFbxTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.CanonicalFbxTests.ActualUnityGenericImportPreservesCanonicalHeadsAndBoneDirectionsAtEverySourceTime(\"Quality_PosedStart\")",
+        "classname": "EmoteCap.Samples.Tests.CanonicalFbxTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.CanonicalFbxTests.ActualUnityGenericImportPreservesCanonicalHeadsAndBoneDirectionsAtEverySourceTime(\"Quality_Irregular\")",
+        "classname": "EmoteCap.Samples.Tests.CanonicalFbxTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.CanonicalFbxTests.ActualUnityGenericImportPreservesCanonicalHeadsAndBoneDirectionsAtEverySourceTime(\"Quality_Body\")",
+        "classname": "EmoteCap.Samples.Tests.CanonicalFbxTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.CanonicalFbxTests.ActualUnityGenericImportPreservesCanonicalHeadsAndBoneDirectionsAtEverySourceTime(\"Quality_Single\")",
+        "classname": "EmoteCap.Samples.Tests.CanonicalFbxTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.CanonicalFbxTests.ActualUnityGenericImportPreservesCanonicalHeadsAndBoneDirectionsAtEverySourceTime(\"Quality_Fingers\")",
+        "classname": "EmoteCap.Samples.Tests.CanonicalFbxTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.FbxImportTests.RealBlenderFbxImportsHumanoidWithOriginalDurationAndSidecar(\"Sample_Raise_Right_Arm\")",
+        "classname": "EmoteCap.Samples.Tests.FbxImportTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.FbxImportTests.RealBlenderFbxImportsHumanoidWithOriginalDurationAndSidecar(\"Quality_Tpose\")",
+        "classname": "EmoteCap.Samples.Tests.FbxImportTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.FbxImportTests.RealBlenderFbxImportsHumanoidWithOriginalDurationAndSidecar(\"Quality_PosedStart\")",
+        "classname": "EmoteCap.Samples.Tests.FbxImportTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.FbxImportTests.RealBlenderFbxImportsHumanoidWithOriginalDurationAndSidecar(\"Quality_Irregular\")",
+        "classname": "EmoteCap.Samples.Tests.FbxImportTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.FbxImportTests.RealBlenderFbxImportsHumanoidWithOriginalDurationAndSidecar(\"Quality_Body\")",
+        "classname": "EmoteCap.Samples.Tests.FbxImportTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.FbxImportTests.RealBlenderFbxImportsHumanoidWithOriginalDurationAndSidecar(\"Quality_Single\")",
+        "classname": "EmoteCap.Samples.Tests.FbxImportTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.FbxImportTests.RealBlenderFbxImportsHumanoidWithOriginalDurationAndSidecar(\"Quality_Fingers\")",
+        "classname": "EmoteCap.Samples.Tests.FbxImportTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.StarterRigTests.BuilderRejectsForeignDestination(\"Assets/../foreign\")",
+        "classname": "EmoteCap.Samples.Tests.StarterRigTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.StarterRigTests.BuilderRejectsForeignDestination(\"Packages/StarterRigs\")",
+        "classname": "EmoteCap.Samples.Tests.StarterRigTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.StarterRigTests.BuilderRejectsForeignDestination(\"Assets/Other/StarterRigs\")",
+        "classname": "EmoteCap.Samples.Tests.StarterRigTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.StarterRigTests.OriginalRigHasAllDrivenMappings(False)",
+        "classname": "EmoteCap.Samples.Tests.StarterRigTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.StarterRigTests.OriginalRigHasAllDrivenMappings(True)",
+        "classname": "EmoteCap.Samples.Tests.StarterRigTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.StarterRigTests.PreparedPrefabsRemainValidAfterFreshEditorImport",
+        "classname": "EmoteCap.Samples.Tests.StarterRigTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.StarterRigTests.SavedPrefabsReloadWithPersistentAvatarMeshAndMaterial",
+        "classname": "EmoteCap.Samples.Tests.StarterRigTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.StarterRigTests.TallRigHasDifferentLimbToTorsoRatios",
+        "classname": "EmoteCap.Samples.Tests.StarterRigTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.StarterSceneTests.CreatingSampleCannotRebuildAnExistingUserPlaylistController",
+        "classname": "EmoteCap.Samples.Tests.StarterSceneTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.StarterSceneTests.ExistingSceneDestinationRejectsWithoutChangingAnySceneOrAsset",
+        "classname": "EmoteCap.Samples.Tests.StarterSceneTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.StarterSceneTests.ForeignSceneDestinationRejectsBeforeCreatingAnyScene",
+        "classname": "EmoteCap.Samples.Tests.StarterSceneTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.StarterSceneTests.SampleSceneSavesAndReloadsBothPlayersAndVisibleDependencies",
+        "classname": "EmoteCap.Samples.Tests.StarterSceneTests"
+      }
+    ],
+    "PlayMode": [
+      {
+        "fullname": "EmoteCap.Tests.LiveReceiverTests.AcceptedFramesAndNullSourceResetAreVisible",
+        "classname": "EmoteCap.Tests.LiveReceiverTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveReceiverTests.AcknowledgementDeadlineAbortsWithoutRetry",
+        "classname": "EmoteCap.Tests.LiveReceiverTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveReceiverTests.BadAckAndPolicyClosureNeverRetry",
+        "classname": "EmoteCap.Tests.LiveReceiverTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveReceiverTests.DestroyAbortsTheOwnedPendingConnection",
+        "classname": "EmoteCap.Tests.LiveReceiverTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveReceiverTests.DisableRejectsLateAcknowledgement",
+        "classname": "EmoteCap.Tests.LiveReceiverTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveReceiverTests.DisableRejectsLateFrameAfterAcknowledgement",
+        "classname": "EmoteCap.Tests.LiveReceiverTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveReceiverTests.FiniteGroundingStillLiftsTheLowestSole",
+        "classname": "EmoteCap.Tests.LiveReceiverTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveReceiverTests.FiniteWorldTargetPreservesParentLocalPose",
+        "classname": "EmoteCap.Tests.LiveReceiverTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveReceiverTests.GroundingOverflowPreservesTheWholePose",
+        "classname": "EmoteCap.Tests.LiveReceiverTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveReceiverTests.InvalidPairingAndNonLoopbackEndpointCannotConnect",
+        "classname": "EmoteCap.Tests.LiveReceiverTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveReceiverTests.LatestFrameWinsAndNewStreamRestartsItsTimeline",
+        "classname": "EmoteCap.Tests.LiveReceiverTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveReceiverTests.NewConnectCannotReceiveTheOldConnectionsFrames",
+        "classname": "EmoteCap.Tests.LiveReceiverTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveReceiverTests.NormalDisconnectWaitsThenReconnects",
+        "classname": "EmoteCap.Tests.LiveReceiverTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveReceiverTests.OriginalProceduralHumanoidIsValid",
+        "classname": "EmoteCap.Tests.LiveReceiverTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveReceiverTests.OverflowedTargetPreservesThePreviousPose",
+        "classname": "EmoteCap.Tests.LiveReceiverTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveReceiverTests.ProductionTransportPreservesSplitUtf8AndClearsOnClose",
+        "classname": "EmoteCap.Tests.LiveReceiverTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveReceiverTests.ProductionTransportRejectsBinaryAndOversizeFragments",
+        "classname": "EmoteCap.Tests.LiveReceiverTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveReceiverTests.ReceiverDoesNotConnectBeforeExplicitPairing",
+        "classname": "EmoteCap.Tests.LiveReceiverTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveReceiverTests.RotatedRootRetainsCanonicalWorldDeltaRetargeting",
+        "classname": "EmoteCap.Tests.LiveReceiverTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveReceiverTests.StopDuringConnectCannotSendLateCredentials",
+        "classname": "EmoteCap.Tests.LiveReceiverTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveReceiverTests.StopRejectsLateFrameAndDoesNotResumeOnEnable",
+        "classname": "EmoteCap.Tests.LiveReceiverTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveReceiverTests.ValidPairingIsSentButNeverSerialized",
+        "classname": "EmoteCap.Tests.LiveReceiverTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveRelayInteropTests.DisableClosesRealSinkAndRejectsFurtherSourceFrames",
+        "classname": "EmoteCap.Tests.LiveRelayInteropTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveRelayInteropTests.ExpiredPairingStopsWithoutRetry",
+        "classname": "EmoteCap.Tests.LiveRelayInteropTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveRelayInteropTests.NewSourceRestartsTimeAfterNullSourceAnnouncement",
+        "classname": "EmoteCap.Tests.LiveRelayInteropTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveRelayInteropTests.OrdinaryClosureReconnectsThenReceivesNewFrame",
+        "classname": "EmoteCap.Tests.LiveRelayInteropTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveRelayInteropTests.PairedRelayDeliversItsFixtureAndStopClosesSink",
+        "classname": "EmoteCap.Tests.LiveRelayInteropTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveRelayInteropTests.PairingsAndCompetingSourceStayIsolated",
+        "classname": "EmoteCap.Tests.LiveRelayInteropTests"
+      },
+      {
+        "fullname": "EmoteCap.Tests.LiveRelayInteropTests.WrongSecretAndRevokedCodeNeverDrivePose",
+        "classname": "EmoteCap.Tests.LiveRelayInteropTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.ClipPlayerTests.ActualPlayerAdvancesAndHoldsTheRaisedPoseOnBothRigs",
+        "classname": "EmoteCap.Samples.Tests.ClipPlayerTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.ClipPlayerTests.ActualPlayerLoopsAndPlayAllSwitchesItsRealClips",
+        "classname": "EmoteCap.Samples.Tests.ClipPlayerTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.ClipPlayerTests.DisablingPlayerStopsItsOwnedGraphAndEnableResumes",
+        "classname": "EmoteCap.Samples.Tests.ClipPlayerTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.FbxPlaybackTests.ActualMirroredAndFrozenFbxCannotPassTheRightHandAcceptance",
+        "classname": "EmoteCap.Samples.Tests.FbxPlaybackTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.FbxPlaybackTests.EveryRealFixtureStaysFiniteAndHeadUpOnBothRigProportions",
+        "classname": "EmoteCap.Samples.Tests.FbxPlaybackTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.FbxPlaybackTests.RealHumanoidClipMovesTheRightHandOnBothProportionsAndRotatedRoots",
+        "classname": "EmoteCap.Samples.Tests.FbxPlaybackTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.FbxPlaybackTests.SingleFrameHumanoidActuallyHoldsItsPosedSourceOnBothRigs",
+        "classname": "EmoteCap.Samples.Tests.FbxPlaybackTests"
+      },
+      {
+        "fullname": "EmoteCap.Samples.Tests.SampleRenderTests.SavedSceneActuallyRendersBothColoredCharactersAndTheirRaisedPose",
+        "classname": "EmoteCap.Samples.Tests.SampleRenderTests"
+      }
+    ]
+  }
+}
