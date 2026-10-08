@@ -167,6 +167,70 @@ namespace EmoteCap.Tests
             yield return Until(()=>receiver.Status=="pairing rejected",6);
             Assert.That(transport.Aborted,Is.True);Assert.That(transport.ConnectCount,Is.EqualTo(1));
         }
+        [UnityTest] public IEnumerator FiniteWorldTargetPreservesParentLocalPose()
+        {
+            var transport=new FakeTransport();var receiver=Create(transport);
+            var rig=rigs[0];var hips=rig.Animator.GetBoneTransform(HumanBodyBones.Hips);
+            hips.localPosition=new Vector3(0,3,0);rig.Root.transform.localScale=Vector3.one*.1f;
+            yield return null;Assert.That(receiver.ConnectPairing(Code),Is.True);
+            transport.Push(Hello());transport.Push(Frame(1));yield return Until(()=>receiver.AcceptedFrameCount==1);
+            yield return null;
+            var joints=rig.Root.GetComponentsInChildren<Transform>();
+            var positions=joints.Select(joint=>joint.localPosition).ToArray();
+            var rotations=joints.Select(joint=>joint.localRotation).ToArray();
+            var frame=JObject.Parse(Frame(2,float.MaxValue/2));
+            var rotation=Quaternion.AngleAxis(35,Vector3.up);
+            frame["r"][0]=rotation.x;frame["r"][1]=rotation.y;frame["r"][2]=rotation.z;frame["r"][3]=rotation.w;
+            LogAssert.ignoreFailingMessages=true;
+            try {
+                transport.Push(frame.ToString(Formatting.None));yield return Until(()=>receiver.AcceptedFrameCount==2);
+                yield return null;yield return null;
+                Assert.That(receiver.Status,Is.EqualTo("invalid pose target"));
+                for(var i=0;i<joints.Length;i++) {
+                    Assert.That(joints[i].localPosition,Is.EqualTo(positions[i]),joints[i].name);
+                    Assert.That(Quaternion.Angle(joints[i].localRotation,rotations[i]),Is.LessThan(.001f),joints[i].name);
+                }
+                Assert.That(float.IsNaN(hips.position.y)||float.IsInfinity(hips.position.y),Is.False);
+            } finally {LogAssert.ignoreFailingMessages=false;}
+        }
+        [UnityTest] public IEnumerator FiniteGroundingStillLiftsTheLowestSole()
+        {
+            var transport=new FakeTransport();var receiver=Create(transport);yield return null;
+            Assert.That(receiver.ConnectPairing(Code),Is.True);
+            var offsets=(float[])typeof(EmoteCapLiveLink).GetField("soleHeights",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(receiver);
+            for(var i=0;i<offsets.Length;i++)offsets[i]+=.02f;
+            Field(receiver,"groundFeet",true);
+            transport.Push(Hello());transport.Push(Frame(1));yield return Until(()=>receiver.AcceptedFrameCount==1);
+            yield return null;
+            Assert.That(receiver.Status,Is.EqualTo("receiving"));
+            Assert.That(rigs[0].Animator.GetBoneTransform(HumanBodyBones.Hips).position.y,Is.EqualTo(.97f).Within(.0001f));
+        }
+        [UnityTest] public IEnumerator GroundingOverflowPreservesTheWholePose()
+        {
+            var transport=new FakeTransport();var receiver=Create(transport);
+            var rig=rigs[0];rig.Root.transform.localScale=Vector3.one*.1f;
+            yield return null;Assert.That(receiver.ConnectPairing(Code),Is.True);
+            transport.Push(Hello());transport.Push(Frame(1));yield return Until(()=>receiver.AcceptedFrameCount==1);
+            yield return null;
+            var joints=rig.Root.GetComponentsInChildren<Transform>();
+            var positions=joints.Select(joint=>joint.localPosition).ToArray();
+            var rotations=joints.Select(joint=>joint.localRotation).ToArray();
+            // Exercise the grounding conversion with finite recorded sole offsets.
+            Field(receiver,"soleHeights",Enumerable.Repeat(float.MaxValue/2,4).ToArray());
+            Field(receiver,"groundFeet",true);
+            var frame=JObject.Parse(Frame(2));var rotation=Quaternion.AngleAxis(35,Vector3.up);
+            frame["r"][0]=rotation.x;frame["r"][1]=rotation.y;frame["r"][2]=rotation.z;frame["r"][3]=rotation.w;
+            LogAssert.ignoreFailingMessages=true;
+            try {
+                transport.Push(frame.ToString(Formatting.None));yield return Until(()=>receiver.AcceptedFrameCount==2);
+                yield return null;yield return null;
+                Assert.That(receiver.Status,Is.EqualTo("invalid pose target"));
+                for(var i=0;i<joints.Length;i++) {
+                    Assert.That(joints[i].localPosition,Is.EqualTo(positions[i]),joints[i].name);
+                    Assert.That(Quaternion.Angle(joints[i].localRotation,rotations[i]),Is.LessThan(.001f),joints[i].name);
+                }
+            } finally {LogAssert.ignoreFailingMessages=false;}
+        }
         [UnityTest] public IEnumerator OverflowedTargetPreservesThePreviousPose()
         {
             var transport=new FakeTransport();var receiver=Create(transport);

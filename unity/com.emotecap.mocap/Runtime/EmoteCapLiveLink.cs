@@ -116,6 +116,13 @@ namespace EmoteCap
         void ClearStream() {latest=null;applied=null;hasTarget=false;LastFrameTimestamp=-1;}
         static bool Finite(float value) => !float.IsNaN(value)&&!float.IsInfinity(value);
         static bool Finite(Quaternion value) => Finite(value.x)&&Finite(value.y)&&Finite(value.z)&&Finite(value.w);
+        static bool Finite(Vector3 value) => Finite(value.x)&&Finite(value.y)&&Finite(value.z);
+        static bool TryLocalPosition(Transform joint,Vector3 world,out Vector3 local)
+        {
+            local=joint.parent!=null?joint.parent.InverseTransformPoint(world):world;
+            return Finite(world)&&Finite(local)&&
+                (joint.parent==null||Finite(joint.parent.TransformPoint(local)));
+        }
 
         void LateUpdate()
         {
@@ -140,17 +147,27 @@ namespace EmoteCap
             if(applyHipsHeight&&(!Finite(nextHeight)||!Finite(transform.position.y+nextHeight))) {
                 hasTarget=false;Status="invalid pose target";return;
             }
-            for(var i=0;i<bones.Length;i++)if(bones[i]!=null){shownWorld[i]=nextWorld[i];bones[i].rotation=shownWorld[i];}
+            var hips=bones[0];var position=hips.position;
+            if(applyHipsHeight)position.y=transform.position.y+nextHeight;
+            if(!TryLocalPosition(hips,position,out var nextLocal)) {
+                hasTarget=false;Status="invalid pose target";return;
+            }
+            // Grounding depends on the proposed rotations. Keep local snapshots until
+            // its final world-to-local conversion has passed, then commit display state.
+            var previousRotations=bones.Select(bone=>bone!=null?bone.localRotation:Quaternion.identity).ToArray();
+            var previousPosition=hips.localPosition;
+            for(var i=0;i<bones.Length;i++)if(bones[i]!=null)bones[i].rotation=nextWorld[i];
             if (applyHipsHeight)
             {
-                shownHipsHeight = nextHeight;
-                var hips = bones[0];
-                var position = hips.position;
-                position.y = transform.position.y + shownHipsHeight;
-                hips.position = position;
+                hips.localPosition=nextLocal;
             }
-
-            if (groundFeet) GroundLowestSole();
+            if (groundFeet&&!GroundLowestSole()) {
+                for(var i=0;i<bones.Length;i++)if(bones[i]!=null)bones[i].localRotation=previousRotations[i];
+                hips.localPosition=previousPosition;
+                hasTarget=false;Status="invalid pose target";return;
+            }
+            System.Array.Copy(nextWorld,shownWorld,nextWorld.Length);
+            if(applyHipsHeight)shownHipsHeight=nextHeight;
         }
 
         bool SetTargets(LiveMessage frame)
@@ -189,18 +206,27 @@ namespace EmoteCap
             }
         }
 
-        void GroundLowestSole()
+        bool GroundLowestSole()
         {
             var lowest = float.PositiveInfinity;
             for (var i = 0; i < soleJoints.Length; i++)
             {
-                if (soleJoints[i] != null) lowest = Mathf.Min(lowest, soleJoints[i].position.y - soleHeights[i]);
+                if (soleJoints[i] != null) {
+                    var height=soleJoints[i].position.y-soleHeights[i];
+                    if(!Finite(height))return false;
+                    lowest=Mathf.Min(lowest,height);
+                }
             }
-            if (float.IsPositiveInfinity(lowest)) return;
+            if (float.IsPositiveInfinity(lowest)) return true;
             var floatHeight = lowest - transform.position.y;
+            if(!Finite(floatHeight))return false;
             // Below the floor: always lift. Slightly above: pull down (proportion mismatch). Well above: a jump.
-            if (floatHeight < airborneThreshold&&Finite(floatHeight)&&Finite(bones[0].position.y-floatHeight))
-                bones[0].position -= Vector3.up * floatHeight;
+            if (floatHeight < airborneThreshold) {
+                var world=bones[0].position-Vector3.up*floatHeight;
+                if(!TryLocalPosition(bones[0],world,out var local))return false;
+                bones[0].localPosition=local;
+            }
+            return true;
         }
 
         static async Task<T> Deadline<T>(Task<T> operation,double seconds,CancellationToken token)
