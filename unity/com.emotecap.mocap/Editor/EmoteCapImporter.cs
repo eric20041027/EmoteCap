@@ -47,6 +47,9 @@ namespace EmoteCap.Editor
             var loop = sidecar != null && sidecar.loop;
             foreach (var clip in clips)
             {
+                // Unity does not generate Humanoid muscle curves for a zero-length
+                // take. One output frame holds the sole pose without a rest preroll.
+                if(clip.lastFrame<=clip.firstFrame)clip.lastFrame=clip.firstFrame+1;
                 clip.name = clipName;
                 clip.loopTime = loop;
                 clip.loopPose = loop;

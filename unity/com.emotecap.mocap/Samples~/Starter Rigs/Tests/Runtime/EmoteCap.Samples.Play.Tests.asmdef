@@ -1,8 +1,7 @@
 {
-  "name": "EmoteCap.Samples.Editor.Tests",
+  "name": "EmoteCap.Samples.Play.Tests",
   "rootNamespace": "EmoteCap.Samples.Tests",
-  "references": ["EmoteCap.Runtime", "EmoteCap.Samples.Editor"],
-  "includePlatforms": ["Editor"],
+  "references": ["EmoteCap.Runtime"],
   "overrideReferences": true,
   "precompiledReferences": ["nunit.framework.dll", "Newtonsoft.Json.dll"],
   "optionalUnityReferences": ["TestAssemblies"],

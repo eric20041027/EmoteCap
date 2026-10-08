@@ -70,17 +70,26 @@ Python controls admit selected quality paths and reject sibling/traversal/unknow
     foreach(var prefab in new[]{"Standard","Tall"}) {
         var rig=UnityEngine.Object.Instantiate(UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(
             "Assets/EmoteCap/StarterRigs/"+prefab+".prefab"));
-        // Evaluate the real imported clip at0 and its raised-hand sample using Playables.
-        // Capture named hands/head/limb lengths in root coordinates and require
-        // right-hand elevation, head-up, stable segment lengths and finite transforms.
-        // Persist every measured source timestamp plus clip/input/prefab hashes.
+        var animator=rig.GetComponent<Animator>();
+        var clip=UnityEditor.AssetDatabase.LoadAllAssetsAtPath("Assets/EmoteCap/QualityExports/Sample_Raise_Right_Arm.fbx")
+            .OfType<AnimationClip>().Single(value=>!value.name.StartsWith("__preview"));
+        var graph=PlayableGraph.Create("Owned sample playback");
+        try {
+            graph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
+            var output=AnimationPlayableOutput.Create(graph,"Humanoid",animator);
+            var playable=AnimationClipPlayable.Create(graph,clip);playable.SetApplyFootIK(false);
+            output.SetSourcePlayable(playable);graph.Play();
+            var right=animator.GetBoneTransform(HumanBodyBones.RightHand);
+            playable.SetTime(0);graph.Evaluate(0);var rest=right.position;
+            playable.SetTime(clip.length*.5);graph.Evaluate(0);
+            Assert.That(right.position.y-rest.y,Is.GreaterThan(.15f));
+        } finally {graph.Destroy();UnityEngine.Object.Destroy(rig);}
         yield return null;
-        UnityEngine.Object.Destroy(rig);
     }
 }
 ```
 
-Complete this test's explicit graph and assertions before running, never count the scaffold as evidence. Add a mirrored-right/left oracle negative control and unchanged/no-motion negative control; both must fail acceptance. Add root37degree and different-proportion checks. Run real Editor/PlayMode; watch any actual product failure before correction, separate unavailable-input/harness errors.
+The actual test extends this graph to every original source sample, both named hands/head, finite baked meshes, original segment lengths and in-place root positions; it persists timestamped measurements under the owned output. Add a mirrored-right/left oracle negative control and unchanged/no-motion negative control; both must fail acceptance. Add root37degree and different-proportion checks. Run real Editor/PlayMode; watch any actual product failure before correction, separate unavailable-input/harness errors.
 - [ ] **Step2: Correct demonstrated importer/player behavior and deliver scene.** Use observed importer/clip defaults; preserve root bake and sidecar semantics. Sample menu copies frozen public sample FBX/sidecar to destination and adds both players to persisted scene; show one menu to avoid overlapping controls. Tests verify both actual players advance, stop/hold/loop as intended and visible weighted mesh remains finite. Qualification runner rejects foreign/sibling/link/existing paths, damaged inputs/missing runtime/XML/nonfinite output, and stops only owned subprocesses. Reuse real relay fixture so original29Play cases are included without skipping.
 - [ ] **Step3: Verify/commit.** Actual both-mode whole suites including original55/29, two-rig/importer/player cases, real Blender input/output hashes; whole fast backend/Web/types/assets/build and appropriate local example checks. Commit `test: qualify Blender FBX playback on both Unity starter rigs`; task-done repeats actual both-mode gate. No broad hardware/privacy claims.
 
