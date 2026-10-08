@@ -1,0 +1,9 @@
+{
+  "name": "EmoteCap.Samples.Editor",
+  "rootNamespace": "EmoteCap.Samples.Editor",
+  "references": ["EmoteCap.Runtime"],
+  "includePlatforms": ["Editor"],
+  "overrideReferences": true,
+  "precompiledReferences": ["Newtonsoft.Json.dll"],
+  "autoReferenced": true
+}

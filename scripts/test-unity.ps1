@@ -4,11 +4,13 @@ param(
     [Parameter(Mandatory)][string]$ResultsPath,
     [Parameter(Mandatory)][string]$UnityPath,
     [string]$Filter,
+    [ValidateSet('2026-10-07-unity-receiver','2026-10-08-unity-quality')]
+    [string]$WorkspaceName='2026-10-07-unity-receiver',
     [ValidateRange(10,900)][int]$TimeoutSeconds=300
 )
 $ErrorActionPreference='Stop'
 $taskRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-$taskWorkspace=[IO.Path]::GetFullPath((Join-Path $taskRoot '.superpowers/sdd/2026-10-07-unity-receiver'))
+$taskWorkspace=[IO.Path]::GetFullPath((Join-Path $taskRoot ('.superpowers/sdd/'+$WorkspaceName)))
 function Assert-OwnedPath([string]$Value) {
     $taskFull=[IO.Path]::GetFullPath($Value)
     if (-not $taskFull.StartsWith($taskWorkspace+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)) {

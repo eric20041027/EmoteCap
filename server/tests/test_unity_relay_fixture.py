@@ -34,6 +34,13 @@ def test_fixture_health_exposes_only_public_identity_and_bounded_state(client):
 def test_runner_rejects_parent_traversal_before_writing_any_output():
     with pytest.raises(ValueError):fixture.owned_path(str(fixture.WORK/'child/../../../../foreign-output'))
 
+def test_runner_admits_only_the_selected_quality_workspace():
+    workspace='2026-10-08-unity-quality'
+    selected=fixture.ROOT/'.superpowers/sdd'/workspace/'project'
+    assert fixture.owned_path(str(selected),workspace)==selected
+    with pytest.raises(ValueError):fixture.owned_path(str(fixture.WORK/'project'),workspace)
+    with pytest.raises(ValueError):fixture.owned_path(str(selected),'../../foreign')
+
 def test_fixture_issues_sink_code_without_revealing_source_authorization(client):
     data=issue(client)
     assert set(data)=={'id','pairingCode','expiresAt'}

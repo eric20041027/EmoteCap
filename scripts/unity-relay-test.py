@@ -19,6 +19,7 @@ import uuid
 
 ROOT=Path(__file__).resolve().parents[1]
 WORK=ROOT/'.superpowers/sdd/2026-10-07-unity-receiver'
+WORKSPACES=('2026-10-07-unity-receiver','2026-10-08-unity-quality')
 sys.path.insert(0,str(ROOT/'server'))
 from fastapi import FastAPI,HTTPException,WebSocket
 from pydantic import BaseModel,ConfigDict,Field
@@ -131,12 +132,14 @@ def create_fixture_app(port:int,instance:str)->FastAPI:
         return {'stopping':server is not None}
     return app
 
-def owned_path(value:str)->Path:
+def owned_path(value:str,workspace_name:str=WORKSPACES[0])->Path:
+    if workspace_name not in WORKSPACES:raise ValueError('Unknown Unity qualification workspace')
+    work=(ROOT/'.superpowers/sdd'/workspace_name).absolute()
     raw=Path(value).absolute()
     for item in (raw,*raw.parents):
         if item.is_symlink() or item.is_junction():raise ValueError('Owned fixture paths cannot use links')
     candidate=Path(os.path.abspath(value))
-    if not candidate.is_relative_to(WORK.absolute()) or candidate==WORK.absolute():raise ValueError('Use paths inside the Unity plan workspace')
+    if not candidate.is_relative_to(work) or candidate==work:raise ValueError('Use paths inside the Unity plan workspace')
     return candidate
 
 def write_json(path:Path,value):
@@ -149,7 +152,8 @@ def request(base:str,path:str,method='GET'):
     return json.loads(raw)
 
 def run(args):
-    output=owned_path(args.output);project=owned_path(args.project);output.mkdir(parents=True,exist_ok=False)
+    workspace_name=getattr(args,'workspace_name',WORKSPACES[0])
+    output=owned_path(args.output,workspace_name);project=owned_path(args.project,workspace_name);output.mkdir(parents=True,exist_ok=False)
     if not (project/'Packages/manifest.json').is_file():raise ValueError('Explicit isolated project required')
     with socket.socket() as unused:
         unused.bind(('127.0.0.1',0));port=unused.getsockname()[1]
@@ -180,7 +184,7 @@ def run(args):
                 results=output/(mode+'.xml')
                 with (output/(mode+'-command.log')).open('xb') as command_log:
                     command=[args.powershell,'-NoProfile','-File',str(ROOT/'scripts/test-unity.ps1'),'-Mode',mode,
-                        '-ProjectPath',str(project),'-ResultsPath',str(results),'-UnityPath',args.unity]
+                        '-ProjectPath',str(project),'-ResultsPath',str(results),'-UnityPath',args.unity,'-WorkspaceName',workspace_name]
                     if args.filter:command+=['-Filter',args.filter]
                     child=subprocess.Popen(command,cwd=ROOT,env=environment,stdin=subprocess.DEVNULL,stdout=command_log,stderr=command_log,creationflags=flags)
                     try:code=child.wait(timeout=600)
@@ -207,6 +211,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--serve',action='store_true');parser.add_argument('--port',type=int);parser.add_argument('--instance')
     for option in ('project','output','unity','powershell','filter'):parser.add_argument('--'+option)
+    parser.add_argument('--workspace-name',choices=WORKSPACES,default=WORKSPACES[0])
     parser.add_argument('--mode',choices=('EditMode','PlayMode','both'),default='both');args=parser.parse_args()
     if args.serve:
         if args.port is None or not 1<=args.port<=65535 or not args.instance:parser.error('Owned serve needs port and instance')
