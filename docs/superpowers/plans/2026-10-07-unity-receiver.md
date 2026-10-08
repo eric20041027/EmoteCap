@@ -94,7 +94,7 @@ var frame=protocol.Parse(json);if(frame.type=="frame")latest=frame;
 
 **Interfaces:** Owned test relay binds an explicit unused loopback port, uses temporary settings/no jobs/provider, exposes paired protocol plus synthetic shared fixtures. Helper reports ownedPID/port/fixtureSHA and closes only that service after editor tests. Real Unity client sends sink hello, receives new/null stream and fixtureframes, stops on expiry/revoke and survives ordinary reconnect. No camera or paid SDK.
 
-- [ ] **Step1: Write/run interoperability RED.** Start only owned local relay and actual editor tests; assert wrong/old code never drives pose, valid ack/fixture delivery, source ownership isolation, newstream reset, expiry/no-retry and disable closing sink. Expected missing integration behavior fails explicit XML assertions, not service unavailability.
+- [x] **Step1: Write/run interoperability RED.** Start only owned local relay and actual editor tests; assert wrong/old code never drives pose, valid ack/fixture delivery, source ownership isolation, newstream reset, expiry/no-retry and disable closing sink. Expected missing integration behavior fails explicit XML assertions, not service unavailability.
 
 ```csharp
 [UnityTest] public IEnumerator PairedRelayDeliversOnlyItsFixture() {
@@ -104,6 +104,6 @@ var frame=protocol.Parse(json);if(frame.type=="frame")latest=frame;
 }
 ```
 
-- [ ] **Step2: Complete helpers/docs.** Document Play mode→paste→Connect, defaultoff/local-only/expiry/Stop and source/Avatar/controller troubleshooting; update Studio hint in the same increment. Record actual editor/framework/JSON versions/testcounts/sourceSHA, unused/unsupported2021.3 status and remaining two-rig/FBX/physical/laptop gates. Editor availability cannot make those gates pass.
-- [ ] **Step3: Verify/commit/review.** Actual EditMode/PlayMode+interop XML zero failures, full544+backend suite, wholeWeb/types/assets/build and impacted Edge pairing flows. Expected all pass; original take data unchanged/no secret in assets. Commit `test: qualify paired Unity relay interoperability`; task-done repeats whole actual editor gate. Dispatch one fresh most-capable C# whole-plan reviewer with exact plan/spec/ReviewFocus/ledger, no subagents/browser overwrites. One TDD correction pass Important/Critical; no re-review. Continue directly to real Blender/two-rig quality and M5.
+- [x] **Step2: Complete helpers/docs.** Document Play mode→paste→Connect, defaultoff/local-only/expiry/Stop and source/Avatar/controller troubleshooting; update Studio hint in the same increment. Record actual editor/framework/JSON versions/testcounts/sourceSHA, unused/unsupported2021.3 status and remaining two-rig/FBX/physical/laptop gates. Editor availability cannot make those gates pass.
+- [x] **Step3: Verify/commit/review.** Actual EditMode/PlayMode+interop XML zero failures, full544+backend suite, wholeWeb/types/assets/build and impacted Edge pairing flows. Expected all pass; original take data unchanged/no secret in assets. Commit `test: qualify paired Unity relay interoperability`; task-done repeats whole actual editor gate. Dispatch one fresh most-capable C# whole-plan reviewer with exact plan/spec/ReviewFocus/ledger, no subagents/browser overwrites. One TDD correction pass Important/Critical; no re-review. Continue directly to real Blender/two-rig quality and M5.
 
