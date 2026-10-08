@@ -72,6 +72,14 @@ def assert_geometry(report,clip):
 def assert_duration(report,clip):assert abs(report['durationSeconds']-clip['frames'][-1]['t'])<=1/clip['fps']+1e-6
 
 @pytest.mark.slow
+def test_real_fbx_float_frame_times_keep_unique_keys_and_full_animation(tmp_path):
+    clip=irregular_fixture([index/30 for index in range(126)])
+    report=roundtrip(clip,tmp_path)
+    assert report['duplicateKeyTimes']==0
+    assert_duration(report,clip)
+    assert_geometry(report,clip)
+
+@pytest.mark.slow
 @pytest.mark.parametrize('name',['tpose.clip.json','raise-right-arm.clip.json'])
 @pytest.mark.parametrize('mode',['full','body'])
 def test_real_fbx_preserves_canonical_pose_scale_and_timing(tmp_path,name,mode):

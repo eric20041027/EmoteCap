@@ -165,7 +165,11 @@ class _ScheduledNumpy:
         self.end = math.ceil(end * fps)
         self.stop = numpy.nextafter(self.end, numpy.inf)
         # Never choose a uniform step from the smallest input gap.
-        self.samples = numpy.array(sorted(set(range(self.end + 1)).union(times)), dtype=float)
+        # FCurve frame coordinates are float32. Nearly equal source/regular
+        # doubles can otherwise bake duplicate FBX ticks and corrupt reimport.
+        self.samples = numpy.unique(numpy.array(
+            sorted(set(range(self.end + 1)).union(times)), dtype=numpy.float32,
+        )).astype(float)
         if len(self.samples) > 43202:
             raise ValueError('FBX sampling exceeds its finite budget')
 

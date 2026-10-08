@@ -12,6 +12,14 @@ def main():
     for name in ('fbx','bones','clip','result'):parser.add_argument('--'+name,required=True)
     args=parser.parse_args(sys.argv[sys.argv.index('--')+1:])
     contract=json.loads(Path(args.bones).read_text());clip=json.loads(Path(args.clip).read_text())
+    from io_scene_fbx import parse_fbx
+    tree,_=parse_fbx.parse(args.fbx)
+    objects=next(elem for elem in tree.elems if elem.id==b'Objects')
+    duplicate_key_times=0
+    for curve in objects.elems:
+        if curve.id==b'AnimationCurve':
+            times=next(elem.props[0] for elem in curve.elems if elem.id==b'KeyTime')
+            duplicate_key_times+=len(times)-len(set(times))
     bpy.ops.wm.read_factory_settings(use_empty=True);scene=bpy.context.scene;scene.render.fps=clip['fps']
     bpy.ops.import_scene.fbx(filepath=args.fbx,anim_offset=0,use_anim=True,automatic_bone_orientation=False)
     armatures=[obj for obj in scene.objects if obj.type=='ARMATURE']
@@ -62,6 +70,6 @@ def main():
     result={'durationSeconds':float(action.frame_range[1]-action.frame_range[0])/clip['fps'],
             'bones':len(skeleton),'bindErrorMeters':max(bind_errors),
             'bindRotationErrorDegrees':max(bind_rotations),'bindScaleError':max(bind_scales),'samples':results,
-            'blenderVersion':bpy.app.version_string}
+            'blenderVersion':bpy.app.version_string,'duplicateKeyTimes':duplicate_key_times}
     Path(args.result).write_text(json.dumps(result,allow_nan=False),encoding='utf-8')
 if __name__=='__main__':main()
