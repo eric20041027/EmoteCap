@@ -38,7 +38,7 @@
 
 Existing runner adds `--workspace-name` and PowerShell `-WorkspaceName`, both exactly enumerated `2026-10-07-unity-receiver` (default) or `2026-10-08-unity-quality`; owned_path(value,workspace_name=default) validates the selected plan before output creation. No arbitrary root override.
 
-- [ ] **Step1: Write behavior tests and owned project.** Explicit manifest/localUPM/sample source copy with hashes; loadable builder shape may return an empty object to allow intended behavior RED. Tests must inspect actual valid avatars/all48bones/visible weightedmesh/different segment ratios, save/reload prefab assets and collision rejection.
+- [x] **Step1: Write behavior tests and owned project.** Explicit manifest/localUPM/sample source copy with hashes; loadable builder shape may return an empty object to allow intended behavior RED. Tests must inspect actual valid avatars/all48bones/visible weightedmesh/different segment ratios, save/reload prefab assets and collision rejection.
 
 ```csharp
 [TestCase(false)] [TestCase(true)] public void OriginalRigHasAllDrivenMappings(bool tall) {
@@ -54,8 +54,8 @@ Existing runner adds `--workspace-name` and PowerShell `-WorkspaceName`, both ex
 ```
 
 Python controls admit selected quality paths and reject sibling/traversal/unknown plans before writes. Run focused pytest and actual filtered Editor XML; Expected intended behavior failures, not compiler/import/license errors.
-- [ ] **Step2: Implement minimal original geometry/assets.** Parse the copied skeleton, construct parent-relative positions after proportion changes (tall hips1.10, leg offsets×1.20, arm offsets×1.15, torso offsets×0.90; standard canonical lengths), map52 Human names and build Avatar. Generate rigidly weighted box segments with per-bone bindposes/finite indices; persist assets before prefab save, use original colored material. Verify references after AssetDatabase unload/reload. Add sample entry `{displayName:"Starter Rigs",path:"Samples~/Starter Rigs",description:"Two original Humanoids and FBX playback scene"}`. Preserve original notice/dependency bytes.
-- [ ] **Step3: Run/commit actual gate.** Filtered whole StarterRig Editor suite, all original55Editor cases, runner ownership pytest. Record source-copy hashes/actual version/XML/no skips/owned terminal PID. Commit `feat: add original Unity starter rigs and persisted sample assets`; Native task-done repeats actual Editor gate.
+- [x] **Step2: Implement minimal original geometry/assets.** Parse the copied skeleton, construct parent-relative positions after proportion changes (tall hips1.10, leg offsets×1.20, arm offsets×1.15, torso offsets×0.90; standard canonical lengths), map52 Human names and build Avatar. Generate rigidly weighted box segments with per-bone bindposes/finite indices; persist assets before prefab save, use original colored material. Verify references after AssetDatabase unload/reload. Add sample entry `{displayName:"Starter Rigs",path:"Samples~/Starter Rigs",description:"Two original Humanoids and FBX playback scene"}`. Preserve original notice/dependency bytes.
+- [x] **Step3: Run/commit actual gate.** Filtered whole StarterRig Editor suite, all original55Editor cases, runner ownership pytest. Record source-copy hashes/actual version/XML/no skips/owned terminal PID. Commit `feat: add original Unity starter rigs and persisted sample assets`; Native task-done repeats actual Editor gate.
 
 ### Task 2: Actual Blender export, importer and two-rig PlayMode
 

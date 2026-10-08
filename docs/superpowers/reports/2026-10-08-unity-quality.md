@@ -21,3 +21,6 @@ The package samples metadata is present. The starter scene menu and public sampl
 - Keep StarterScene menu integration in Task2 because its real FBX dependency is created there; Task1 produces usable saved rig assets and owned preparation API; cost if wrong: the sample workflow is not accepted until Task2 closes this interface.
 - Tall's changed proportions can put the bind toe below root zero; do not silently alter canonical offsets or claim floor/animation qualification from Avatar validity; cost if wrong: actual sample floor/grounding behavior must be measured in Task2 before acceptance.
 - Original physical/rights/publication gates remain pending and cannot be filled by procedural sample tests; cost if wrong: source/package/sample success could otherwise be mistaken for full product approval.
+
+
+Fixed Task1source3ca0b57was rerun via Native task-done using the newly selected workspace and actual production relay: Editor63/63and Play29/29, zero failures/skips. Real protocol/lifecycle/7TCPcases were retained. Independent owned-process/port cleanup is recorded in task-1-done/independent-cleanup.json. No whole-plan final review yet; Task2/3follow.
