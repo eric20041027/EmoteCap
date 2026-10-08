@@ -47,7 +47,7 @@ Linux/macOS 原始碼開發可在相同建置後使用根目錄 `./start.sh`。�
 
 選擇 **Export FBX**，在 **Export jobs** 查看完成與下載、取消或重新建立重試工作。工作保留送出當下的片段版本，後續編輯不會改寫該工作。Blender、Unity 均未隨包附上。
 
-動作格式是48個受驅動骨骼；完整匯出骨架52根、純身體22根。[motion v2 契約](../contracts/motion-v1.md) 保留歷史檔名。本機 Unity UPM0.2.0要求6000.5；已在 Windows6000.5.9f1執行 Editor 與接收器測試。先進入 Play mode，再於接收器 Inspector 貼上 Studio 配對碼並按 Connect。新版尚未公開推送，先使用從磁碟安裝。[接收器指南](../unity/com.emotecap.mocap/Documentation~/paired-receiver.md)。整體審查、兩種角色／FBX播放與實機驗收仍待完成，2021.3未經驗證。
+動作格式是48個受驅動骨骼；完整匯出骨架52根、純身體22根。[motion v2 契約](../contracts/motion-v1.md) 保留歷史檔名。本機 Unity UPM0.2.0要求6000.5；已在 Windows6000.5.9f1執行 Editor 與接收器測試。先進入 Play mode，再於接收器 Inspector 貼上 Studio 配對碼並按 Connect。新版尚未公開推送，先使用從磁碟安裝。[接收器指南](../unity/com.emotecap.mocap/Documentation~/paired-receiver.md)。原創兩種身材角色已取得真實 FBX／播放測試證據；最終範例審查、實機／硬體／新使用者／權利與公開發布驗收仍待完成，2021.3未經驗證。
 
 ## 5. 分清楚三種資料選擇
 
@@ -60,3 +60,10 @@ Linux/macOS 原始碼開發可在相同建置後使用根目錄 `./start.sh`。�
 Windows 安裝包目前是內部候選版，還需重建納入新的 SDK 同意畫面、確認授權與第三方通知，並完成乾淨機器與新使用者驗收。[候選版說明](windows-candidate.md)、[發布檢查表](release-checklist.md)。
 
 專案 MIT 授權與原作者、共同貢獻者、四個既有媒體檔案的發布權利尚待確認，不能由公開儲存庫推定。[授權提案](release-license-proposal.md)。參與開發請看 [CONTRIBUTING](../CONTRIBUTING.md)、安全問題請看 [SECURITY](../SECURITY.md)。
+
+
+## 不用鏡頭即可播放的 Unity 範例
+
+使用已驗證的 WindowsUnity6000.5.9f1與 Built-in Render Pipeline 專案。在 Package Manager 選擇 EmoteCap Mocap，匯入 Starter Rigs 範例；進入 Play mode 前選擇 **EmoteCap → Create Starter Scene**，依 Unity 提示保存修改中的場景，再按 Play。兩個不同身材的原創角色會播放舉右手動畫，不需要鏡頭、Gemini 金鑰或配對碼。
+
+輸出保存在 Assets/EmoteCap/StarterRigs；再次建立會拒絕既有目的地，請直接開啟已保存的 StarterScene。畫面中的選單控制 Standard，Tall 會獨立播放同一個初始片段。測試自己的匯出時，將該角色 Clip Player 的 Editor Folder 改成匯出資料夾，進入 Play 後按 Refresh；可逐一開啟角色的 Show Menu。停用播放器會停止它持有的動畫 graph。其他 Render Pipeline／平台／版本仍需另外驗證。[完整範例指南](../unity/com.emotecap.mocap/Documentation~/sample-playback.md)。

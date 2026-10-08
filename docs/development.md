@@ -64,7 +64,7 @@ Explicitly enable it in Studio, copy the Unity pairing code and use a receiver
 supporting that handshake. The service checks exact motionv2 bones and one source
 per pairing.1008rejects incompatible/expired connections; Stop invalidates the code
 when confirmed. Failed cleanup stays visible with its code/expiry and a retry action.
-The local0.2.0paired receiver targets Unity6000.5.9f1onWindows. Enter Play mode, paste the code in its Inspector, then Connect. [Receiver guide](../unity/com.emotecap.mocap/Documentation~/paired-receiver.md) records actual test scope and remaining gates. The historical0.1.0unpaired component remains incompatible;2021.3and two-rig/FBX/physical acceptance are unqualified.
+The local0.2.0paired receiver targets Unity6000.5.9f1onWindows. Enter Play mode, paste the code in its Inspector, then Connect. [Receiver guide](../unity/com.emotecap.mocap/Documentation~/paired-receiver.md) records the accepted receiver scope. [Starter Rigs](../unity/com.emotecap.mocap/Documentation~/sample-playback.md) adds actual two-rig FBX/player/Built-in graphics qualification. The historical0.1.0unpaired component remains incompatible;2021.3, other targets and physical/hardware/human acceptance remain unqualified.
 
 ## What the checks prove
 
@@ -81,6 +81,14 @@ With Blender configured, run `uv run --frozen --python 3.12.14 pytest -q -m slow
 from `server/` for the real export smoke tests. A skipped test is not a pass.
 Before a release, also verify right-arm direction, scale, timing, and playback
 in Unity using both shared fixtures and approved sample recordings.
+
+For the actual original-rig/FBX/Unity lane, use the managed server Python and installed runtime paths from the repository root:
+
+```text
+server/.venv/Scripts/python.exe scripts/unity-quality.py --output .superpowers/sdd/2026-10-08-unity-quality/fresh-run --unity "<installed Unity6000.5.9f1 executable>" --blender "<installed Blender4.5.14 executable>" --powershell "<installed PowerShell7 executable>"
+```
+
+The output must be fresh. This creates only an owned project, runs real Blender, imports the sample, launches hidden batch Editors with actual graphics for rendered checks and exercises production local relay/player behavior. XML must contain all required original/new classes with zero failures/skips. Exact source/material hashes and owned PID/port receipts are retained. It does not establish physical capture, target-laptop performance, complete redistribution rights or public release readiness.
 
 ## Changes and review
 

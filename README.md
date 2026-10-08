@@ -14,7 +14,7 @@ A local motion studio for turning camera or video performance into Humanoid anim
 | Camera/video → original take → editable clips | Implemented; synthetic lifecycle checks pass; real tracking/encoder/hardware measurements pending |
 | `.emotecap` project backup, optional source video | Validated archives; import creates a new project identity; original motion preserved |
 | FBX jobs, cancel/retry/restart recovery | Local service and Blender export qualified; each job preserves its submitted clip revision |
-| Paired local Live Link | Service/browser plus local paired Unity receiver implemented; whole-plan review and two-rig/FBX/physical acceptance pending |
+| Paired local Live Link | Service/browser/paired Unity receiver accepted locally; original-rig FBX/player/render evidence added; final sample review and physical acceptance pending |
 | Windows package | Internal candidate qualified locally; needs new SDK UI rebuild, notices/rights and clean-machine acceptance |
 
 The current motion contract has **48 driven bones**, with **52 full-skeleton export bones** or **22 body-only export bones**. Coordinates, meters, bone order and validation are defined in the [motion v2 contract](contracts/motion-v1.md); its historical filename is retained.
@@ -54,7 +54,7 @@ FBX export requires a separate Blender installation. Actual qualification covers
 .\start.cmd --blender "C:\Program Files\Blender Foundation\Blender 4.5\blender.exe"
 ```
 
-Select **Export FBX** and follow **Export jobs** for completion/download, cancellation or a new retry. Blender and Unity are not bundled. The local Unity UPM0.2.0requires6000.5; actual Windows6000.5.9f1Editor and paired receiver tests run locally. Enter Play mode first, paste Studio’s code in the receiver Inspector, then Connect. The new source remains unpublished; install the local package from disk. [Receiver guide](unity/com.emotecap.mocap/Documentation~/paired-receiver.md). Whole-plan review, two-rig/FBXplayback and physical acceptance remain pending;2021.3is unqualified.
+Select **Export FBX** and follow **Export jobs** for completion/download, cancellation or a new retry. Blender and Unity are not bundled. The local Unity UPM0.2.0requires6000.5; actual Windows6000.5.9f1Editor and paired receiver tests run locally. Enter Play mode first, paste Studio’s code in the receiver Inspector, then Connect. The new source remains unpublished; install the local package from disk. [Receiver guide](unity/com.emotecap.mocap/Documentation~/paired-receiver.md). The original [Starter Rigs sample](unity/com.emotecap.mocap/Documentation~/sample-playback.md) creates a saved two-character scene and plays real FBX without a camera/key/pairing. Actual Windows6000.5.9f1/Built-in checks pass; final sample review and physical/hardware/new-user/rights/publication gates remain pending.2021.3is unqualified.
 
 ## Data and processing choices
 

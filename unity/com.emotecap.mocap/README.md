@@ -4,7 +4,7 @@ Imports EmoteCap FBX clips as Humanoid animations and drives characters live fro
 
 ## Install
 
-This local0.2.0candidate requires Unity6000.5or newer. Actual qualification targets Windows/6000.5.9f1; other Editors/platforms and two-rig/FBX playback are not yet qualified. The former2021.3declaration is unsupported by this candidate. The new paired source has not been publicly published.
+This local0.2.0candidate requires Unity6000.5or newer. Actual qualification targets Windows/6000.5.9f1. Original Starter Rigs and real FBX playback are tested in the Built-in Render Pipeline; other Editors/platforms/rendering pipelines/player builds are unqualified. The former2021.3declaration is unsupported by this candidate. This source has not been publicly published; final sample review and broader release gates remain pending.
 
 Package Manager → **+** → **Add package from disk…** → this folder's `package.json`. After reviewed source publication, use the Git package URL pinned to its qualified commit/tag; remote main still contains the historical unpaired receiver.
 
@@ -20,7 +20,11 @@ Set `UNITY_EXPORT_DIR` in the repo's `.env` to `<YourProject>/Assets/EmoteCap` s
 | **EmoteCap Reset Props** | The parent of your props | Press **R** (or the on-screen button) to put every Rigidbody back where it started. |
 | **EmoteCap Clip Player** | Any Humanoid | On-screen menu: pick a clip from `Assets/EmoteCap` (newest first), toggle **Loop**, or play all in order. Runs on Playables, so no Animator Controller is needed. |
 
-Menu **EmoteCap → Play Latest Export** rebuilds every Animator Controller named `EmoteCapClips` as a looping playlist of the newest export (this also happens automatically after each export).
+Menu **EmoteCap → Play Latest Export** rebuilds every Animator Controller named `EmoteCapClips` as a looping playlist of the newest ordinary export (this also happens automatically after ordinary exports). The reserved Starter Rigs sample paths are excluded so creating a sample preserves unrelated controllers.
+
+## Original Starter Rigs
+
+Import **Starter Rigs** in Package Manager, choose **EmoteCap → Create Starter Scene** before Play mode, then press Play. Two original colored Humanoids play the bundled right-hand-raise clip without a camera, key or pairing. Assets and scene references persist; existing destinations reject. [Sample workflow and qualification](Documentation~/sample-playback.md) covers controls, your own exports and the exact supported target.
 
 ## Tips
 
