@@ -4,6 +4,8 @@ This assessment records observed contents of the internal Windows candidate buil
 
 ## Observed material
 
+The [source-notice implementation](superpowers/plans/2026-10-08-source-notices.md) now adds the two exact supplemental licenses and three source-form declarations to the frozen index, with source/native correspondence checks and a generated recipient notice. Actual preparation exposed two additional nested production certifi tests beyond the earlier12root-file observation; all14preferred source files are now included. This addresses the scoped text/source-access integration; other native/SDK/owner and formal release conditions stay pending. Candidate qualification is recorded separately after a fixed source build.
+
 | Component | Actual evidence | Next required action |
 |---|---|---|
 | Python/native runtime | All54recorded DLL/PYD hashes match the candidate. All54ordinary/delay import tables parsed;44runtime and10production extensions are separately recorded. | Complete native/static dependency attribution; do not treat outer package metadata as a complete embedded-component list. |

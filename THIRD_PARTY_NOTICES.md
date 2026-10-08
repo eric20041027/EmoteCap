@@ -9,6 +9,8 @@ Use [third_party/inventory.json](third_party/inventory.json) to find exact compo
 |35Python production distributions | Actual verified prepared payload; supplied license texts copied; full native/vendor assessment pending |
 |6Web runtime packages | Frozen package-lock and installed version match; supplied root texts copied; MediaPipe upstream source LICENSE supplementary |
 |Python3.12.14/build20260825 | Pinned official archives and prepared receipt; runtime companions and pip/vendor/embedded-wheel texts preserved |
+|OpenSSL4.0.2inside cryptography50.0.1 | Exact upstream Apache2LICENSE copied as supplemental evidence and linked to the observed native-file hash; full native/Rust coverage pending |
+|Three certifi source copies | MPL2terms and14actual source files are declared; generated package SOURCE-ACCESS.txt identifies direct/vendor/embedded-wheel locations |
 |3MediaPipe task models | Actual bytes match committed SHA256; Google model-card Apache2evidence separate from SDK; task archive coverage pending |
 |Native DLL/PYD components | Exact metadata inventory; Microsoft runtime basis and native/static-link/source-form conditions unresolved |
 |Blender/Unity | Separate user prerequisites; not bundled; Unity licensed execution/receiver qualification pending |

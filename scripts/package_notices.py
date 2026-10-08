@@ -6,6 +6,7 @@ import re
 
 from package_files import (PackageError, copy_tree, file_inventory, ordinary_path,
                            safe_name, sha256_file, verify_inventory)
+from source_notices import validate_source_notices
 
 LOCK_PATHS = {'server/pyproject.toml','server/uv.lock','web/package-lock.json',
               'web/scripts/mediapipe-assets.json','packaging/python-runtime.json'}
@@ -120,7 +121,10 @@ def validate_notices(snapshot:Path,prepared:Path,public_files:list[dict])->dict:
             raise PackageError('Licensing assessment gaps must remain explicit')
         summary={'assessment':'pending','sourceIndexSha256':sha256_file(path),'textFiles':len(expected),
                  'textBytes':sum(entry['size'] for entry in expected),'nativeFileRecords':len(native)}
-        return {'index':index,'textFiles':expected,'summary':summary}
+        source=validate_source_notices(components,receipt,prepared/'payload',material,{record['path']:record for record in records})
+        summary.update(source['summary'])
+        return {'index':index,'textFiles':expected,'summary':summary,
+                'sourceContext':{'prepared':prepared,'receipt':receipt,'receiptSha256':context['preparedReceiptSha256']}}
     except (OSError,ValueError,KeyError,TypeError,RecursionError):
         raise PackageError('Licensing material is incomplete or invalid') from None
 
@@ -128,6 +132,14 @@ def copy_notices(snapshot:Path,staged:Path,validated:dict,source_commit:str)->di
     if not re.fullmatch('[0-9a-f]{40}',source_commit):raise PackageError('Notice source commit is invalid')
     source=ordinary_path(snapshot/'third_party');destination=ordinary_path(staged/'notices/third_party')
     if destination.exists():raise PackageError('Notice destination must be fresh')
+    context=validated['sourceContext'];prepared=context['prepared']
+    if sha256_file(prepared/'prepared.json')!=context['receiptSha256']:
+        raise PackageError('Source-access prepared receipt changed before copying')
+    index=validated['index'];records={record['path']:record for record in index['files']}
+    validate_source_notices(index['components'],context['receipt'],prepared/'payload',source,records)
+    access=validate_source_notices(index['components'],context['receipt'],staged,source,records)
+    if access['summary']!={key:validated['summary'][key] for key in access['summary']}:
+        raise PackageError('Copied source-access summary differs')
     copy_tree(source/'licenses',destination/'licenses')
     verify_inventory(destination/'licenses',validated['textFiles'])
     if sha256_file(source/'inventory.json')!=validated['summary']['sourceIndexSha256']:
@@ -141,9 +153,11 @@ def copy_notices(snapshot:Path,staged:Path,validated:dict,source_commit:str)->di
           f'Inventory SHA256: {validated["summary"]["sourceIndexSha256"]}\n'
           f'Exact licensing texts: {validated["summary"]["textFiles"]}\n\n'
           'Read third_party/inventory.json and the original texts under third_party/licenses/.\n'
+          'Read SOURCE-ACCESS.txt for included MPL source locations and their terms.\n'
           'The index describes frozen source inputs; these paths are not app import paths.\n'
           'Material is supplied evidence, not redistribution approval or a public release.\n'
           'Owner/contributor/media, native/vendor/model/source-form and actual product gates\n'
           'remain pending. No project LICENSE is adopted by this candidate.\n')
     with (staged/'notices/README.txt').open('x',encoding='utf-8',newline='\n') as output:output.write(text)
+    with (staged/'notices/SOURCE-ACCESS.txt').open('x',encoding='utf-8',newline='\n') as output:output.write(access['text'])
     return dict(validated['summary'])

@@ -53,6 +53,29 @@
       "version": "committed-SHA256"
     },
     {
+      "declaredLicense": "Apache-2.0",
+      "embeddedIn": [
+        {
+          "path": "deps/cryptography/hazmat/bindings/_rust.pyd",
+          "sha256": "6a42262974f0e086c1f2defaff4ccd9fb25046cf193422135e2dda5b4b29b2a2",
+          "size": 9943040
+        }
+      ],
+      "evidenceScope": "Isolated version API of the exact observed cryptography50.0.1 Windows native file; supplemental upstream source license, not complete Rust/native redistribution assessment",
+      "kind": "native-static",
+      "name": "OpenSSL",
+      "sourceEvidence": [
+        "https://github.com/openssl/openssl/blob/openssl-4.0.2/LICENSE.txt",
+        "https://cryptography.io/en/50.0.1/installation/"
+      ],
+      "status": "native-and-vendor-coverage-pending",
+      "supplementaryLicenses": [
+        "licenses/native-static/openssl-4.0.2/LICENSE.txt"
+      ],
+      "suppliedLicenses": [],
+      "version": "4.0.2"
+    },
+    {
       "declaredLicense": "MIT",
       "kind": "python-production",
       "name": "PyYAML",
@@ -123,6 +146,50 @@
       "name": "certifi",
       "sourceEvidence": [
         "Source, https://github.com/certifi/python-certifi"
+      ],
+      "sourceForms": [
+        {
+          "files": [
+            {
+              "path": "__init__.py",
+              "sha256": "7a52e5f4205f9b3d12a31898ceaa7e3f6837d19cc230700bcae1a9d91d1486c1",
+              "size": 94
+            },
+            {
+              "path": "__main__.py",
+              "sha256": "c410688fdd394d45812d118034e71fee88ba7beddd30fe1c1281bd3b232cd758",
+              "size": 243
+            },
+            {
+              "path": "cacert.pem",
+              "sha256": "9cc2a774b5198dcff14d9be1e66091f538975d867ce029a96bce15a55dfd730f",
+              "size": 240216
+            },
+            {
+              "path": "core.py",
+              "sha256": "5c55f2727746e697f7edac9e17c377d8752e0da7ecca191531b3b80403d61dad",
+              "size": 3394
+            },
+            {
+              "path": "tests/__init__.py",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "size": 0
+            },
+            {
+              "path": "tests/test_certify.py",
+              "sha256": "7c179d1edf37f7e912b133663735fb46c6338d5d0e5f8915d11c3bc287d227b8",
+              "size": 467
+            }
+          ],
+          "license": "licenses/python-production/certifi-2026.7.22/certifi-2026.7.22.dist-info/licenses/LICENSE",
+          "licenseId": "MPL-2.0",
+          "location": {
+            "kind": "directory",
+            "path": "deps/certifi"
+          },
+          "name": "certifi",
+          "version": "2026.07.22"
+        }
       ],
       "status": "supplied-material-assessment-pending",
       "suppliedLicenses": [
@@ -837,6 +904,40 @@
         "https://github.com/astral-sh/python-build-standalone/releases/download/20260825/cpython-3.12.14%2B20260825-x86_64-pc-windows-msvc-install_only_stripped.tar.gz",
         "https://github.com/astral-sh/python-build-standalone/releases/download/20260825/cpython-3.12.14%2B20260825-x86_64-pc-windows-msvc-pgo-full.tar.zst"
       ],
+      "sourceForms": [
+        {
+          "files": [
+            {
+              "path": "__init__.py",
+              "sha256": "f96d51ff2f1609a4a44f5b5d8eec47ff34c1658d581fac5081d3759db05a8ce1",
+              "size": 94
+            },
+            {
+              "path": "__main__.py",
+              "sha256": "d64dc2afde6f0b1c464460e58eb5b7c0c76965d2f73617f4bb59fe936a9db026",
+              "size": 255
+            },
+            {
+              "path": "cacert.pem",
+              "sha256": "bbc7e9c01d7551bb8a159b5dedd989b8ee3ce105aff522b68eb1b01bf854cab0",
+              "size": 234354
+            },
+            {
+              "path": "core.py",
+              "sha256": "82efc40952359b746ad32b69b0d13ad6181019c29a380b7d46cf46f0ab1308e2",
+              "size": 3442
+            }
+          ],
+          "license": "licenses/runtime/python/Lib/site-packages/pip/_vendor/certifi/LICENSE",
+          "licenseId": "MPL-2.0",
+          "location": {
+            "kind": "directory",
+            "path": "python/Lib/site-packages/pip/_vendor/certifi"
+          },
+          "name": "certifi",
+          "version": "2026.06.17"
+        }
+      ],
       "status": "native-and-vendor-coverage-pending",
       "suppliedLicenses": [
         "licenses/runtime/notices/runtime/LICENSE.bdb.txt",
@@ -914,6 +1015,56 @@
         }
       ],
       "version": "3.12.14+20260825"
+    },
+    {
+      "declaredLicense": "MPL-2.0",
+      "evidenceScope": "Actual four preferred source files shipped inside the pinned ensurepip wheel, including supplied upstream vendoring changes",
+      "kind": "runtime-vendor",
+      "name": "certifi (ensurepip vendored)",
+      "sourceEvidence": [
+        "https://pypi.org/project/certifi/2024.8.30/"
+      ],
+      "sourceForms": [
+        {
+          "files": [
+            {
+              "path": "__init__.py",
+              "sha256": "a7f19866b8d4c0f0548692e5099a066f49a2281292a83032642e43bc8baa6c74",
+              "size": 94
+            },
+            {
+              "path": "__main__.py",
+              "sha256": "d64dc2afde6f0b1c464460e58eb5b7c0c76965d2f73617f4bb59fe936a9db026",
+              "size": 255
+            },
+            {
+              "path": "cacert.pem",
+              "sha256": "94edeb66e91774fcae93a05650914e29096259a5c7e871a1f65d461ab5201b47",
+              "size": 299427
+            },
+            {
+              "path": "core.py",
+              "sha256": "d92453e6b21c4028450db7b7ec141afa450bc40809f2a37a9758dfa93a781c8b",
+              "size": 4486
+            }
+          ],
+          "license": "licenses/runtime-vendor/certifi-2024.08.30/LICENSE",
+          "licenseId": "MPL-2.0",
+          "location": {
+            "kind": "wheel",
+            "path": "python/Lib/ensurepip/_bundled/pip-25.0.1-py3-none-any.whl",
+            "prefix": "pip/_vendor/certifi"
+          },
+          "name": "certifi",
+          "version": "2024.08.30"
+        }
+      ],
+      "status": "supplied-material-assessment-pending",
+      "supplementaryLicenses": [
+        "licenses/runtime-vendor/certifi-2024.08.30/LICENSE"
+      ],
+      "suppliedLicenses": [],
+      "version": "2024.08.30"
     },
     {
       "declaredLicense": "Apache-2.0",
@@ -1105,6 +1256,15 @@
     }
   ],
   "files": [
+    {
+      "origin": {
+        "input": "https://github.com/openssl/openssl/blob/openssl-4.0.2/LICENSE.txt",
+        "kind": "supplementary-native-source-license"
+      },
+      "path": "licenses/native-static/openssl-4.0.2/LICENSE.txt",
+      "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+      "size": 10175
+    },
     {
       "origin": {
         "input": "https://raw.githubusercontent.com/google-ai-edge/mediapipe/master/LICENSE",
@@ -1536,6 +1696,15 @@
       "path": "licenses/python-production/websockets-16.1.1/websockets-16.1.1.dist-info/licenses/LICENSE",
       "sha256": "0f44514998aca209d3482d10204a8adf2aa4296ff157a36a5c0922f2280632d3",
       "size": 1538
+    },
+    {
+      "origin": {
+        "input": "https://files.pythonhosted.org/packages/b0/ee/9b19140fe824b367c04c5e1b369942dd754c4c5462d5674002f75c4dedc1/certifi-2024.8.30.tar.gz!/certifi-2024.8.30/LICENSE",
+        "kind": "supplementary-embedded-vendor-source-license"
+      },
+      "path": "licenses/runtime-vendor/certifi-2024.08.30/LICENSE",
+      "sha256": "e93716da6b9c0d5a4a1df60fe695b370f0695603d21f6f83f053e42cfc10caf7",
+      "size": 989
     },
     {
       "origin": {
