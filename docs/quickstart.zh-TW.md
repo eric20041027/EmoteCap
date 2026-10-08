@@ -47,7 +47,7 @@ Linux/macOS 原始碼開發可在相同建置後使用根目錄 `./start.sh`。�
 
 選擇 **Export FBX**，在 **Export jobs** 查看完成與下載、取消或重新建立重試工作。工作保留送出當下的片段版本，後續編輯不會改寫該工作。Blender、Unity 均未隨包附上。
 
-動作格式是48個受驅動骨骼；完整匯出骨架52根、純身體22根。[motion v2 契約](../contracts/motion-v1.md) 保留歷史檔名。舊 Unity UPM0.1.0 的2021.3宣告不是目前相容性證據；舊接收器不能連接新的配對服務，更新與實際 Editor／兩種角色測試仍待完成。
+動作格式是48個受驅動骨骼；完整匯出骨架52根、純身體22根。[motion v2 契約](../contracts/motion-v1.md) 保留歷史檔名。本機 Unity UPM0.2.0要求6000.5；已在 Windows6000.5.9f1執行 Editor 與接收器測試。先進入 Play mode，再於接收器 Inspector 貼上 Studio 配對碼並按 Connect。新版尚未公開推送，先使用從磁碟安裝。[接收器指南](../unity/com.emotecap.mocap/Documentation~/paired-receiver.md)。整體審查、兩種角色／FBX播放與實機驗收仍待完成，2021.3未經驗證。
 
 ## 5. 分清楚三種資料選擇
 

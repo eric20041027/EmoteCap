@@ -7,7 +7,7 @@ export function LiveLinkPanel({state,onRetryCleanup}:{state:LiveLinkSnapshot;onR
     catch{setCopyMessage('Select the pairing code and copy it with your keyboard.');}};
   return <section className="studio-panel live-link-panel" aria-label="Unity Live Link">
     <h2>Unity Live Link</h2>
-    <p className="studio-help">Enable Live Link above, then paste the pairing code into EmoteCapLiveLink on a Humanoid character in Unity and enter Play mode. Use both apps on this computer.</p>
+    <p className="studio-help">Enable Live Link above. In Unity, enter Play mode with EmoteCapLiveLink on a Humanoid character, paste the pairing code in its Inspector, then press Connect. Use both apps on this computer.</p>
     <p role="status" aria-live="polite">{state.status==='live'?'Local service accepted this stream.':state.status==='connecting'?'Waiting for the local service handshake.':state.status==='error'?'Pairing needs attention.':'Live Link is off.'}</p>
     {state.pairingCode&&<>
       <label className="live-link-code">Unity pairing code<input readOnly value={state.pairingCode} onFocus={event=>event.currentTarget.select()} /></label>

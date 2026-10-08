@@ -1,0 +1,40 @@
+{
+  "schema": "emotecap-unity-dependency-material-v1",
+  "assessment": "pending",
+  "component": "com.unity.nuget.newtonsoft-json",
+  "version": "3.2.2",
+  "registry": "https://packages.unity.com",
+  "packageMetadataSha256": "29c4661a6f9d6839813f2ead6a232c890aaf67eaf44faf8ea2da85e816368558",
+  "declaredWrapperTerms": "Unity Companion License for Unity-dependent projects",
+  "suppliedLicensingFiles": [
+    {
+      "path": "licenses/newtonsoft-json-3.2.2/LICENSE.md",
+      "bytes": 481,
+      "sha256": "a5177bfecfea04d225e4a26a631db86721a03b4080350867847e71dc26b44f85"
+    },
+    {
+      "path": "licenses/newtonsoft-json-3.2.2/Third Party Notices.md",
+      "bytes": 4719,
+      "sha256": "f07d2ea4af53fd1c9800b345bb4fbfa3ab0181d8c87625d6c265cd65142df097"
+    }
+  ],
+  "observedInstalledBinaries": [
+    {
+      "packagePath": "Runtime/AOT/Newtonsoft.Json.dll",
+      "bytes": 691712,
+      "sha256": "a56146202232958f46bd6a28b5a7da166aea123ee0d646735a46e5c341dfbf1f"
+    },
+    {
+      "packagePath": "Runtime/Newtonsoft.Json.dll",
+      "bytes": 696320,
+      "sha256": "7292d3eb508652d14726749dd27094f2d481aeccf2db6427b62f68a71460897e"
+    }
+  ],
+  "testDependencies": {
+    "com.unity.test-framework": "1.7.0",
+    "com.unity.ext.nunit": "2.1.0"
+  },
+  "projectLicenseApproved": false,
+  "completeRedistributionAssessment": false,
+  "scope": "Separate Unity dependency material; no binaries vendored and not part of the Windows application payload."
+}

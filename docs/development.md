@@ -64,8 +64,7 @@ Explicitly enable it in Studio, copy the Unity pairing code and use a receiver
 supporting that handshake. The service checks exact motionv2 bones and one source
 per pairing.1008rejects incompatible/expired connections; Stop invalidates the code
 when confirmed. Failed cleanup stays visible with its code/expiry and a retry action.
-The current Unity receiver update/runtime qualification is the next M4 plan;
-the historical unpaired component is not a working consumer of this increment.
+The local0.2.0paired receiver targets Unity6000.5.9f1onWindows. Enter Play mode, paste the code in its Inspector, then Connect. [Receiver guide](../unity/com.emotecap.mocap/Documentation~/paired-receiver.md) records actual test scope and remaining gates. The historical0.1.0unpaired component remains incompatible;2021.3and two-rig/FBX/physical acceptance are unqualified.
 
 ## What the checks prove
 
