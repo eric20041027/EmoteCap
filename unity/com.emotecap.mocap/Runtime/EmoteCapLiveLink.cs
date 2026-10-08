@@ -1,7 +1,7 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.WebSockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -9,7 +9,7 @@ using UnityEngine;
 namespace EmoteCap
 {
     /// <summary>
-    /// Drives a Humanoid character from EmoteCap Live Link frames (ws://host:port/ws/live?role=sink).
+    /// Explicit, paired loopback receiver for canonical EmoteCap Live Link frames.
     /// Requirements: the character is in its T-pose bind pose when Play starts (Mixamo characters are),
     /// and its Animator has an Avatar but no Animator Controller (a controller would overwrite the pose).
     /// </summary>
@@ -28,10 +28,14 @@ namespace EmoteCap
         [SerializeField] float airborneThreshold = 0.04f;
         [SerializeField] bool showStatus = true;
 
-        public string Status { get; private set; } = "idle";
+        public string Status { get; private set; } = "disconnected";
+        [field:NonSerialized]
+        internal Func<ILiveTransport> TransportFactory { get; set; }
+        public int ConnectionGeneration { get; private set; }
+        public int AcceptedFrameCount { get; private set; }
+        public double LastFrameTimestamp { get; private set; } = -1;
 
         const float ReconnectDelaySeconds = 2f;
-        const int ReceiveBufferBytes = 64 * 1024;
 
         Transform[] bones;
         Quaternion[] restWorld;
@@ -47,38 +51,71 @@ namespace EmoteCap
         volatile LiveMessage latest;
         LiveMessage applied;
         CancellationTokenSource cancellation;
+        ILiveTransport activeTransport;
+        Task receiveTask;
 
         void Start()
+        { InitializeRig(); }
+
+        bool InitializeRig()
         {
+            if(bones!=null)return true;
             var animator = GetComponent<Animator>();
             if (animator.avatar == null || !animator.isHuman)
             {
-                Debug.LogError("EmoteCap Live Link needs a Humanoid Avatar on this Animator.", this);
-                enabled = false;
-                return;
+                Status="Humanoid Avatar required";return false;
             }
             if (animator.runtimeAnimatorController != null)
             {
-                Debug.LogWarning("EmoteCap Live Link: remove the Animator Controller, it overrides live poses.", this);
+                UnityEngine.Debug.LogWarning("EmoteCap Live Link: remove the Animator Controller, it overrides live poses.", this);
             }
 
             bones = EmoteCapContract.DrivenBones.Select(animator.GetBoneTransform).ToArray();
+            if(bones[0]==null){bones=null;Status="Humanoid hips required";return false;}
             restWorld = bones.Select(bone => bone != null ? bone.rotation : Quaternion.identity).ToArray();
             rootRest = transform.rotation;
             restHipsHeight = bones[0].position.y - transform.position.y;
+            if(!Finite(restHipsHeight)||restHipsHeight<=0||!Finite(rootRest)) {
+                bones=null;Status="Valid bind pose required";return false;
+            }
             targetWorld = (Quaternion[])restWorld.Clone();
             shownWorld = (Quaternion[])restWorld.Clone();
             targetHipsHeight = shownHipsHeight = restHipsHeight;
             RecordSoleHeights(animator);
 
-            cancellation = new CancellationTokenSource();
-            _ = ReceiveLoopAsync(cancellation.Token);
+            return true;
         }
 
-        void OnDestroy()
+        public bool ConnectPairing(string code)
         {
-            cancellation?.Cancel();
+            StopPairing();
+            if(!Application.isPlaying||!isActiveAndEnabled){Status="Enter Play mode with an enabled receiver";return false;}
+            if(!PairingCredentials.TryParse(code,out var credentials)){Status="Invalid pairing code";return false;}
+            if(!(string.Equals(host,"localhost",StringComparison.OrdinalIgnoreCase)||host=="127.0.0.1"||host=="::1")||port<1||port>65535) {
+                Status="Loopback endpoint required";return false;
+            }
+            if(!InitializeRig())return false;
+            var endpoint=new UriBuilder("ws",host,port,"/ws/live") {Query="role=sink"}.Uri;
+            AcceptedFrameCount=0;cancellation=new CancellationTokenSource();
+            receiveTask=ReceiveLoopAsync(credentials,endpoint,ConnectionGeneration,cancellation.Token);
+            return true;
         }
+        public void StopPairing()
+        {
+            ConnectionGeneration++;ClearStream();
+            var owner=cancellation;cancellation=null;
+            var transport=activeTransport;activeTransport=null;
+            if(transport!=null)transport.Abort();
+            receiveTask=null;
+            if(owner!=null){owner.Cancel();owner.Dispose();}
+            Status="disconnected";
+        }
+        void OnDisable() { StopPairing(); }
+        void OnDestroy() { StopPairing(); }
+        bool Current(int generation) => this!=null&&isActiveAndEnabled&&generation==ConnectionGeneration;
+        void ClearStream() {latest=null;applied=null;hasTarget=false;LastFrameTimestamp=-1;}
+        static bool Finite(float value) => !float.IsNaN(value)&&!float.IsInfinity(value);
+        static bool Finite(Quaternion value) => Finite(value.x)&&Finite(value.y)&&Finite(value.z)&&Finite(value.w);
 
         void LateUpdate()
         {
@@ -86,22 +123,27 @@ namespace EmoteCap
             if (frame != null && frame != applied)
             {
                 applied = frame;
-                SetTargets(frame);
+                if(!SetTargets(frame)){hasTarget=false;Status="invalid pose target";return;}
             }
             if (!hasTarget) return;
 
             // Ease toward the latest frame every rendered frame instead of snapping 30 times a second.
             var blend = smoothTime > 0f ? 1f - Mathf.Exp(-Time.deltaTime / smoothTime) : 1f;
+            var nextWorld=new Quaternion[bones.Length];
             for (var i = 0; i < bones.Length; i++)
             {
                 if (bones[i] == null) continue;
-                shownWorld[i] = Quaternion.Slerp(shownWorld[i], targetWorld[i], blend);
-                bones[i].rotation = shownWorld[i];
+                nextWorld[i]=Quaternion.Slerp(shownWorld[i],targetWorld[i],blend);
+                if(!Finite(nextWorld[i])){hasTarget=false;Status="invalid pose target";return;}
             }
-
+            var nextHeight=Mathf.Lerp(shownHipsHeight,targetHipsHeight,blend);
+            if(applyHipsHeight&&(!Finite(nextHeight)||!Finite(transform.position.y+nextHeight))) {
+                hasTarget=false;Status="invalid pose target";return;
+            }
+            for(var i=0;i<bones.Length;i++)if(bones[i]!=null){shownWorld[i]=nextWorld[i];bones[i].rotation=shownWorld[i];}
             if (applyHipsHeight)
             {
-                shownHipsHeight = Mathf.Lerp(shownHipsHeight, targetHipsHeight, blend);
+                shownHipsHeight = nextHeight;
                 var hips = bones[0];
                 var position = hips.position;
                 position.y = transform.position.y + shownHipsHeight;
@@ -111,23 +153,29 @@ namespace EmoteCap
             if (groundFeet) GroundLowestSole();
         }
 
-        void SetTargets(LiveMessage frame)
+        bool SetTargets(LiveMessage frame)
         {
+            var next=new Quaternion[bones.Length];
             for (var i = 0; i < bones.Length; i++)
             {
                 if (bones[i] == null) continue;
                 var delta = EmoteCapContract.ToUnity(frame.r[i * 4], frame.r[i * 4 + 1], frame.r[i * 4 + 2], frame.r[i * 4 + 3]);
                 // The delta is expressed in the character's own frame; rotate it into world space.
-                targetWorld[i] = rootRest * delta * Quaternion.Inverse(rootRest) * restWorld[i];
+                next[i] = rootRest * delta * Quaternion.Inverse(rootRest) * restWorld[i];
+                if(!Finite(next[i]))return false;
             }
+            var height=targetHipsHeight;
             if (frame.h != null && frame.h.Length == 3)
             {
-                targetHipsHeight = restHipsHeight * (frame.h[1] / EmoteCapContract.HipsRestHeight);
+                height = restHipsHeight * (frame.h[1] / EmoteCapContract.HipsRestHeight);
+                if(!Finite(height)||!Finite(transform.position.y+height))return false;
             }
-            if (hasTarget) return;
+            targetWorld=next;targetHipsHeight=height;
+            if (hasTarget) return true;
             System.Array.Copy(targetWorld, shownWorld, targetWorld.Length);
             shownHipsHeight = targetHipsHeight;
             hasTarget = true;
+            return true;
         }
 
         /// <summary>Bind-pose height of each ankle and toe joint above the floor (the character's own sole thickness).</summary>
@@ -151,71 +199,70 @@ namespace EmoteCap
             if (float.IsPositiveInfinity(lowest)) return;
             var floatHeight = lowest - transform.position.y;
             // Below the floor: always lift. Slightly above: pull down (proportion mismatch). Well above: a jump.
-            if (floatHeight < airborneThreshold) bones[0].position -= Vector3.up * floatHeight;
+            if (floatHeight < airborneThreshold&&Finite(floatHeight)&&Finite(bones[0].position.y-floatHeight))
+                bones[0].position -= Vector3.up * floatHeight;
         }
 
-        async Task ReceiveLoopAsync(CancellationToken token)
+        static async Task<T> Deadline<T>(Task<T> operation,double seconds,CancellationToken token)
         {
-            var buffer = new byte[ReceiveBufferBytes];
-            while (!token.IsCancellationRequested)
-            {
-                using (var socket = new ClientWebSocket())
-                {
-                    try
-                    {
-                        Status = $"connecting to {host}:{port}";
-                        await socket.ConnectAsync(new Uri($"ws://{host}:{port}/ws/live?role=sink"), token);
-                        Status = "connected";
-                        await ReadMessagesAsync(socket, buffer, token);
-                        Status = "disconnected";
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        return;
-                    }
-                    catch (Exception e)
-                    {
-                        Status = $"disconnected: {e.Message}";
-                    }
+            if(seconds<=0)throw new TimeoutException();
+            using(var timeout=CancellationTokenSource.CreateLinkedTokenSource(token)) {
+                var alarm=Task.Delay(TimeSpan.FromSeconds(Math.Min(seconds,3600)),timeout.Token);
+                if(await Task.WhenAny(operation,alarm)!=operation) {
+                    _=operation.ContinueWith(task=>{var observed=task.Exception;},CancellationToken.None,
+                        TaskContinuationOptions.OnlyOnFaulted|TaskContinuationOptions.ExecuteSynchronously,TaskScheduler.Default);
+                    token.ThrowIfCancellationRequested();throw new TimeoutException();
                 }
-                try
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(ReconnectDelaySeconds), token);
-                }
-                catch (OperationCanceledException)
-                {
-                    return;
-                }
+                timeout.Cancel();token.ThrowIfCancellationRequested();return await operation;
             }
         }
+        static Task Deadline(Task operation,double seconds,CancellationToken token)
+            => Deadline(Complete(operation),seconds,token);
+        static async Task<bool> Complete(Task operation) {await operation;return true;}
 
-        async Task ReadMessagesAsync(ClientWebSocket socket, byte[] buffer, CancellationToken token)
+        async Task ReceiveLoopAsync(PairingCredentials credentials,Uri endpoint,int generation,CancellationToken token)
         {
-            var message = new StringBuilder();
-            while (socket.State == WebSocketState.Open && !token.IsCancellationRequested)
-            {
-                var result = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), token);
-                if (result.MessageType == WebSocketMessageType.Close) return;
-                message.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
-                if (!result.EndOfMessage) continue;
-                Handle(message.ToString());
-                message.Clear();
-            }
-        }
-
-        void Handle(string json)
-        {
-            try
-            {
-                var parsed = JsonUtility.FromJson<LiveMessage>(json);
-                if (parsed != null && parsed.type == "frame" && parsed.r != null && parsed.r.Length == EmoteCapContract.DrivenBones.Length * 4)
-                {
-                    latest = parsed;
+            while(Current(generation)&&!token.IsCancellationRequested) {
+                ILiveTransport transport=null;
+                try {
+                    var protocol=new LiveProtocol(credentials);var helloClock=Stopwatch.StartNew();
+                    Status="connecting";transport=TransportFactory!=null?TransportFactory():new WebSocketLiveTransport();
+                    activeTransport=transport;
+                    await Deadline(transport.ConnectAsync(endpoint,token),5-helloClock.Elapsed.TotalSeconds,token);
+                    if(!Current(generation))return;
+                    await Deadline(transport.SendAsync(protocol.HelloJSON(),token),5-helloClock.Elapsed.TotalSeconds,token);
+                    var lifetime=Stopwatch.StartNew();double remaining=5;
+                    while(Current(generation)&&!token.IsCancellationRequested) {
+                        var budget=protocol.Acknowledged?remaining-lifetime.Elapsed.TotalSeconds:5-helloClock.Elapsed.TotalSeconds;
+                        var text=await Deadline(transport.ReceiveAsync(token),budget,token);
+                        if(!Current(generation))return;
+                        if(text==null) {
+                            if(transport.CloseStatus==WebSocketCloseStatus.PolicyViolation||transport.CloseStatus==WebSocketCloseStatus.ProtocolError||
+                                transport.CloseStatus==WebSocketCloseStatus.InvalidMessageType||transport.CloseStatus==WebSocketCloseStatus.InvalidPayloadData)
+                                throw new LiveProtocolException("Pairing rejected");
+                            break;
+                        }
+                        var message=protocol.Parse(text);
+                        if(message.type=="hello") {
+                            ClearStream();remaining=Math.Min(3600,(message.expiresAt-DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())/1000);
+                            lifetime.Restart();Status=message.streamId==null?"waiting for Studio":"waiting for frames";
+                        } else {
+                            latest=message;AcceptedFrameCount++;LastFrameTimestamp=message.t;Status="receiving";
+                        }
+                    }
+                } catch(OperationCanceledException) {return;}
+                catch(Exception error) when(error is LiveProtocolException||error is TimeoutException) {
+                    if(Current(generation)){ClearStream();Status="pairing rejected";}return;
+                } catch(Exception) {
+                    if(Current(generation))Status="connection interrupted";
+                } finally {
+                    if(ReferenceEquals(activeTransport,transport))activeTransport=null;
+                    if(transport!=null){transport.Abort();transport.Dispose();}
                 }
-            }
-            catch (ArgumentException e)
-            {
-                Status = $"bad message: {e.Message}";
+                if(!Current(generation))return;
+                ClearStream();Status="reconnecting";
+                try {await Task.Delay(TimeSpan.FromSeconds(ReconnectDelaySeconds),token);}
+                catch(OperationCanceledException){return;}
             }
         }
 

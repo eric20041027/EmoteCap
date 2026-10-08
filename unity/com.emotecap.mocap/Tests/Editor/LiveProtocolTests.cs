@@ -14,6 +14,16 @@ namespace EmoteCap.Tests
         const string OtherStream = "e31883cb-e2fb-46db-807c-3d274eed6ae9";
         const string Secret = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
         const string Code = Session + "." + Secret;
+        [Test] public void EditModeCannotConnectOrSerializeAPastedCredential()
+        {
+            var owned=new UnityEngine.GameObject("Owned EditMode receiver serialization");
+            try {
+                var receiver=owned.AddComponent<EmoteCapLiveLink>();
+                Assert.That(receiver.ConnectPairing(Code),Is.False);
+                Assert.That(receiver.AcceptedFrameCount,Is.Zero);
+                Assert.That(UnityEditor.EditorJsonUtility.ToJson(receiver),Does.Not.Contain(Secret));
+            } finally {UnityEngine.Object.DestroyImmediate(owned);}
+        }
 
         static LiveProtocol Create()
         {
