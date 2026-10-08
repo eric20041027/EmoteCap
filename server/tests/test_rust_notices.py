@@ -143,8 +143,11 @@ def test_copy_revalidates_current_metadata_and_native(rust_inputs,tmp_path,chang
     target.write_bytes(b'Owned change after admission')
     with pytest.raises(files.PackageError):notices.copy_notices(repo,staged,validated,git(repo,'rev-parse','HEAD'))
 
-def test_builder_delivers_metadata_and_all_notices(rust_inputs,tmp_path):
-    repo,prepared,_,_=rust_inputs;git(repo,'add','.');git(repo,'commit','-qm','Owned Rust material')
+@pytest.mark.parametrize('autocrlf',['false','true','input'])
+def test_builder_delivers_metadata_and_all_notices(rust_inputs,tmp_path,autocrlf):
+    repo,prepared,_,_=rust_inputs
+    git(repo,'config','core.autocrlf',autocrlf)
+    git(repo,'add','.');git(repo,'commit','-qm','Owned Rust material')
     result=builder.build(repo,prepared,tmp_path/'candidate',tmp_path/'candidate.zip')
     assert result['manifest']['licensingMaterial']['rustNativeBindings']==1
     assert (tmp_path/'candidate/notices/third_party/rust-source-evidence.json').read_bytes()==(repo/'third_party/rust-source-evidence.json').read_bytes()

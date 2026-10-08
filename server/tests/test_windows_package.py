@@ -19,7 +19,9 @@ def git(repo,*args):
 def build_inputs(tmp_path):
     repo=tmp_path/'source';repo.mkdir()
     pins=json.loads((ROOT/'packaging/python-runtime.json').read_bytes())
-    tree={'server/emotecap_server/__init__.py':'','server/emotecap_server/launcher.py':'pass',
+    # The fixture must preserve source pins and license bytes just like the product.
+    tree={'.gitattributes':(ROOT/'.gitattributes').read_text(encoding='utf-8'),
+        'server/emotecap_server/__init__.py':'','server/emotecap_server/launcher.py':'pass',
         'server/blender/export_fbx.py':'pass','contracts/bones.json':'{}',
         'server/uv.lock':'frozen synthetic lock','server/pyproject.toml':'synthetic project',
         'web/package-lock.json':'{}','packaging/python-runtime.json':json.dumps(pins),
@@ -31,7 +33,7 @@ def build_inputs(tmp_path):
         '.env':'synthetic private settings','server/data/private.txt':'synthetic private data',
         'web/dist/index.html':'built Studio','web/dist/models/tiny.task':'synthetic model'}
     for name,text in tree.items():
-        path=repo/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(text,encoding='utf-8')
+        path=repo/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(text,encoding='utf-8',newline='\n')
     git(repo,'init','-q');git(repo,'config','user.name','Package Fixture');git(repo,'config','user.email','fixture@example.invalid')
     git(repo,'add','.');git(repo,'commit','-qm','synthetic candidate source')
     prepared=tmp_path/'prepared';payload=prepared/'payload'
