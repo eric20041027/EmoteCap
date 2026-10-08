@@ -1,0 +1,56 @@
+# Redistribution evidence and remaining decisions
+
+This assessment records observed contents of the internal Windows candidate built from `79ce9871bc5d404e2ca54d5109c77573f820a21d`, with source inspection at `98757c1c869250e93e40fff8117eea0814ccdc7f`. The candidate and [frozen material](../third_party/inventory.json) still have assessment/release status pending. It separates file identity, supplied source forms and unresolved redistribution conditions; no project LICENSE or public-release approval is created here.
+
+## Observed material
+
+| Component | Actual evidence | Next required action |
+|---|---|---|
+| Python/native runtime | All54recorded DLL/PYD hashes match the candidate. All54ordinary/delay import tables parsed;44runtime and10production extensions are separately recorded. | Complete native/static dependency attribution; do not treat outer package metadata as a complete embedded-component list. |
+| Microsoft runtime | `python/vcruntime140.dll` and `python/vcruntime140_1.dll` report MicrosoftCorporation/version14.44.35211.0. The original Python LICENSE retains its Windows-build conditions. | Document the applicable redistribution basis and carry required downstream terms. Existing owner license/basis information may clarify this assessment. |
+| Python OpenSSL | Actual isolated interpreter reports OpenSSL3.5.8. `_ssl.pyd` imports `libcrypto-3-x64.dll` and `libssl-3-x64.dll`; supplied OpenSSL3license is retained. | Retain the exact matching attribution and assess complete vendor coverage. |
+| cryptography50.0.1 | Actual verified `_rust.pyd` reports OpenSSL4.0.2; it has no ordinary/delay OpenSSLDLL import. Official versioned documentation describes Windows wheels as statically linked. | Add verified OpenSSL4material and complete Rust/native attribution; Python's OpenSSL3record does not identify this separate implementation. |
+| certifi | Three copies contain the four source files listed below; actual versions2026.07.22,2026.06.17and2024.08.30. Existing supplied MPL2texts are retained. | Include a recipient notice identifying all source locations and their MPL terms in the next package; verify that notice against the real payload. |
+| MediaPipe Tasks Vision1.0.1 | Official npm tarball matches frozen SHA512SRI; all9observed JS/WASM files match exact registered bytes. The14file tarball has no LICENSE/NOTICE/COPYING file; registry metadata has no gitHead/build-attestation field. | Identify the complete applicable third-party notices and any required covered-source locations for this prebuilt release. A source/build reference would help associate those obligations with the observed bytes. |
+| Three task models | All committed whole-file hashes match. Each archive contains exactly2TFLite files,6entries total, with recorded member hashes; no additional top-level archive member is present. | Retain separate Google model-card/license evidence and resolve attribution for the actual detector/landmark bundle. This archive inspection is not a blanket grant for internal model metadata or other assets. |
+| Owner material | Existing MIT/contributor/four-media proposal remains pending. | Owner/contributor confirmation remains required; this assessment cannot provide their rights. |
+
+The actual OpenSSL4observation changes the next material-collection step. [cryptography50.0.1documentation](https://cryptography.io/en/50.0.1/installation/) describes static Windows wheels. The exact [OpenSSL4.0.2LICENSE](https://github.com/openssl/openssl/blob/openssl-4.0.2/LICENSE.txt) was retrieved as research evidence:10,175bytes/SHA256 `7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a`, Git blob49cc83d2ee29d13453188217f0e4edd70c7f842f. An authenticated read of that tag's67root names found AUTHORS.md and LICENSE.txt, with no rootNOTICE. This is a root-directory observation; it does not prove the absence of nested/vendor notices. The new text has not been inserted into the frozen114text inventory or existing candidate.
+
+## MPL source locations already present
+
+Each listed copy contains `__init__.py`, `__main__.py`, `core.py` and `cacert.pem`; all12file sizes/digests are retained in the evidence. These are actual source files, alongside any compiled bytecode.
+
+| Observed certifi version | Source location inside the candidate |
+|---|---|
+|2026.07.22 | `deps/certifi/` |
+|2026.06.17 | `python/Lib/site-packages/pip/_vendor/certifi/` |
+|2024.08.30 | `python/Lib/ensurepip/_bundled/pip-25.0.1-py3-none-any.whl`, ZIP entries under `pip/_vendor/certifi/` |
+
+[MPL2sections3.1–3.2](https://www.mozilla.org/en-US/MPL/2.0/) require recipients to be informed of the covered source's license and, when executables are distributed, how to obtain its source. The [Mozilla FAQ](https://www.mozilla.org/en-US/MPL/2.0/FAQ/) also distinguishes complete unchanged programs from libraries or partial distributions. The source-presence question is now evidenced for these three copies; recipient notice integration and final distribution assessment are separate unfinished work. Do not relabel these files as project MIT or remove their existing notices.
+
+## Runtime metadata limitation
+
+The retained upstream `notices/runtime/PYTHON.json` was inspected for11extension records. It provides useful library/license pointers, as described by [Python Build Standalone](https://github.com/astral-sh/python-build-standalone/blob/main/docs/running.rst). However, its `_ssl`/`_hashlib`links still name `libcrypto-1_1-x64`/`libssl-1_1-x64`; the actual package contains/imports the3-x64libraries and reports3.5.8. The upstream metadata bytes were preserved. Do not infer the actual link graph from those stale names.
+
+The bounded read-only PE check used the [Microsoft PE specification](https://learn.microsoft.com/en-us/windows/win32/debug/pe-format). Ordinary/delay import tables expose dynamic names; they cannot enumerate static libraries, dynamically constructed LoadLibrary calls or prove source/build authenticity. The observed crypto versions and supplier metadata are retained with that limit.
+
+[Microsoft redistribution guidance](https://learn.microsoft.com/en-us/cpp/windows/redistributing-visual-cpp-files?view=msvc-170) and the [VisualStudio2022redistribution list](https://learn.microsoft.com/en-us/visualstudio/releases/2022/redistribution) identify applicable license terms and permitted files. The linked [Community2022terms](https://visualstudio.microsoft.com/license-terms/vs2022-ga-community/), section4, also describe a route for a licensed application developer to permit third-party distributors, with functionality and downstream-protection conditions. The supplied Python Windows section retains conditional onward-distribution language. Identify the applicable route and required recipient terms for this actual distribution before approval; the general guidance does not establish that every downstream Python distributor must separately acquire VisualStudio. Reading these terms did not accept an agreement or install software. The original62,859byteMicrosoftDOCX and extraction have SHA256 `41a207b10c8ab91d0d2f10a854715f73dca54509581692d2fe179aa3ffcb8540` and are retained as research.
+
+## Existing upstream answers
+
+A [June10maintainer response](https://github.com/google-ai-edge/mediapipe/issues/6306#issuecomment-4673728357) identifies the WebSDKand the versioned FullPose task as Apache2and says later npm releases would include license/notice files. Its then-current telemetry description is historical; the observed1.0.1runtime does send metrics, as recorded in the actual SDK reports. Do not use that older description as current network evidence.
+
+An [October5maintainer response](https://github.com/google-ai-edge/mediapipe/issues/6355#issuecomment-5997480830) states the source/models are Apache2unless otherwise noted, directs readers to model cards/privacy information and limits additional information available on GitHub. Both replies have API author associationCOLLABORATOR. They are useful supplier declarations; they do not enumerate every embedded third-party component or bind a covered-source revision to these nine bytes.
+
+Four public `third_party/wasm_files.bzl` snapshots were inspected: current`master`, `v1.0.0`, July28commitddb8ba8fd928f0da783af2dd8d9dcbab45bb37f9 and September24commit0a8c1e8b84ea1979e16ebe985bd18f3b50f519ff. Their Git blobs are57d59f016cbb5e1acf9109cd411cebc3134efbe9/67afd5cfa26f77155c2853c749dd3ba68c725a09/146f8471512e3ff89468286164527619cbd30ce6/7a3dbd02e473f4cac44aa5b22a0d372ff5846aa5. None of the9observedSDKdigests appears in these four files. This is a bounded four-snapshot result, not proof that no historical source reference exists. No inference of binary/source correspondence was made from matching version names alone.
+
+A draft documentation question was prepared before the existing replies were located, and retained privately. It was not posted; no external-message permission request is needed for that superseded draft. Continue local material/source assessment using the available evidence.
+
+## Evidence and execution scope
+
+Ignored evidence lives under `.superpowers/sdd/2026-10-08-redistribution-assessment-3b184518/`: fixed inputs; native version/hash metadata; all54PE import records; all6task member hashes;11extension/vendor metadata;12certifi source records; isolated OpenSSL observations; exact registry metadata/tarball/SRI/nine-file comparison; OpenSSL4root listing/license/origin receipt. The official SDK tarball is10,728,587bytes/SHA256 `ee318eaa3d42230aa10910d114faf2a488c577c4e4d33c7cb04126924aca505f`.
+
+The first inspector's console summary incorrectly printed4runtime extension records because a local summary variable was reused for the4ensurepip source files. Its saved extension metadata contains the correct11records, independently re-read and recorded in `inspector-summary-correction.json`. No product, dependency, model, pin, upstream metadata, package or license bytes were modified. The only executed dependency probe was the isolated verified bundled interpreter reading its own OpenSSL/cryptography version APIs; no service, inference, physical camera, cloud upload or unrelated process was started or stopped.
+
+The next implementation should integrate exact supplemental material and source-location notices without weakening the current input/hash checks or asserting redistribution approval. Complete SDK/native attribution, owner rights and the [release gates](release-progress.md) remain required before public distribution.

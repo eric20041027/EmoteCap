@@ -2,6 +2,8 @@
 
 [inventory.json](inventory.json) records the observed frozen inputs and exact copied text hashes. It is **draft supplied evidence, not redistribution approval**. Preserve original text bytes/attribution; do not replace them with the project's proposed MIT license.
 
+The current [redistribution assessment](../docs/redistribution-assessment.md) adds observed PE imports, the separate actual OpenSSL4dependency, all three bundled certifi source locations, task-archive members and exact npmSDKtarball comparison. These observations do not alter this frozen inventory or approve its pending conditions. Supplemental material and recipient source-location notices need their own package integration.
+
 The inventory contains35Python production distributions,6Web runtime packages, Python3.12.14/build20260825and3model assets. It includes114supplied/supplementary licensing texts,54interpreter/dependency DLL/PYD records and9prebuilt SDK JavaScript/WASM records. Runtime-pip/vendor/embedded-ensurepip-wheel material is included. Blender4.5.14 and Unity Editor are separate prerequisites, not bundled. Future UPM packages are not treated as installed dependencies.
 
 Prepared receipt SHA256716284f1597cb4afec84f7ce3d9140eae7e58e46388c2cff8ce90518d0eb2973 links the original runtime/license/dependency bytes. Inventory context additionally pins server pyproject/uv.lock, Web package-lock/model pins and runtime source descriptor. npm package versions/tarball integrity and supplied license paths remain visible. Relative source paths describe published inputs, not user-specific folders.
