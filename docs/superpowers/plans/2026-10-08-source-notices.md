@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Existing schema/context/five source pins, frozen dependencies/assets/contracts/app behavior and pending assessment retained.
--32forms/16files per form/2MiB source file/8MiB source total;8wheels/32MiB each/4096entries/64MiB total uncompressed.
+-32forms/16files per form/2MiB source file/8MiB source total;8wheels/32MiB each/4096entries/64MiB aggregate uncompressed;4096inspected filesystem entries per supported tree. Final review requires current prepared/staged path sets, frozen license-byte correspondence and complete wheel file/directory collision checks.
 - Existing512texts/2MiB text/16MiB total; all prior114text bytes retained exactly.
 - Portable source locations, no wheel extraction/source execution/private data/project LICENSE/public writes.
 - Fixed clean source, source/notices manifest coverage, repeated identical ZIP, real isolated runtime health/tamper checks; no substitute Unity/physical/laptop/new-user claims.

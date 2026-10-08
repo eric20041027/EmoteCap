@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from test_windows_package import build_inputs, files, git
+from test_windows_package import ROOT, build_inputs, builder, files, git
 import package_notices as notices
 
 SOURCE_NAMES=('__init__.py','__main__.py','core.py','cacert.pem')
@@ -33,8 +33,10 @@ def form_bytes(version):
 def source_inputs(build_inputs):
     repo,prepared=build_inputs;payload=prepared/'payload'
     value=json.loads((repo/'third_party/inventory.json').read_bytes())
-    mpl=repo/'third_party/licenses/owned/MPL.txt';mpl.write_bytes(b'This Source Code Form is subject to Mozilla Public License 2.0.\nhttps://www.mozilla.org/en-US/MPL/2.0/\n')
-    ssl=repo/'third_party/licenses/owned/OpenSSL4.txt';ssl.write_bytes(b'Owned Apache-2.0 supplement fixture\r\n')
+    mpl=repo/'third_party/licenses/owned/MPL.txt'
+    mpl.write_bytes((ROOT/'third_party/licenses/runtime-vendor/certifi-2024.08.30/LICENSE').read_bytes())
+    ssl=repo/'third_party/licenses/owned/OpenSSL4.txt'
+    ssl.write_bytes((ROOT/'third_party/licenses/native-static/openssl-4.0.2/LICENSE.txt').read_bytes())
     for path in (mpl,ssl):
         value['files'].append({'path':path.relative_to(repo/'third_party').as_posix(),'size':path.stat().st_size,
             'sha256':files.sha256_file(path),'origin':{'kind':'owned-fixture','input':path.name}})
@@ -43,6 +45,8 @@ def source_inputs(build_inputs):
         root=payload/location;root.mkdir(parents=True)
         data=form_bytes(version)
         for name,body in data.items():(root/name).write_bytes(body)
+        license_path=payload/('deps/certifi-2026.7.22.dist-info/licenses/LICENSE' if location=='deps/certifi' else location+'/LICENSE')
+        license_path.parent.mkdir(parents=True,exist_ok=True);license_path.write_bytes(mpl.read_bytes())
         forms.append({'name':'certifi','version':version,'licenseId':'MPL-2.0','license':'licenses/owned/MPL.txt',
             'location':{'kind':'directory','path':location},
             'files':[{'path':name,'size':len(body),'sha256':hashlib.sha256(body).hexdigest()} for name,body in sorted(data.items())]})
@@ -148,3 +152,81 @@ def test_copy_rejects_changed_source_after_admission(source_inputs,tmp_path,chan
     target.write_bytes(b'Changed source after admission')
     with pytest.raises(files.PackageError):notices.copy_notices(repo,staged,validated,git(repo,'rev-parse','HEAD'))
     assert not (staged/'notices/SOURCE-ACCESS.txt').exists()
+
+
+@pytest.mark.parametrize('changed',['prepared','staged'])
+@pytest.mark.parametrize('added',['source','wheel'])
+def test_copy_rejects_added_source_location_after_admission(source_inputs,tmp_path,changed,added):
+    repo,prepared,_=source_inputs;staged=tmp_path/'staged';files.copy_tree(prepared/'payload',staged)
+    validated=validate(repo,prepared);payload=prepared/'payload' if changed=='prepared' else staged
+    if added=='source':
+        (payload/'deps/certifi/added_after_admission.py').write_bytes(b'owned_source = True\n')
+    else:
+        original=payload/'python/Lib/ensurepip/_bundled/pip-owned.whl'
+        (original.parent/'additional.whl').write_bytes(original.read_bytes())
+    with pytest.raises(files.PackageError):notices.copy_notices(repo,staged,validated,git(repo,'rev-parse','HEAD'))
+    assert not (staged/'notices/SOURCE-ACCESS.txt').exists()
+
+
+def test_new_source_after_admission_cannot_complete_candidate(source_inputs,tmp_path,monkeypatch):
+    repo,prepared,_=source_inputs;git(repo,'add','.');git(repo,'commit','-qm','Owned source fixture')
+    original=builder.copy_tree;changed=False
+    def copying(source,target):
+        nonlocal changed
+        if source==prepared/'payload' and not changed:
+            changed=True;(source/'deps/certifi/added_after_admission.py').write_bytes(b'owned_source = True\n')
+        return original(source,target)
+    monkeypatch.setattr(builder,'copy_tree',copying)
+    output=tmp_path/'candidate';archive=tmp_path/'candidate.zip'
+    with pytest.raises(files.PackageError):builder.build(repo,prepared,output,archive)
+    assert not output.exists() and not archive.exists() and not archive.with_suffix('.zip.receipt.json').exists()
+
+
+@pytest.mark.parametrize('change',['source-reference','native-reference','source-text','native-text','payload-license'])
+def test_owned_wrong_license_material_is_rejected(source_inputs,change):
+    repo,prepared,value=source_inputs;owner=value['components'][1];native=value['components'][-1]
+    if change=='source-reference':
+        wrong=repo/'third_party/licenses/owned/bzip2.txt';wrong.write_bytes(b'Owned unrelated bzip2 licensing text\n')
+        name=wrong.relative_to(repo/'third_party').as_posix()
+        value['files'].append({'path':name,'size':wrong.stat().st_size,'sha256':files.sha256_file(wrong),
+            'origin':{'kind':'owned-fixture','input':'bzip2.txt'}})
+        value['files'].sort(key=lambda item:item['path']);owner['suppliedLicenses'].append(name)
+        owner['sourceForms'][1]['license']=name
+    elif change=='native-reference':
+        wrong=value['components'][0]['suppliedLicenses'][0];right=native['suppliedLicenses'][0]
+        value['components'][0]['suppliedLicenses']=[right];native['suppliedLicenses']=[wrong]
+    elif change=='payload-license':
+        (prepared/'payload/python/Lib/site-packages/pip/_vendor/certifi/LICENSE').write_bytes(b'Owned unrelated license\n')
+        refresh_receipt(repo,prepared,value)
+    else:
+        name=owner['suppliedLicenses'][0] if change=='source-text' else native['suppliedLicenses'][0]
+        target=repo/'third_party'/name;target.write_bytes(b'Owned unrelated replacement licensing text\n')
+        record=next(item for item in value['files'] if item['path']==name)
+        record.update(size=target.stat().st_size,sha256=files.sha256_file(target))
+    write_index(repo,value)
+    with pytest.raises(files.PackageError):validate(repo,prepared)
+
+
+@pytest.mark.parametrize('ancestor_first',[False,True])
+@pytest.mark.parametrize('ancestor',['pip/_vendor/certifi','pip/_vendor'])
+def test_wheel_file_directory_collision_is_rejected(source_inputs,ancestor_first,ancestor):
+    repo,prepared,value=source_inputs;wheel=prepared/'payload/python/Lib/ensurepip/_bundled/pip-owned.whl'
+    with zipfile.ZipFile(wheel,'r') as archive:entries=[(item,archive.read(item)) for item in archive.infolist()]
+    with zipfile.ZipFile(wheel,'w') as archive:
+        if ancestor_first:archive.writestr(ancestor,b'Owned colliding ordinary file')
+        for item,body in entries:archive.writestr(item,body)
+        if not ancestor_first:archive.writestr(ancestor,b'Owned colliding ordinary file')
+    refresh_receipt(repo,prepared,value)
+    with pytest.raises(files.PackageError):validate(repo,prepared)
+
+
+def test_wheel_expanded_budget_is_aggregate_across_copies(source_inputs):
+    repo,prepared,value=source_inputs;wheel=prepared/'payload/python/Lib/ensurepip/_bundled/pip-owned.whl'
+    with zipfile.ZipFile(wheel,'a',compression=zipfile.ZIP_DEFLATED) as archive:
+        with archive.open('owned/bounded-large.txt','w') as output:
+            for _ in range(33):output.write(b'x'*(1024*1024))
+    second=wheel.parent/'pip-second.whl';second.write_bytes(wheel.read_bytes())
+    owner=value['components'][1];form=json.loads(json.dumps(owner['sourceForms'][-1]))
+    form['location']['path']=second.relative_to(prepared/'payload').as_posix();owner['sourceForms'].append(form)
+    refresh_receipt(repo,prepared,value)
+    with pytest.raises(files.PackageError):validate(repo,prepared)

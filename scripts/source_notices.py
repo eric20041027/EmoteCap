@@ -1,5 +1,6 @@
 """Verify recipient source locations without executing shipped dependencies."""
 import hashlib
+import os
 from pathlib import Path
 import re
 import stat
@@ -19,6 +20,13 @@ MAX_SOURCE_TOTAL=8*1024*1024
 MAX_WHEEL_BYTES=32*1024*1024
 MAX_WHEEL_ENTRIES=4096
 MAX_WHEEL_EXPANDED=64*1024*1024
+MAX_TREE_ENTRIES=4096
+CERTIFI_LICENSE_SHA256='e93716da6b9c0d5a4a1df60fe695b370f0695603d21f6f83f053e42cfc10caf7'
+OPENSSL_LICENSE_SHA256='7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a'
+DIRECTORY_LICENSES={
+    'deps/certifi':('2026.07.22','deps/certifi-2026.7.22.dist-info/licenses/LICENSE'),
+    'python/Lib/site-packages/pip/_vendor/certifi':('2026.06.17','python/Lib/site-packages/pip/_vendor/certifi/LICENSE'),
+}
 
 def _fields(value,names):
     if not isinstance(value,dict) or set(value)!=set(names):
@@ -50,7 +58,31 @@ def _version(data):
     if len(values)!=1:raise PackageError('Source version is missing or ambiguous')
     return values[0]
 
-def _wheel(path,source_budget):
+def _actual_paths(payload,directory,suffixes):
+    root=ordinary_path(payload/directory)
+    if not root.exists():return set()
+    if not root.is_dir():raise PackageError('Source location is not a directory')
+    pending=[root];names=set();count=0
+    while pending:
+        with os.scandir(pending.pop()) as entries:
+            for entry in entries:
+                count+=1
+                if count>MAX_TREE_ENTRIES:raise PackageError('Source location exceeds its entry budget')
+                path=ordinary_path(Path(entry.path));name=safe_name(path.relative_to(payload).as_posix())
+                if path.is_dir():pending.append(path)
+                elif not path.is_file() or path.stat().st_nlink!=1:
+                    raise PackageError('Source location contains a nonordinary entry')
+                elif path.suffix.lower() in suffixes:names.add(name)
+    if len(names)!=len({name.casefold() for name in names}):raise PackageError('Source location has a case collision')
+    return names
+
+def _license(name,digest,material,records):
+    data=_read(material/name,MAX_SOURCE_FILE)
+    record=records[name]
+    if record['sha256']!=digest or _source(data)!={'size':record['size'],'sha256':digest}:
+        raise PackageError('Licensing text does not correspond to the supported component')
+
+def _wheel(path,source_budget,expanded_budget):
     # Bound the central-directory count before ZipFile allocates its entries.
     path=ordinary_path(path)
     if not path.is_file() or path.stat().st_nlink!=1 or path.stat().st_size>MAX_WHEEL_BYTES:
@@ -64,18 +96,28 @@ def _wheel(path,source_budget):
         raise PackageError('Embedded source wheel directory exceeds its bounds')
     with zipfile.ZipFile(path) as archive:
         entries=archive.infolist()
-        if len(entries)!=count or sum(item.file_size for item in entries)>MAX_WHEEL_EXPANDED:
+        expanded=sum(item.file_size for item in entries)
+        if len(entries)!=count or expanded>expanded_budget:
             raise PackageError('Embedded source wheel contents exceed their budget')
-        names=set();identities={};selected={}
+        names=set();identities={};files=set();directories=set();selected={}
         for item in entries:
             name=safe_name(item.filename.rstrip('/'))
-            for length in range(1,len(name.split('/'))+1):
-                prefix='/'.join(name.split('/')[:length]);key=prefix.casefold()
+            parts=name.split('/')
+            for length in range(1,len(parts)+1):
+                prefix='/'.join(parts[:length]);key=prefix.casefold()
                 if key in identities and identities[key]!=prefix:raise PackageError('Embedded source wheel has a case collision')
                 identities[key]=prefix
+                if length<len(parts):directories.add(prefix)
             if name in names or item.flag_bits&1 or stat.S_IFMT(item.external_attr>>16) not in (0,stat.S_IFREG,stat.S_IFDIR):
                 raise PackageError('Embedded source wheel has duplicate, encrypted or linked entries')
             names.add(name)
+            mode=stat.S_IFMT(item.external_attr>>16)
+            if (mode==stat.S_IFDIR and not item.is_dir()) or (mode==stat.S_IFREG and item.is_dir()):
+                raise PackageError('Embedded source wheel entry type is inconsistent')
+            (directories if item.is_dir() else files).add(name)
+        if files&directories:raise PackageError('Embedded source wheel has a file/directory collision')
+        for item in entries:
+            name=item.filename.rstrip('/')
             if not item.is_dir() and name.startswith(MEMBER_PREFIX+'/') and Path(name).suffix in ('.py','.pem'):
                 relative=name[len(MEMBER_PREFIX)+1:]
                 if len(selected)>=16 or item.file_size>MAX_SOURCE_FILE or item.compress_type not in (zipfile.ZIP_STORED,zipfile.ZIP_DEFLATED):
@@ -85,7 +127,7 @@ def _wheel(path,source_budget):
                 if len(data)!=item.file_size:raise PackageError('Embedded source length differs from its directory')
                 source_budget-=len(data)
                 selected[relative]=data
-        return selected
+        return selected,expanded
 
 def validate_source_notices(components,receipt,payload,material,license_records):
     try:
@@ -115,6 +157,9 @@ def validate_source_notices(components,receipt,payload,material,license_records)
                         raise PackageError('Unknown certifi source wheel location')
                     identity=(kind,path)
                 else:raise PackageError('Unsupported source location kind')
+                supported_version=DIRECTORY_LICENSES[path][0] if kind=='directory' else '2024.08.30'
+                if form['version']!=supported_version:raise PackageError('Source version requires a new licensing assessment')
+                _license(form['license'],CERTIFI_LICENSE_SHA256,material,license_records)
                 records=form['files']
                 if not isinstance(records,list) or not 1<=len(records)<=16:raise PackageError('Invalid source file count')
                 for record in records:_record(record)
@@ -140,27 +185,40 @@ def validate_source_notices(components,receipt,payload,material,license_records)
             supplements=[item for item in components if item.get('kind')=='native-static' and item.get('name')=='OpenSSL' and item.get('version')=='4.0.2' and inventory[CRYPTO_NATIVE] in item.get('embeddedIn',[])]
             if len(crypto)!=1 or crypto[0].get('version')!='50.0.1' or len(supplements)!=1:
                 raise PackageError('Frozen cryptography native supplement is missing or needs reassessment')
+            supplement=supplements[0];licenses=supplement['suppliedLicenses']+supplement.get('supplementaryLicenses',[])
+            if supplement.get('declaredLicense')!='Apache-2.0' or len(licenses)!=1:
+                raise PackageError('Frozen OpenSSL supplement licensing identity differs')
+            _license(licenses[0],OPENSSL_LICENSE_SHA256,material,license_records)
         observed={};total=0
         for directory in DIRECTORIES:
             selected={}
-            for name,entry in inventory.items():
-                if name.startswith(directory+'/') and Path(name).suffix in ('.py','.pem'):
-                    relative=name[len(directory)+1:]
-                    safe_name(relative)
-                    if len(selected)>=16:raise PackageError('Too many certifi source files')
-                    if total+entry['size']>MAX_SOURCE_TOTAL:raise PackageError('Source forms exceed total budget')
-                    data=_read(payload/name,MAX_SOURCE_FILE)
-                    if _source(data)!={'size':entry['size'],'sha256':entry['sha256']}:raise PackageError('Prepared certifi source changed')
-                    total+=len(data)
-                    selected[relative]=data
-            if selected:observed[('directory',directory)]=selected
-        wheels=[name for name in inventory if name.startswith(WHEEL_PREFIX) and name.endswith('.whl')]
+            actual=_actual_paths(payload,directory,('.py','.pem'))
+            recorded={name for name in inventory if name.startswith(directory+'/') and Path(name).suffix.lower() in ('.py','.pem')}
+            if actual!=recorded:raise PackageError('Current certifi source paths differ from the prepared receipt')
+            for name in sorted(actual):
+                entry=inventory[name];relative=name[len(directory)+1:]
+                if len(selected)>=16:raise PackageError('Too many certifi source files')
+                if total+entry['size']>MAX_SOURCE_TOTAL:raise PackageError('Source forms exceed total budget')
+                data=_read(payload/name,MAX_SOURCE_FILE)
+                if _source(data)!={'size':entry['size'],'sha256':entry['sha256']}:raise PackageError('Prepared certifi source changed')
+                total+=len(data);selected[relative]=data
+            if selected:
+                license_path=DIRECTORY_LICENSES[directory][1];entry=inventory[license_path]
+                data=_read(payload/license_path,MAX_SOURCE_FILE)
+                if entry['sha256']!=CERTIFI_LICENSE_SHA256 or _source(data)!={'size':entry['size'],'sha256':CERTIFI_LICENSE_SHA256}:
+                    raise PackageError('Shipped certifi licensing text differs')
+                observed[('directory',directory)]=selected
+        wheels=_actual_paths(payload,WHEEL_PREFIX.rstrip('/'),('.whl',))
+        recorded={name for name in inventory if name.startswith(WHEEL_PREFIX) and name.endswith('.whl')}
+        if wheels!=recorded:raise PackageError('Current source wheels differ from the prepared receipt')
         if len(wheels)>8:raise PackageError('Too many embedded source wheels')
-        for name in wheels:
+        expanded_total=0
+        for name in sorted(wheels):
             safe_name(name);entry=inventory[name];target=ordinary_path(payload/name)
             if entry['size']>MAX_WHEEL_BYTES or target.stat().st_size!=entry['size'] or sha256_file(target)!=entry['sha256']:
                 raise PackageError('Prepared source wheel changed or oversized')
-            selected=_wheel(target,MAX_SOURCE_TOTAL-total)
+            selected,expanded=_wheel(target,MAX_SOURCE_TOTAL-total,MAX_WHEEL_EXPANDED-expanded_total)
+            expanded_total+=expanded
             total+=sum(len(data) for data in selected.values())
             if selected:observed[('wheel',name)]=selected
         if set(observed)!=set(declared):raise PackageError('Declared source locations differ from shipped copies')
