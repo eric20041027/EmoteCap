@@ -64,3 +64,49 @@ Whole fixed pipeline and Native task-done independently pass81Editor/37Play/zero
 - Task2 Ruling: GPU skin buffers are observed on separate rendered frames, not two Camera.Render calls in one frame — first oracle showed unchanged top pixels despite changed pose; yield ordinary frames and retain both PNGs/hand values before assertions — cost if wrong: actual color pixel counts/top bounds must still prove changed visible geometry. Final blue3159/258→3132/282, orange2921/267→2939/305; same thresholds preserved.
 
 Final whole-plan review is next. Complete rights, physical capture/authorized actors/calibration/target-laptop measurements, clean second machine/five-user acceptance and exact updated public source/CI/tag/release authorization remain pending. This does not mark the M1–M5 goal complete.
+
+
+## Final review and one watched correction pass
+
+The independent review of81f3548..130173c returned **not ready**, with0Critical/3Important/0Minor. Its original verdict and repros remain unchanged in `.superpowers/sdd/2026-10-08-unity-quality/reviewer-final-130173c/`. All three Important severities were retained by effect: false admission, abandoned owned processes and false source attribution. No second review was dispatched.
+
+Correction source **ecc06499c3dbb70f472369f2d9b5cfe11f8802e4** resolves all three in one watched pass:
+
+- Require all81Editor/37Play exact class/fullname identities, including parameterizations; reject missing mandatory cases, duplicate identities, nonpassing results and inconsistent aggregate counts.
+- Create Windows processes suspended, assign a kill-on-close Job Object before resuming, and terminate/verify the complete owned tree on every exit path. Blender, preparation Editor, relay and PowerShell→test Editor share containment. Actual harmless timeout/interrupt/ownership-write-failure controls pass. Existing Hub/licensing/GPU processes are not selected by name or stopped. Unix uses a new session; non-Windows runtime acceptance remains pending.
+- Freeze consumed package/contracts/exporter/server/helper/lock/mandatory-case bytes, inventory/timestamps and Git HEAD/status before execution. Copy/verify executed exporter/contract/package snapshots and check live source/Git plus executed snapshot before/after each external stage and before success. Additions/removals and source/helper edits reject success. Five explicitly simulated mid-stage controls check rejection; these are not Blender/Unity acceptance.
+
+The first20regressions failed before implementation (`final-correction-red.log`) and all20nowpass. Five additional mid-stage controls plus existing25runner/relay tests yield **50focused passes** (`final-correction-focused.log`). Synthetic reduced XML and simulated stages do not replace actual acceptance.
+
+Fresh **final-correction-ecc0649/** evidence binds clean sourceDirty=false, actual Blender4.5.14/9clips/18FBX-sidecars and WindowsUnity6000.5.9f1/Built-in preparation. All **81Editor/37Play** cases pass with zero failures/skips, including original55/29, seven real TCP cases and graphics rendering. Source-snapshot and frozen-input receipts bind executed bytes. Independent cleanup at2026-10-08T08:37:57.9558157Z confirms owned47444/46392/42084/43184/44720/41692terminal and60903zero listeners (`independent-cleanup-final.json`). The earlier observation briefly saw41692in enumeration and is retained as incomplete evidence; no unrelated process was stopped.
+
+The three local findings are closed by correction and direct verification. The original review verdict is retained, and no independent review of the corrected commit is claimed. Broader product gates remain pending.
+
+## Every declined behavior: ruling and cost
+
+| Review limit | Ruling | Cost / next evidence |
+| --- | --- | --- |
+| Authorized actor collection/consent | Retain physical collection gate; no actors used | Obtain consent before private recording |
+| Real camera/calibration | Outside procedural acceptance | Acquire actual cameras/calibration and measure accuracy |
+| Real tracking/model accuracy | Synthetic geometry is insufficient | Compare authorized original/new performances |
+| Target laptop FPS/p95 | Hardware gate pending | Measure on the identified target laptop |
+| Second clean machine | Local evidence insufficient | Repeat installation and sample flow elsewhere |
+| Five new users | No usability pass inferred | At least4/5complete defined flow in10minutes |
+| Other Unity versions | Only6000.5.9f1qualified | Additional Editor testing before support claims |
+| Non-Windows systems | Platform runtime gate pending | M1CIis not sample/runtime evidence |
+| URP/HDRP/other pipelines | Built-in desktop only | Verify materials/shader behavior separately |
+| Standalone players | No player-build claim | Build and execute consumer sample separately |
+| Native dependency rights | Full approval pending | Complete component/source/terms evidence |
+| SDK rights | Prebuilt attribution gap retained | Establish exact component/source rights |
+| Microsoft rights | Conditional rights unresolved | Confirm applicable redistribution terms |
+| Owner/contributor license | Review grants no license | Obtain owner/contributor decision |
+| Historical media rights | Procedural assets do not clear old media | Obtain source-specific permission or replacement |
+| Current Windows distribution | Olde5aa6e5ZIPpredates source | Rebuild and qualify current candidate/notices |
+| Public branch/CI/tag/release | M1permission does not authorize current release | Prepare exact-source packet and obtain authorization |
+| Ordinary-export controller rebuilding | Existing behavior retained; sample preservation tested | Global rebuild semantics remain; separate contract needed for change |
+| ClipPlayer beforeStart/Refresh/list mutation | Existing API unchanged outside sample flow | No arbitrary lifecycle/list-mutation qualification claim |
+| Sample tests in arbitrary consumer projects | Orchestrator supplies test fixtures | Full suite requires generated QualityExports/owned output; normal sample playback was qualified |
+
+Every20declinedbehavior is ruled above; none is converted to a pass or silently removed. No Minor polishing or second review was added. M1–M5 remains active.
+
+Full fast backend after correction: **937passed/1platform skip/18slow deselected** in233.81s (`final-correction-backend.log`); existing Starlette warning retained. No Web/runtime C# changes were introduced by this correction; previously completed566Web/49Node/types/assets/build checks remain applicable. Documentation-only follow-up updates review status; the actual runtime receipt remains bound to tested commit ecc0649.

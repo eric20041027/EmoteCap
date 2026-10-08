@@ -4,7 +4,7 @@ Imports EmoteCap FBX clips as Humanoid animations and drives characters live fro
 
 ## Install
 
-This local0.2.0candidate requires Unity6000.5or newer. Actual qualification targets Windows/6000.5.9f1. Original Starter Rigs and real FBX playback are tested in the Built-in Render Pipeline; other Editors/platforms/rendering pipelines/player builds are unqualified. The former2021.3declaration is unsupported by this candidate. This source has not been publicly published; final sample review and broader release gates remain pending.
+This local0.2.0candidate requires Unity6000.5or newer. Actual qualification targets Windows/6000.5.9f1. Original Starter Rigs and real FBX playback are tested in the Built-in Render Pipeline; other Editors/platforms/rendering pipelines/player builds are unqualified. The former2021.3declaration is unsupported by this candidate. This source has not been publicly published; sample review/corrections are verified locally; broader release gates remain pending.
 
 Package Manager → **+** → **Add package from disk…** → this folder's `package.json`. After reviewed source publication, use the Git package URL pinned to its qualified commit/tag; remote main still contains the historical unpaired receiver.
 
