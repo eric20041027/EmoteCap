@@ -42,6 +42,16 @@ namespace EmoteCap
             graph.Play();
         }
 
+        void OnDisable()
+        {
+            if(graph.IsValid())graph.Stop();
+        }
+
+        void OnEnable()
+        {
+            if(graph.IsValid())graph.Play();
+        }
+
         void OnDestroy()
         {
             if (graph.IsValid()) graph.Destroy();

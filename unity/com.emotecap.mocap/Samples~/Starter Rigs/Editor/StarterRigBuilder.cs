@@ -6,12 +6,73 @@ using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 namespace EmoteCap.Samples.Editor
 {
     public static class StarterRigBuilder
     {
         public const string Destination="Assets/EmoteCap/StarterRigs";
+        static string VerifySampleAnimation()
+        {
+            var folder=SampleFolder()+"/Animations";
+            var proof=JObject.Parse(File.ReadAllText(folder+"/provenance.json"));
+            var records=(JArray)proof["files"];
+            var names=new[]{"Sample_Raise_Right_Arm.fbx","Sample_Raise_Right_Arm.emotecap.json","Sample_Raise_Right_Arm.fixture.json"};
+            if((string)proof["schema"]!="emotecap-original-sample-animation-v1"||records==null||records.Count!=3||
+                !records.Select(record=>(string)record["path"]).OrderBy(value=>value,StringComparer.Ordinal)
+                    .SequenceEqual(names.OrderBy(value=>value,StringComparer.Ordinal)))
+                throw new InvalidOperationException("The original sample animation material is incomplete.");
+            foreach(var record in records) {
+                var path=folder+"/"+(string)record["path"];
+                if(!File.Exists(path)||(File.GetAttributes(path)&FileAttributes.ReparsePoint)!=0||new FileInfo(path).Length!=(long)record["bytes"])
+                    throw new InvalidOperationException("The original sample animation material differs from its provenance.");
+                using(var hash=SHA256.Create())using(var stream=File.OpenRead(path))
+                    if(BitConverter.ToString(hash.ComputeHash(stream)).Replace("-","").ToLowerInvariant()!=(string)record["sha256"])
+                        throw new InvalidOperationException("The original sample animation material differs from its provenance.");
+            }
+            return folder;
+        }
+        [MenuItem("EmoteCap/Create Starter Scene")]
+        public static void CreateScene() {BuildScene(Destination,true);}
+        public static Scene BuildScene(string destination,bool activateScene)
+        {
+            CheckDestination(destination);var animation=VerifySampleAnimation();
+            if(activateScene&&!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())return default;
+            var prefabs=BuildAssets(destination);
+            foreach(var suffix in new[]{".emotecap.json",".fbx"})
+                File.Copy(animation+"/Sample_Raise_Right_Arm"+suffix,destination+"/Sample_Raise_Right_Arm"+suffix,false);
+            var fbx=destination+"/Sample_Raise_Right_Arm.fbx";
+            AssetDatabase.ImportAsset(fbx,ImportAssetOptions.ForceSynchronousImport);
+            var clip=AssetDatabase.LoadAllAssetsAtPath(fbx).OfType<AnimationClip>().Single(value=>!value.name.StartsWith("__preview",StringComparison.Ordinal));
+            if(!clip.humanMotion)throw new InvalidOperationException("The original sample FBX must import as a Humanoid clip.");
+            var previous=SceneManager.GetActiveScene();
+            var scene=EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,activateScene?NewSceneMode.Single:NewSceneMode.Additive);
+            SceneManager.SetActiveScene(scene);
+            try {
+                for(var i=0;i<prefabs.Length;i++) {
+                    var rig=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(prefabs[i]),scene);
+                    var skin=rig.GetComponent<SkinnedMeshRenderer>();rig.transform.position=new Vector3(i==0?-.8f:.8f,-skin.sharedMesh.bounds.min.y,0);
+                    var player=rig.AddComponent<EmoteCapClipPlayer>();
+                    var data=new SerializedObject(player);var list=data.FindProperty("clips");list.arraySize=1;
+                    list.GetArrayElementAtIndex(0).objectReferenceValue=clip;
+                    data.FindProperty("editorFolder").stringValue=destination;data.FindProperty("showMenu").boolValue=i==0;
+                    data.ApplyModifiedPropertiesWithoutUndo();
+                }
+                var camera=new GameObject("Starter Camera").AddComponent<Camera>();
+                camera.transform.position=new Vector3(0,1.3f,4);camera.transform.LookAt(new Vector3(0,1,0));
+                camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=new Color(.12f,.14f,.18f);
+                var light=new GameObject("Starter Light").AddComponent<Light>();light.type=LightType.Directional;
+                light.transform.rotation=Quaternion.Euler(50,-30,0);light.intensity=1;
+                var floor=GameObject.CreatePrimitive(PrimitiveType.Cube);floor.name="Starter Floor";
+                floor.transform.position=new Vector3(0,-.02f,0);floor.transform.localScale=new Vector3(5,.04f,3);
+                var material=new Material(Shader.Find("Standard")) {name="Starter Floor Material",color=new Color(.3f,.32f,.35f)};
+                AssetDatabase.CreateAsset(material,destination+"/Floor.material.asset");floor.GetComponent<MeshRenderer>().sharedMaterial=material;
+                if(!EditorSceneManager.SaveScene(scene,destination+"/StarterScene.unity"))throw new InvalidOperationException("Could not save the Starter Scene.");
+                AssetDatabase.SaveAssets();return scene;
+            } finally {if(!activateScene&&previous.IsValid()&&previous.isLoaded)SceneManager.SetActiveScene(previous);}
+        }
         public static string SampleFolder()
         {
             var paths=AssetDatabase.FindAssets("StarterRigBuilder t:MonoScript")
@@ -145,7 +206,11 @@ namespace EmoteCap.Samples.Editor
                     throw new InvalidOperationException("Qualification output cannot contain links.");
             var receipt=Path.Combine(fullOutput,"starter-assets.json");
             if(File.Exists(receipt))throw new InvalidOperationException("Use fresh qualification evidence.");
-            var prefabs=BuildAssets(Destination);
+            if(string.IsNullOrEmpty(SceneManager.GetActiveScene().path))
+                if(!EditorSceneManager.SaveScene(SceneManager.GetActiveScene(),"Assets/EmoteCap/QualificationInput.unity"))
+                    throw new InvalidOperationException("Could not save the owned qualification input scene.");
+            var prepared=BuildScene(Destination,false);EditorSceneManager.CloseScene(prepared,true);
+            var prefabs=new[]{Destination+"/Standard.prefab",Destination+"/Tall.prefab"};
             var records=new JArray();
             foreach(var path in Directory.GetFiles(Destination,"*",SearchOption.AllDirectories).OrderBy(value=>value,StringComparer.Ordinal)) {
                 using(var hash=SHA256.Create())using(var stream=File.OpenRead(path))

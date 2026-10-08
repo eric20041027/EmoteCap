@@ -43,7 +43,9 @@ namespace EmoteCap.Editor
         }
 
         static bool IsClipFbx(string path) =>
-            path.StartsWith(Folder, StringComparison.Ordinal) && path.EndsWith(".fbx", StringComparison.OrdinalIgnoreCase);
+            path.StartsWith(Folder, StringComparison.Ordinal) &&
+            !System.Text.RegularExpressions.Regex.IsMatch(path,"^Assets/EmoteCap/StarterRigs(?:Tests-[a-f0-9]{32})?/") &&
+            path.EndsWith(".fbx", StringComparison.OrdinalIgnoreCase);
 
         static DateTime WriteTime(string path) => File.GetLastWriteTimeUtc(path);
 

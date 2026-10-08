@@ -1,0 +1,27 @@
+{
+  "schema": "emotecap-original-sample-animation-v1",
+  "files": [
+    {
+      "path": "Sample_Raise_Right_Arm.fbx",
+      "bytes": 594572,
+      "sha256": "dab229c1221428757784f994df9aef6a82c07bf7f086c6f4f044c7693a2963f6"
+    },
+    {
+      "path": "Sample_Raise_Right_Arm.emotecap.json",
+      "bytes": 60,
+      "sha256": "e9368af30a89a1326163fda22b504ba6d792c2ba0af3c9ab3f83c955d4a67232"
+    },
+    {
+      "path": "Sample_Raise_Right_Arm.fixture.json",
+      "bytes": 62223,
+      "sha256": "3bf947fabc2c8703ec5e8200e34b3fe91db06ae5af4097de4eebc8e44b77d02c"
+    }
+  ],
+  "generatedBy": "production server/blender/export_fbx.py with Blender4.5.14",
+  "contractSha256": "6f0df7087dae4246fcb55079f9d86324ebe99dbc02b64b7e77d6061912c1b97c",
+  "exporterSha256": "3f4ab48a108e25280cf44362ea5aabb3fae1acea74aee3a0c0f7e588bb4d1d08",
+  "sourceFixture": "contracts/fixtures/raise-right-arm.clip.json",
+  "sourceFixtureSha256": "79d5f1effc471d704c8ea6130e914324fd4b49330d4f58189438a5eca1d94837",
+  "thirdPartyCharacters": false,
+  "projectLicenseApproved": false
+}

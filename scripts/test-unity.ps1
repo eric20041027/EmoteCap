@@ -4,6 +4,7 @@ param(
     [Parameter(Mandatory)][string]$ResultsPath,
     [Parameter(Mandatory)][string]$UnityPath,
     [string]$Filter,
+    [switch]$EnableGraphics,
     [ValidateSet('2026-10-07-unity-receiver','2026-10-08-unity-quality')]
     [string]$WorkspaceName='2026-10-07-unity-receiver',
     [ValidateRange(10,900)][int]$TimeoutSeconds=300
@@ -38,8 +39,9 @@ if (-not (Test-Path -LiteralPath (Join-Path $taskProject 'Packages/manifest.json
 $taskEditor=[IO.Path]::GetFullPath($UnityPath)
 if (-not (Test-Path -LiteralPath $taskEditor -PathType Leaf)) { throw 'Installed Unity Editor was not found' }
 New-Item -ItemType Directory -Path (Split-Path $taskResults -Parent) -Force | Out-Null
-$taskArgs=@('-batchmode','-nographics','-projectPath',('"'+$taskProject+'"'),'-runTests','-testPlatform',$Mode,
+$taskArgs=@('-batchmode','-projectPath',('"'+$taskProject+'"'),'-runTests','-testPlatform',$Mode,
     '-testResults',('"'+$taskResults+'"'),'-logFile',('"'+$taskLog+'"'))
+if(-not $EnableGraphics){$taskArgs+='-nographics'}
 if ($Filter) {
     if ($Filter -notmatch '^[A-Za-z0-9_.;]+$') { throw 'Invalid Unity test filter' }
     $taskArgs+=@('-testFilter',$Filter)

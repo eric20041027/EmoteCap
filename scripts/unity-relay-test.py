@@ -186,6 +186,7 @@ def run(args):
                     command=[args.powershell,'-NoProfile','-File',str(ROOT/'scripts/test-unity.ps1'),'-Mode',mode,
                         '-ProjectPath',str(project),'-ResultsPath',str(results),'-UnityPath',args.unity,'-WorkspaceName',workspace_name]
                     if args.filter:command+=['-Filter',args.filter]
+                    if getattr(args,'graphics',False):command+=['-EnableGraphics']
                     child=subprocess.Popen(command,cwd=ROOT,env=environment,stdin=subprocess.DEVNULL,stdout=command_log,stderr=command_log,creationflags=flags)
                     try:code=child.wait(timeout=600)
                     except subprocess.TimeoutExpired:
@@ -212,6 +213,7 @@ def main():
     parser.add_argument('--serve',action='store_true');parser.add_argument('--port',type=int);parser.add_argument('--instance')
     for option in ('project','output','unity','powershell','filter'):parser.add_argument('--'+option)
     parser.add_argument('--workspace-name',choices=WORKSPACES,default=WORKSPACES[0])
+    parser.add_argument('--graphics',action='store_true')
     parser.add_argument('--mode',choices=('EditMode','PlayMode','both'),default='both');args=parser.parse_args()
     if args.serve:
         if args.port is None or not 1<=args.port<=65535 or not args.instance:parser.error('Owned serve needs port and instance')
