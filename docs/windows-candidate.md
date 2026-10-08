@@ -2,6 +2,8 @@
 
 This packaging work targets Windows11 x64. It prepares a local development candidate while licensing, Unity, physical hardware and beginner acceptance remain pending. It is not an approved public release. [Release progress](release-progress.md) records those gates.
 
+The current local qualification uses source `79ce9871bc5d404e2ca54d5109c77573f820a21d`. Two87,613,336byte ZIPs have identical SHA256 `f116ab212a2e372c5fe74450062dc8445da5f445e5757137368089f88217af7c`. All payload hashes/licensing text bytes and actual packaged service/SDK/software-stream recording, recovery, backup, pairing and separate Blender export passed. The [current report](superpowers/reports/2026-10-08-candidate-refresh.md) records scope, retained evidence and remaining gates. This qualification does not approve public distribution or physical/human/Unity acceptance.
+
 ## Developer preparation
 
 Use the pinned source developer tools and frozen Web build in [development](development.md). Python runtime inputs are fixed in [python-runtime.json](../packaging/python-runtime.json): official Python Build Standalone3.12.14, build20260825, x86_64-pc-windows-msvc. Obtain both exact official archives from their listed URLs into a local cache; do not replace their SHA256 pins when a download differs.
