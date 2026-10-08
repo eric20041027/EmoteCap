@@ -108,8 +108,11 @@ def test_two_builds_have_identical_zip_bytes(build_inputs,tmp_path):
     assert one['archiveSha256']==two['archiveSha256']
     assert (tmp_path/'one.zip').read_bytes()==(tmp_path/'two.zip').read_bytes()
 
-def test_candidate_is_source_linked_private_free_and_pending(build_inputs,tmp_path):
-    repo,prepared=build_inputs;result=builder.build(repo,prepared,tmp_path/'candidate',tmp_path/'candidate.zip')
+@pytest.mark.parametrize('autocrlf',['false','true','input'])
+def test_candidate_is_source_linked_private_free_and_pending(build_inputs,tmp_path,autocrlf):
+    repo,prepared=build_inputs
+    git(repo,'config','core.autocrlf',autocrlf)
+    result=builder.build(repo,prepared,tmp_path/'candidate',tmp_path/'candidate.zip')
     manifest=result['manifest']
     assert manifest['sourceCommit']==git(repo,'rev-parse','HEAD')
     assert manifest['sourceLocks']['server/uv.lock']==files.sha256_file(repo/'server/uv.lock')

@@ -10,3 +10,4 @@
 /web/package-lock.json text eol=lf
 /web/scripts/mediapipe-assets.json text eol=lf
 /packaging/python-runtime.json text eol=lf
+/packaging/windows/bootstrap.py text eol=lf

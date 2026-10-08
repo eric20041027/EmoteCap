@@ -117,7 +117,8 @@ def test_timeout_stops_actual_owned_descendant(tmp_path):
         'Path(sys.argv[1]).write_text(json.dumps({"child":child.pid}));time.sleep(30)',str(file)]
     pid=None
     try:
-        with pytest.raises(RuntimeError):quality.run_owned(command,tmp_path,'timeout',1,dict(os.environ))
+        with pytest.raises(RuntimeError,match='timed out'):
+            quality.run_owned(command,tmp_path,'timeout',1,dict(os.environ))
         pid=json.loads(file.read_text())['child']
         assert not alive(pid),'The owned descendant must be terminal before timeout returns'
     finally:
