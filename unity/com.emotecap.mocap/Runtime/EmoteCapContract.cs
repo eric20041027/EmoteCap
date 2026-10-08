@@ -42,7 +42,13 @@ namespace EmoteCap
     public class LiveMessage
     {
         public string type;
-        public float t;
+        public double t;
+        public int version;
+        public string[] bones;
+        public string sessionId;
+        public string role;
+        public string streamId;
+        public double expiresAt;
         public float[] h;
         public float[] r;
         public string name;
