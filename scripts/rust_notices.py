@@ -97,7 +97,7 @@ def validate_rust_notices(components,receipt,payload,material,license_records,so
         actual_native={name for _,name in NATIVE.values() if ordinary_path(payload/name).exists()}
         recorded_native={name for _,name in NATIVE.values() if name in inventory}
         if actual_native!=recorded_native:raise PackageError('Current Rust native paths differ from the receipt')
-        bindings=set();package_names=set();tokens=set();commits=set();native_lines=[]
+        bindings=set();package_names=set();tokens=set();commits=set();native_lines=[];project_locks={}
         for package in _list(data['packages'],3,1):
             _fields(package,('name','version','sourceArchive','officialWheel','nativeMembers','nativeMembersMatchOfficialWheel',
                 'observedNativeCrateVersionTokens','compilerSourceCommits','sourceCargoLocks'))
@@ -128,6 +128,12 @@ def validate_rust_notices(components,receipt,payload,material,license_records,so
             for commit in compiler_commits:_digest(commit,40);commits.add(commit)
             for lock in _list(package['sourceCargoLocks'],8,1):
                 _fields(lock,('member','registryPackages','sha256'));safe_name(lock['member']);_size(lock['registryPackages'],256);_digest(lock['sha256'])
+                prefix=name.replace('-','_')+'-'+package['version']+'/'
+                if not lock['member'].startswith(prefix) or Path(lock['member']).name!='Cargo.lock':
+                    raise PackageError('Rust project lock is outside its source package')
+                identity=name+'/'+lock['member']
+                if identity.casefold() in {key.casefold() for key in project_locks}:raise PackageError('Duplicate Rust project source lock')
+                project_locks[identity]=lock['registryPackages']
         if bindings!=recorded_native:raise PackageError('Rust source declarations omit native members')
         owned=set(owner['suppliedLicenses']+owner.get('supplementaryLicenses',[]));expected_licenses={};source_lines=[]
         def licensing(name,entry):
@@ -141,7 +147,7 @@ def validate_rust_notices(components,receipt,payload,material,license_records,so
             expected_licenses[name]=entry
             if len(expected_licenses)>512 or sum(r['size'] for r in expected_licenses.values())>16*1024*1024:
                 raise PackageError('Rust licensing material exceeds its aggregate budget')
-        identities=set();crate_texts=manifest_only=0
+        identities=set();crate_texts=manifest_only=0;memberships={}
         for crate in _list(data['registryCrates'],256,1):
             _fields(crate,('name','version','sourceArchiveUrl','sourceArchiveSha256','sourceLockReferences','declaredLicense',
                 'declaredLicenseFile','collectionStatus','suppliedLicensingFiles'))
@@ -154,7 +160,10 @@ def validate_rust_notices(components,receipt,payload,material,license_records,so
             if crate['sourceArchiveUrl']!=f'https://static.crates.io/crates/{name}/{identity}.crate':
                 raise PackageError('Rust source archive URL does not correspond to its identity')
             terms=_string(crate['declaredLicense'],256)
-            for reference in _list(crate['sourceLockReferences'],16,1):safe_name(_string(reference))
+            references=_list(crate['sourceLockReferences'],16,1)
+            for reference in references:safe_name(_string(reference))
+            if len(references)!=len({reference.casefold() for reference in references}):raise PackageError('Duplicate Rust source-lock membership')
+            memberships[identity]=references
             declared=crate['declaredLicenseFile']
             if declared is not None:safe_name(_string(declared))
             records=_list(crate['suppliedLicensingFiles'],64)
@@ -173,7 +182,7 @@ def validate_rust_notices(components,receipt,payload,material,license_records,so
             source_lines.extend([f'{identity}: declared terms {terms}',f'Source archive: {crate["sourceArchiveUrl"]}',
                 f'Source SHA256: {crate["sourceArchiveSha256"]}',f'Supplied licensing: {locations or "manifest declaration only; licensing text unresolved"}',''])
         if not {token.casefold() for token in tokens}<=identities:raise PackageError('Observed Rust source tokens are unrepresented')
-        compiler_identities=set();root_licenses={commit:set() for commit in commits}
+        compiler_identities=set();root_licenses={commit:set() for commit in commits};compiler_locks=set()
         for entry in _list(data['compilerSourceFiles'],40,1):
             _fields(entry,('commit','path','url','size','sha256'));_digest(entry['commit'],40)
             member=safe_name(entry['path']);_size(entry['size'],MAX_JSON);_digest(entry['sha256']);identity=(entry['commit'],member.casefold())
@@ -182,10 +191,20 @@ def validate_rust_notices(components,receipt,payload,material,license_records,so
             compiler_identities.add(identity)
             if entry['url']!=f'https://raw.githubusercontent.com/rust-lang/rust/{entry["commit"]}/{member}':
                 raise PackageError('Compiler source URL differs from its commit/path')
+            if member in ('Cargo.lock','library/Cargo.lock'):
+                compiler_locks.add('rust-lang/rust/'+entry['commit']+'/'+member)
             if member in ROOT_LICENSES:
                 root_licenses[entry['commit']].add(member)
                 licensing('licenses/rust-standard-library/'+entry['commit']+'/'+member,entry)
         if any(names!=ROOT_LICENSES for names in root_licenses.values()):raise PackageError('Compiler licensing/copyright records are incomplete')
+        declared_locks=set(project_locks)|compiler_locks
+        counts={name:set() for name in declared_locks}
+        for identity,references in memberships.items():
+            for reference in references:
+                if reference not in declared_locks:raise PackageError('Rust source-lock reference is undeclared')
+                counts[reference].add(identity)
+        if any(len(counts[name])!=count for name,count in project_locks.items()):
+            raise PackageError('Rust source-lock membership count differs from declared coverage')
         if owned!=set(expected_licenses):raise PackageError('Rust source licensing references contain unrelated text')
         summary={'nativeExtensionsMatched':len(bindings),'nativeCrateVersionTokensMapped':len(tokens),'registrySourceArchivesVerified':len(identities),
             'suppliedLicensingTextsVerified':crate_texts,'sourceManifestsWithoutSuppliedLicenseText':manifest_only,

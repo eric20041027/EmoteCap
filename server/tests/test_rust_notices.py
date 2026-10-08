@@ -149,3 +149,51 @@ def test_builder_delivers_metadata_and_all_notices(rust_inputs,tmp_path):
     assert result['manifest']['licensingMaterial']['rustNativeBindings']==1
     assert (tmp_path/'candidate/notices/third_party/rust-source-evidence.json').read_bytes()==(repo/'third_party/rust-source-evidence.json').read_bytes()
     assert (tmp_path/'candidate/notices/RUST-SOURCE-ACCESS.txt').is_file()
+
+
+@pytest.mark.parametrize('changed',['native','license','metadata','rust-notice','readme'])
+@pytest.mark.parametrize('interval',['after-copy','before-zip','after-zip'])
+def test_builder_rejects_correspondence_changes_at_publication(rust_inputs,tmp_path,monkeypatch,changed,interval):
+    repo,prepared,_,_=rust_inputs;git(repo,'add','.');git(repo,'commit','-qm','Owned Rust publication fixture')
+    paths={'native':'deps/watchfiles/_rust_notify.pyd','license':'notices/third_party/licenses/rust-crates/owned-crate-1.0.0/LICENSE',
+        'metadata':'notices/third_party/rust-source-evidence.json','rust-notice':'notices/RUST-SOURCE-ACCESS.txt','readme':'notices/README.txt'}
+    def corrupt(staged):
+        path=staged/paths[changed];path.write_bytes(path.read_bytes()+b'\nOwned late mutation\n')
+    if interval=='after-copy':
+        original=builder.copy_notices
+        def copying(snapshot,staged,validated,commit):
+            summary=original(snapshot,staged,validated,commit);corrupt(staged);return summary
+        monkeypatch.setattr(builder,'copy_notices',copying)
+    else:
+        original=builder.zip_payload
+        def zipping(staged,archive,**kwargs):
+            if interval=='before-zip':corrupt(staged)
+            digest=original(staged,archive,**kwargs)
+            if interval=='after-zip':corrupt(staged)
+            return digest
+        monkeypatch.setattr(builder,'zip_payload',zipping)
+    output=tmp_path/'candidate';archive=tmp_path/'candidate.zip'
+    with pytest.raises(files.PackageError):builder.build(repo,prepared,output,archive)
+    assert not output.exists() and not archive.with_suffix('.zip.receipt.json').exists()
+
+
+@pytest.mark.parametrize('change',['unknown-reference','duplicate-reference','duplicate-project-lock','incorrect-count','omitted-unresolved'])
+def test_source_lock_membership_cannot_be_forged_or_omitted(rust_inputs,tmp_path,change):
+    repo,prepared,index,data=rust_inputs;crate=data['registryCrates'][0];package=data['packages'][0]
+    missing=copy.deepcopy(crate)
+    missing.update(name='owned-manifest-only',version='2.0.0',sourceArchiveUrl='https://static.crates.io/crates/owned-manifest-only/owned-manifest-only-2.0.0.crate',
+        collectionStatus='source-manifest-only-no-supplied-license-text',suppliedLicensingFiles=[],declaredLicense='MPL-2.0')
+    data['registryCrates'].append(missing);package['sourceCargoLocks'][0]['registryPackages']=2
+    data['summary']['registrySourceArchivesVerified']=2;data['summary']['sourceManifestsWithoutSuppliedLicenseText']=1
+    save(repo,index,data);control=validate(repo,prepared)['summary']
+    assert control['rustSourceCrates']==2 and control['rustManifestOnlyCrates']==1
+    if change=='unknown-reference':crate['sourceLockReferences']=['not-a-declared-package/not-a-lock']
+    elif change=='duplicate-reference':crate['sourceLockReferences']*=2
+    elif change=='duplicate-project-lock':package['sourceCargoLocks'].append(copy.deepcopy(package['sourceCargoLocks'][0]))
+    elif change=='incorrect-count':package['sourceCargoLocks'][0]['registryPackages']=3
+    else:
+        data['registryCrates'].pop();data['summary']['registrySourceArchivesVerified']=1;data['summary']['sourceManifestsWithoutSuppliedLicenseText']=0
+    save(repo,index,data);git(repo,'add','.');git(repo,'commit','-qm','Owned inconsistent source-lock fixture')
+    output=tmp_path/'candidate';archive=tmp_path/'candidate.zip'
+    with pytest.raises(files.PackageError):builder.build(repo,prepared,output,archive)
+    assert not output.exists() and not archive.with_suffix('.zip.receipt.json').exists()

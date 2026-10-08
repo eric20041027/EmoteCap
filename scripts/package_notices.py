@@ -1,5 +1,6 @@
 """Bind supplied licensing evidence to a pending internal candidate."""
 import json
+import hashlib
 import os
 from pathlib import Path
 import re
@@ -127,6 +128,7 @@ def validate_notices(snapshot:Path,prepared:Path,public_files:list[dict])->dict:
         rust=validate_rust_notices(components,receipt,prepared/'payload',material,{record['path']:record for record in records},snapshot/'server/uv.lock',context['preparedReceiptSha256'])
         summary.update(rust['summary'])
         return {'index':index,'textFiles':expected,'summary':summary,
+                'indexFile':{'path':'third_party/inventory.json','size':path.stat().st_size,'sha256':summary['sourceIndexSha256']},
                 'sourceContext':{'prepared':prepared,'receipt':receipt,'receiptSha256':context['preparedReceiptSha256'],'sourceLock':snapshot/'server/uv.lock'}}
     except (OSError,ValueError,KeyError,TypeError,RecursionError):
         raise PackageError('Licensing material is incomplete or invalid') from None
@@ -180,4 +182,14 @@ def copy_notices(snapshot:Path,staged:Path,validated:dict,source_commit:str)->di
     with (staged/'notices/SOURCE-ACCESS.txt').open('x',encoding='utf-8',newline='\n') as output:output.write(access['text'])
     if rust['dataFile'] is not None:
         with (staged/'notices/RUST-SOURCE-ACCESS.txt').open('x',encoding='utf-8',newline='\n') as output:output.write(rust['text'])
+    frozen=[{**entry,'path':'third_party/licenses/'+entry['path']} for entry in validated['textFiles']]
+    frozen.append(dict(validated['indexFile']))
+    def generated(name,value):
+        body=value.encode('utf-8')
+        frozen.append({'path':name,'size':len(body),'sha256':hashlib.sha256(body).hexdigest()})
+    generated('README.txt',text);generated('SOURCE-ACCESS.txt',access['text'])
+    if rust['dataFile'] is not None:
+        frozen.append({**rust['dataFile'],'path':'third_party/'+rust['dataFile']['path']})
+        generated('RUST-SOURCE-ACCESS.txt',rust['text'])
+    validated['noticeFiles']=sorted(frozen,key=lambda entry:entry['path'])
     return dict(validated['summary'])

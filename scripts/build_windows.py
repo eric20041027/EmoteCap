@@ -7,10 +7,11 @@ import re
 import subprocess
 import sys
 import uuid
+import zipfile
 
 from package_files import (MAX_MANIFEST_BYTES, MAX_TOTAL_BYTES, PackageError, copy_tree, extract_tar,
                           file_inventory, ordinary_path, safe_name, sha256_file, verify_inventory,
-                          write_json, zip_payload)
+                          write_json, zip_payload,MAX_FILE_BYTES,MAX_FILES)
 from package_notices import copy_notices, validate_notices
 
 PENDING_GATES = ['Owner MIT/contributor/all-four-media rights','Complete native/vendor redistribution assessment',
@@ -62,6 +63,36 @@ def _validate_public(public: Path, assets: list[dict]) -> list[dict]:
             raise PackageError('Web model asset failed its committed SHA256 pin')
     return inventory
 
+
+def _verify_archive(path: Path, expected: list[dict]) -> str:
+    ordinary_path(path)
+    if not path.is_file() or path.stat().st_nlink!=1 or path.stat().st_size>MAX_TOTAL_BYTES:
+        raise PackageError('Completed package archive is not a bounded ordinary file')
+    records={entry['path']:entry for entry in expected}
+    if len(records)!=len(expected) or len(records)>MAX_FILES:raise PackageError('Frozen package inventory is ambiguous')
+    try:
+        with zipfile.ZipFile(path) as archive:
+            entries=archive.infolist()
+            if [entry.filename for entry in entries]!=sorted(records):raise PackageError('Archive differs from the frozen package paths')
+            for entry in entries:
+                record=records[entry.filename]
+                if entry.is_dir() or entry.flag_bits&1 or entry.file_size!=record['size'] or entry.file_size>MAX_FILE_BYTES:
+                    raise PackageError('Archive member differs from the frozen package record')
+                digest=hashlib.sha256();count=0
+                with archive.open(entry) as incoming:
+                    while chunk:=incoming.read(min(1024*1024,record['size']-count+1)):
+                        count+=len(chunk)
+                        if count>record['size']:raise PackageError('Archive member exceeds its frozen size')
+                        digest.update(chunk)
+                if count!=record['size'] or digest.hexdigest()!=record['sha256']:
+                    raise PackageError('Archive bytes differ from admitted source/payload/notices')
+        digest=hashlib.sha256()
+        with path.open('rb') as incoming:
+            while chunk:=incoming.read(1024*1024):digest.update(chunk)
+        return digest.hexdigest()
+    except (OSError,ValueError,RuntimeError,zipfile.BadZipFile,NotImplementedError):
+        raise PackageError('Completed archive does not match the frozen admitted package') from None
+
 def build(repo: Path, prepared: Path, destination: Path, archive: Path) -> dict:
     repo=ordinary_path(repo);prepared=ordinary_path(prepared)
     destination=ordinary_path(destination);archive=ordinary_path(archive)
@@ -98,7 +129,8 @@ def build(repo: Path, prepared: Path, destination: Path, archive: Path) -> dict:
         if result.returncode or source_archive.stat().st_size>MAX_TOTAL_BYTES:
             raise PackageError('Fixed source archive is incomplete or oversized')
         snapshot=work/'source';extract_tar(source_archive,snapshot)
-        for entry in file_inventory(snapshot):
+        snapshot_files=file_inventory(snapshot)
+        for entry in snapshot_files:
             name=entry['path']
             if name.startswith(('server/emotecap_server/','server/blender/')) and not name.endswith('.py'):
                 raise PackageError('Server source allowlist contains an unsupported file')
@@ -112,25 +144,41 @@ def build(repo: Path, prepared: Path, destination: Path, archive: Path) -> dict:
         incomplete=staged/'.incomplete'
         with incomplete.open('xb') as marker:
             marker.write(b'Build incomplete: archive and receipt must succeed before publication.\n')
+        marker_record={'path':'.incomplete','size':incomplete.stat().st_size,'sha256':sha256_file(incomplete)}
+        frozen=[dict(entry) for entry in receipt['files']]
+        for name in ('server/emotecap_server','server/blender','contracts'):
+            frozen.extend({**entry,'path':'app/'+entry['path']} for entry in snapshot_files if entry['path'].startswith(name+'/'))
+        frozen.extend({**entry,'path':'app/web/dist/'+entry['path']} for entry in public_inventory)
+        source_records={entry['path']:entry for entry in snapshot_files}
         for name in ('server/emotecap_server','server/blender','contracts'):
             copy_tree(snapshot/name,staged/'app'/name)
         copy_tree(repo/'web/dist',staged/'app/web/dist')
         verify_inventory(staged/'app/web/dist',public_inventory)
         licensing_summary=copy_notices(snapshot,staged,material,head)
+        frozen.extend({**entry,'path':'notices/'+entry['path']} for entry in material['noticeFiles'])
         for name in ('bootstrap.py','start.cmd','START-HERE.txt'):
             source=snapshot/'packaging/windows'/name
             with source.open('rb') as incoming,(staged/name).open('xb') as output:
                 output.write(incoming.read())
+            frozen.append({**source_records['packaging/windows/'+name],'path':name})
         if _git(repo,'rev-parse','HEAD').decode('ascii').strip()!=head or _git(repo,'status','--porcelain','-z','--untracked-files=normal'):
             raise PackageError('Source checkout changed during candidate construction')
         locks={name:sha256_file(snapshot/name) for name in ('server/uv.lock','server/pyproject.toml','web/package-lock.json')}
+        frozen=sorted(frozen,key=lambda entry:entry['path'])
+        verify_inventory(staged,[*frozen,marker_record])
         manifest={'schema':'emotecap-windows-candidate-v1','platform':'windows11-x64','sourceCommit':head,
             'runtime':receipt['runtime'],'sourceLocks':locks,'licensingMaterial':licensing_summary,
             'webBuildSha256':hashlib.sha256(json.dumps(public_inventory,sort_keys=True,separators=(',',':')).encode()).hexdigest(),
-            'files':[entry for entry in file_inventory(staged) if entry['path']!='.incomplete'],
+            'files':frozen,
             'releaseGate':'pending','pendingGates':PENDING_GATES}
         write_json(staged/'manifest.json',manifest)
+        manifest_path=staged/'manifest.json'
+        manifest_record={'path':'manifest.json','size':manifest_path.stat().st_size,'sha256':sha256_file(manifest_path)}
+        completed_files=[*frozen,manifest_record]
+        verify_inventory(staged,[*completed_files,marker_record])
         archive_sha=zip_payload(staged,archive,omit_incomplete_marker=True)
+        if _verify_archive(archive,completed_files)!=archive_sha:raise PackageError('Archive digest changed after construction')
+        verify_inventory(staged,[*completed_files,marker_record])
         result={'manifest':manifest,'archiveSha256':archive_sha,'archiveBytes':archive.stat().st_size}
         write_json(receipt_path,{'schema':'emotecap-candidate-receipt-v1','sourceCommit':head,
             'archiveSha256':archive_sha,'archiveBytes':result['archiveBytes'],'releaseGate':'pending'})
