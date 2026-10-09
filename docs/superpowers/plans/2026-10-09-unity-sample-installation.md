@@ -41,7 +41,7 @@
 
 **Interfaces:** Consumes unchanged local UPM package/sample, existing OwnedProcess and StarterRigBuilder.CreateScene. Produces real installation receipts with valid Standard/Tall Humanoids and unchanged original test XML.
 
-- [ ] **Step 1: Create a fresh real installation probe before changing asmdefs.** Copy package/sample byte-for-byte into the plan workspace snapshot, create a minimal project manifest with local package and animation/physics/imgui/jsonserialize/imageconversion modules, omit Test Framework, and opt in package tests to cover the most demanding no-framework case. Add this Editor probe:
+- [x] **Step 1: Create a fresh real installation probe before changing asmdefs.** Copy package/sample byte-for-byte into the plan workspace snapshot, create a minimal project manifest with local package and animation/physics/imgui/jsonserialize/imageconversion modules, omit Test Framework, and opt in package tests to cover the most demanding no-framework case. Add this Editor probe:
 
 ```csharp
 public static void Run() {
@@ -59,24 +59,24 @@ public static void Run() {
 }
 ```
 
-- [ ] **Step 2: Run RED with actual Editor.** Use OwnedProcess, fresh project and log with `-batchmode -nographics -projectPath <owned-project> -executeMethod InstallSmoke.Run -quit -logFile <owned-log>`. Record command/source hashes/exit and receipt absence. Expected: NUnit/UnityTest compiler errors and no success receipt. Treat licensing/network/sandbox errors separately, never as expected product RED.
-- [ ] **Step 3: Add the gate to all four test asmdefs.** Preserve all existing fields and add:
+- [x] **Step 2: Run RED with actual Editor.** Use OwnedProcess, fresh project and log with `-batchmode -nographics -projectPath <owned-project> -executeMethod InstallSmoke.Run -quit -logFile <owned-log>`. Record command/source hashes/exit and receipt absence. Expected: NUnit/UnityTest compiler errors and no success receipt. Treat licensing/network/sandbox errors separately, never as expected product RED.
+- [x] **Step 3: Add the gate to all four test asmdefs.** Preserve all existing fields and add:
 
 ```json
 "defineConstraints": ["EMOTECAP_TEST_FRAMEWORK"],
 "versionDefines": [{"name":"com.unity.test-framework","expression":"1.7.0","define":"EMOTECAP_TEST_FRAMEWORK"}]
 ```
 
-- [ ] **Step 4: Run GREEN in a new frozen no-framework project.** Same source-bound real probe must exit0, create two valid Humanoids, exclude all four test assemblies and write its new receipt. Also run without the manifest testables setting to cover normal installation. Verify sample/package files except the four declared asmdefs unchanged; no installed framework hidden in resolved manifest/lock.
-- [ ] **Step 5: Run framework-present qualification.**
+- [x] **Step 4: Run GREEN in a new frozen no-framework project.** Same source-bound real probe must exit0, create two valid Humanoids, exclude all four test assemblies and write its new receipt. Also run without the manifest testables setting to cover normal installation. Verify sample/package files except the four declared asmdefs unchanged; no installed framework hidden in resolved manifest/lock.
+- [x] **Step 5: Run framework-present qualification.**
 
 ```text
 server/.venv/Scripts/python.exe scripts/unity-quality.py --output <fresh-owned-quality-output> --unity "C:/Program Files/Unity/Hub/Editor/6000.5.9f1/Editor/Unity.exe" --blender <installed-Blender4.5.14> --powershell <installed-PowerShell7>
 ```
 
 Expected: mandatory81Editor/37Play cases all passed, no skips, actual FBX/player/two-rig/rendered/relay checks, source fingerprints unchanged and owned process trees terminal. Existing runner's fixed output root is retained; select a fresh child and record why its helper owns that path.
-- [ ] **Step 6: Update user/test instructions and current progress.** Explain tests only compile when Test Framework>=1.7.0 is available, ordinary package installation does not add it, developer qualification pins1.7.0. Record bounded Mac baseline25.57–27.61FPS/p9540.5–40.9ms at1093691, remaining Mac regressions and published merged main. Do not expose private artifacts or claim the branch tested on Mac.
-- [ ] **Step 7: Commit and run task-done verification.**
+- [x] **Step 6: Update user/test instructions and current progress.** Explain tests only compile when Test Framework>=1.7.0 is available, ordinary package installation does not add it, developer qualification pins1.7.0. Record bounded Mac baseline25.57–27.61FPS/p9540.5–40.9ms at1093691, remaining Mac regressions and published merged main. Do not expose private artifacts or claim the branch tested on Mac.
+- [x] **Step 7: Commit and run task-done verification.**
 
 ```sh
 git add unity/com.emotecap.mocap docs
