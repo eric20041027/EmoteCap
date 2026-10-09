@@ -12,6 +12,12 @@ function frameAt(t: number, rightUpperArm: [number, number, number, number] = [0
 }
 
 describe('makeClip', () => {
+  it('keeps subframe trim boundaries instead of collapsing a clip to its interior samples', () => {
+    const original=[frameAt(0),frameAt(0.5),frameAt(1)];
+    const clip=makeClip(original,{start:0.2,end:0.8,name:'Precise',loop:false});
+    expect(clip.frames).toHaveLength(19);expect(clip.frames.at(-1)!.t).toBeCloseTo(0.6,4);
+    expect(original.map(f=>f.t)).toEqual([0,0.5,1]);
+  });
   it('resamples irregular frames to exact fps starting at t = 0', () => {
     const frames = [0, 0.03, 0.07, 0.1, 0.135, 0.17, 0.2].map((t) => frameAt(t + 5));
     const clip = makeClip(frames, { start: 5, end: 5.2, name: 'Wave', loop: false });

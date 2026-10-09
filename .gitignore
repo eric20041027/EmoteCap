@@ -12,6 +12,10 @@
 node_modules/
 dist/
 *.log
+.superpowers/
+web/test-results/
+web/playwright-report/
+web/.measurement-baseline/
 
 # Python
 __pycache__/

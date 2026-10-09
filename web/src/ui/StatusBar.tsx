@@ -36,7 +36,7 @@ export function StatusBar({ cameraStatus, fps, hasPose, server }: StatusBarProps
   return (
     <div className="status-bar" role="status" aria-live="polite">
       <Chip tone={cameraReady ? (fps >= 20 ? 'ok' : 'warn') : cameraStatus === 'error' ? 'bad' : 'idle'}>
-        {cameraReady ? `${fps} fps` : cameraStatus === 'error' ? 'Camera error' : 'Starting…'}
+        {cameraReady ? `${fps} fps` : cameraStatus === 'error' ? 'Camera error' : cameraStatus==='off'?'Camera off':'Starting…'}
       </Chip>
       <Chip tone={cameraReady && hasPose ? 'ok' : 'idle'}>{hasPose ? 'Pose detected' : 'No pose'}</Chip>
       <Chip tone={serverTone}>{serverLabel}</Chip>

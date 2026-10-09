@@ -6,6 +6,7 @@ import { sliceFailure, type SliceFailureKind } from './takesApi';
 const FPS = 30;
 const RIGHT_UPPER_ARM = 9;
 const VIDEO = new Blob(['webm'], { type: 'video/webm' });
+const CONSENT={token:'c'.repeat(43),takeId:'604e37e2-814a-40f8-9c0a-6dc702c73dbb'};
 
 /** 5 s take: the right arm swings during 0.5–1.8 s and 3–4.3 s, and holds still otherwise. */
 function takeWithTwoMoves(): MotionFrame[] {
@@ -29,18 +30,22 @@ const GEMINI_SEGMENTS: Segment[] = [
 ];
 
 describe('sliceTake', () => {
+  it('defaults to local slicing without contacting the provider',async()=>{
+    const request=vi.fn(async()=>GEMINI_SEGMENTS),result=await sliceTake(FRAMES,VIDEO,{request});
+    expect(request).not.toHaveBeenCalled();expect(result.source).toBe('fallback');
+  });
   it('uses Gemini segments, snapped to pauses, when the request succeeds', async () => {
     const request = vi.fn(async () => GEMINI_SEGMENTS);
-    const result = await sliceTake(FRAMES, VIDEO, { request });
+    const result = await sliceTake(FRAMES, VIDEO, { request,consent:CONSENT });
     expect(result).toEqual({ source: 'gemini', segments: refineSegments(GEMINI_SEGMENTS, FRAMES) });
-    expect(request).toHaveBeenCalledWith(VIDEO, 5, undefined);
+    expect(request).toHaveBeenCalledWith(VIDEO, 5, undefined,CONSENT);
   });
 
   it.each(['not-configured', 'gemini-failed', 'too-large', 'unsupported-video', 'unreachable'] as const)(
     'falls back to splitting at pauses on %s',
     async (kind) => {
       const failure = sliceFailure(kind, 'server said no');
-      const result = await sliceTake(FRAMES, VIDEO, { request: async () => Promise.reject(failure) });
+      const result = await sliceTake(FRAMES, VIDEO, { request: async () => Promise.reject(failure),consent:CONSENT });
       expect(result).toEqual({
         source: 'fallback',
         segments: fallbackSegments(FRAMES),
@@ -62,8 +67,8 @@ describe('sliceTake', () => {
   it('passes the abort signal to the request', async () => {
     const controller = new AbortController();
     const request = vi.fn(async () => GEMINI_SEGMENTS);
-    await sliceTake(FRAMES, VIDEO, { request, signal: controller.signal });
-    expect(request).toHaveBeenCalledWith(VIDEO, 5, controller.signal);
+    await sliceTake(FRAMES, VIDEO, { request, signal: controller.signal,consent:CONSENT });
+    expect(request).toHaveBeenCalledWith(VIDEO, 5, controller.signal,CONSENT);
   });
 });
 

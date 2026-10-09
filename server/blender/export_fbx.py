@@ -9,7 +9,9 @@ Writes <out>/<name>.fbx and <out>/<name>.emotecap.json for every clip.
 """
 import argparse
 import json
+import math
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 
 import bpy
@@ -46,14 +48,14 @@ def select_skeleton(contract: dict, mode: str) -> dict:
     return {**contract, "skeleton": [bone for bone in contract["skeleton"] if bone["name"] not in fingers]}
 
 
-def reset_scene(fps: int, frame_count: int) -> None:
+def reset_scene(fps: int, duration: float) -> None:
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
     scene.unit_settings.system = "METRIC"
     scene.unit_settings.scale_length = 1.0
     scene.render.fps = fps
     scene.frame_start = 0
-    scene.frame_end = max(frame_count - 1, 0)
+    scene.frame_end = math.ceil(duration * fps)
 
 
 def build_armature(skeleton: list[dict]) -> bpy.types.Object:
@@ -105,8 +107,17 @@ def key_clip(obj: bpy.types.Object, contract: dict, clip: dict) -> None:
     driven_index = {name: i for i, name in enumerate(contract["driven"])}
     fbx_names = {bone["name"]: bone["fbx"] for bone in skeleton}
     rest = {bone["name"]: obj.data.bones[bone["fbx"]].matrix_local.copy() for bone in skeleton}
+    # Armature-only FBX model transforms use the current pose. An excluded rest key
+    # lets the exporter restore true T-pose after baking, even if clip t=0 is posed.
+    for pose_bone in obj.pose.bones:
+        pose_bone.rotation_mode = "QUATERNION"
+        pose_bone.rotation_quaternion = Quaternion((1, 0, 0, 0))
+        pose_bone.location = Vector((0, 0, 0))
+        pose_bone.keyframe_insert("rotation_quaternion", frame=-1)
+        pose_bone.keyframe_insert("location", frame=-1)
     previous: dict[str, Quaternion] = {}
-    for frame_index, frame in enumerate(clip["frames"]):
+    for frame in clip["frames"]:
+        key_time = frame["t"] * clip["fps"]
         pose = solve_frame(frame, skeleton, driven_index, rest)
         for bone in skeleton:
             name, parent = bone["name"], bone["parent"]
@@ -121,10 +132,69 @@ def key_clip(obj: bpy.types.Object, contract: dict, clip: dict) -> None:
                 q.negate()
             previous[name] = q
             pose_bone.rotation_quaternion = q
-            pose_bone.keyframe_insert("rotation_quaternion", frame=frame_index)
+            pose_bone.keyframe_insert("rotation_quaternion", frame=key_time)
             if parent is None:
                 pose_bone.location = basis.translation
-                pose_bone.keyframe_insert("location", frame=frame_index)
+                pose_bone.keyframe_insert("location", frame=key_time)
+    expected_keys = len(clip['frames']) + 1
+    for curve in obj.animation_data.action.fcurves:
+        if curve.data_path.endswith('rotation_quaternion') and len(curve.keyframe_points) != expected_keys:
+            raise ValueError('Source timestamps are too close for Blender to preserve every sample')
+    bpy.context.scene.frame_set(-1)
+
+
+class _ScheduledNumpy:
+    """Supply a bounded union of source and regular samples to the FBX baker.
+
+    Only the add-on's local numpy binding changes; numpy itself is untouched.
+    The supported add-on must request this exact scene sampling range once.
+    """
+    def __init__(self, numpy, clip: dict):
+        self.numpy = numpy
+        self.calls = 0
+        frames = clip['frames']
+        fps = clip['fps']
+        end = frames[-1]['t']
+        if not 1 <= fps <= 120 or len(frames) > 21601 or not math.isfinite(end) or not 0 <= end <= 180:
+            raise ValueError('FBX sampling exceeds motion limits')
+        times = [frame['t'] * fps for frame in frames]
+        if any(not math.isfinite(t) or t < 0 for t in times) or times[0] != 0:
+            raise ValueError('FBX timestamps must be finite and start at zero')
+        if any(a >= b for a, b in zip(times, times[1:])):
+            raise ValueError('FBX timestamps must increase')
+        self.end = math.ceil(end * fps)
+        self.stop = numpy.nextafter(self.end, numpy.inf)
+        # Never choose a uniform step from the smallest input gap.
+        # FCurve frame coordinates are float32. Nearly equal source/regular
+        # doubles can otherwise bake duplicate FBX ticks and corrupt reimport.
+        self.samples = numpy.unique(numpy.array(
+            sorted(set(range(self.end + 1)).union(times)), dtype=numpy.float32,
+        )).astype(float)
+        if len(self.samples) > 43202:
+            raise ValueError('FBX sampling exceeds its finite budget')
+
+    def __getattr__(self, name):
+        return getattr(self.numpy, name)
+
+    def arange(self, *args, **kwargs):
+        if args == (0, self.stop) and kwargs == {'step': 1.0}:
+            self.calls += 1
+            return self.samples
+        return self.numpy.arange(*args, **kwargs)
+
+
+@contextmanager
+def source_samples(clip: dict):
+    from io_scene_fbx import export_fbx_bin
+    original = export_fbx_bin.np
+    schedule = _ScheduledNumpy(original, clip)
+    export_fbx_bin.np = schedule
+    try:
+        yield
+        if schedule.calls != 1:
+            raise RuntimeError('This Blender FBX add-on does not support source-time sampling')
+    finally:
+        export_fbx_bin.np = original
 
 
 def export_fbx(path: Path) -> None:
@@ -156,16 +226,18 @@ def main() -> None:
     clips = json.loads(Path(args.inp).read_text())["clips"]
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
-    for clip in clips:
+    for completed, clip in enumerate(clips, start=1):
         clip_contract = select_skeleton(contract, clip.get("skeleton", "full"))
-        reset_scene(clip["fps"], len(clip["frames"]))
+        reset_scene(clip["fps"], clip["frames"][-1]["t"])
         armature = build_armature(clip_contract["skeleton"])
         key_clip(armature, clip_contract, clip)
         armature.animation_data.action.name = clip["name"]
-        export_fbx(out_dir / f"{clip['name']}.fbx")
+        with source_samples(clip):
+            export_fbx(out_dir / f"{clip['name']}.fbx")
         sidecar = {"name": clip["name"], "loop": clip["loop"], "fps": clip["fps"]}
         (out_dir / f"{clip['name']}.emotecap.json").write_text(json.dumps(sidecar))
         print(f"EMOTECAP exported {clip['name']} ({len(clip['frames'])} frames)")
+        print(f"EMOTECAP_PROGRESS:{completed}:{len(clips)}", flush=True)
 
 
 if __name__ == "__main__":

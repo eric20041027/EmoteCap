@@ -1,0 +1,75 @@
+"""Independent real-FBX probe; never imports the export implementation."""
+import argparse
+import json
+import math
+import sys
+from pathlib import Path
+import bpy
+from mathutils import Matrix,Quaternion,Vector
+
+def main():
+    parser=argparse.ArgumentParser()
+    for name in ('fbx','bones','clip','result'):parser.add_argument('--'+name,required=True)
+    args=parser.parse_args(sys.argv[sys.argv.index('--')+1:])
+    contract=json.loads(Path(args.bones).read_text());clip=json.loads(Path(args.clip).read_text())
+    from io_scene_fbx import parse_fbx
+    tree,_=parse_fbx.parse(args.fbx)
+    objects=next(elem for elem in tree.elems if elem.id==b'Objects')
+    duplicate_key_times=0
+    for curve in objects.elems:
+        if curve.id==b'AnimationCurve':
+            times=next(elem.props[0] for elem in curve.elems if elem.id==b'KeyTime')
+            duplicate_key_times+=len(times)-len(set(times))
+    bpy.ops.wm.read_factory_settings(use_empty=True);scene=bpy.context.scene;scene.render.fps=clip['fps']
+    bpy.ops.import_scene.fbx(filepath=args.fbx,anim_offset=0,use_anim=True,automatic_bone_orientation=False)
+    armatures=[obj for obj in scene.objects if obj.type=='ARMATURE']
+    if len(armatures)!=1:raise RuntimeError('Expected one imported armature')
+    obj=armatures[0];action=obj.animation_data.action
+    if action is None:raise RuntimeError('Imported animation is missing')
+    fingers=set(contract['driven'][18:]) if clip.get('skeleton')=='body' else set()
+    skeleton=[b for b in contract['skeleton'] if b['name'] not in fingers]
+    if {b.name for b in obj.data.bones}!={b['fbx'] for b in skeleton}:
+        raise RuntimeError('Imported bone names do not match the required skeleton')
+    driven={name:i for i,name in enumerate(contract['driven'])}
+    vector=lambda xyz:Vector((xyz[0],-xyz[2],xyz[1]))
+    rest={};bind_errors=[];bind_rotations=[];bind_scales=[]
+    names={b['name']:b['fbx'] for b in skeleton}
+    for bone in skeleton:
+        imported=obj.data.bones[bone['fbx']]
+        parent=names[bone['parent']] if bone['parent'] else None
+        if (imported.parent.name if imported.parent else None)!=parent:
+            raise RuntimeError('Imported bone hierarchy differs from the contract')
+        head,tail=vector(bone['head']),vector(bone['tail'])
+        rotation=bpy.types.Bone.MatrixFromAxisRoll((tail-head).normalized(),0).to_quaternion()
+        reference=Matrix.LocRotScale(head,rotation,Vector((1,1,1)))
+        actual=obj.matrix_world@imported.matrix_local
+        rest[bone['name']]=reference
+        bind_errors.append((actual.translation-head).length)
+        difference=actual.to_quaternion().rotation_difference(rotation).angle
+        bind_rotations.append(math.degrees(min(difference,2*math.pi-difference)))
+        bind_scales.append(max(abs(value-1) for value in actual.to_scale()))
+    results=[]
+    for frame in clip['frames']:
+        time=frame['t']*clip['fps'];scene.frame_set(math.floor(time),subframe=time%1)
+        expected={};angles=[];positions=[];world={}
+        for bone in skeleton:
+            name,parent=bone['name'],bone['parent'];bind=rest[name]
+            inherited=expected[parent]@rest[parent].inverted()@bind if parent else None
+            head=inherited.translation if inherited is not None else vector(frame['h'])
+            if name in driven:
+                x,y,z,w=frame['r'][driven[name]*4:driven[name]*4+4]
+                rotation=Quaternion((w,x,-z,y))@bind.to_quaternion()
+            else:rotation=inherited.to_quaternion() if inherited is not None else bind.to_quaternion()
+            expected[name]=Matrix.LocRotScale(head,rotation,bind.to_scale())
+            actual=obj.matrix_world@obj.pose.bones[bone['fbx']].matrix
+            difference=actual.to_quaternion().rotation_difference(rotation).angle
+            angles.append(math.degrees(min(difference,2*math.pi-difference)))
+            positions.append((actual.translation-head).length);world[name]=list(actual.translation)
+        results.append({'t':frame['t'],'maxAngleDegrees':max(angles),'maxPositionMeters':max(positions),
+                        'hips':world['Hips'],'head':world['Head'],'rightHand':world['RightHand'],'leftHand':world['LeftHand']})
+    result={'durationSeconds':float(action.frame_range[1]-action.frame_range[0])/clip['fps'],
+            'bones':len(skeleton),'bindErrorMeters':max(bind_errors),
+            'bindRotationErrorDegrees':max(bind_rotations),'bindScaleError':max(bind_scales),'samples':results,
+            'blenderVersion':bpy.app.version_string,'duplicateKeyTimes':duplicate_key_times}
+    Path(args.result).write_text(json.dumps(result,allow_nan=False),encoding='utf-8')
+if __name__=='__main__':main()

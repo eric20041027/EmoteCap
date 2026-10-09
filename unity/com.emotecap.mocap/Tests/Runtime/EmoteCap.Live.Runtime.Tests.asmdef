@@ -1,0 +1,9 @@
+{
+  "name": "EmoteCap.Live.Runtime.Tests",
+  "rootNamespace": "EmoteCap.Tests",
+  "references": ["EmoteCap.Runtime"],
+  "overrideReferences": true,
+  "precompiledReferences": ["Newtonsoft.Json.dll", "nunit.framework.dll"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "autoReferenced": false
+}

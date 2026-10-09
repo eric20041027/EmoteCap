@@ -9,4 +9,5 @@ def test_health_reports_ok_with_capability_flags():
     assert res.status_code == 200
     body = res.json()
     assert body["ok"] is True
-    assert set(body) == {"ok", "blender", "gemini"}
+    assert set(body) == {"ok", "blender", "gemini", "exportJobs"}
+    assert body['exportJobs']==1

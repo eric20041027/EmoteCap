@@ -15,3 +15,8 @@
   outline: 2px solid var(--ok);
   outline-offset: 2px;
 }
+
+.live-link-panel { min-width: 0; }
+.live-link-code { display: grid; gap: 0.4rem; margin: 0.8rem 0; }
+.live-link-code input { box-sizing: border-box; min-width: 0; width: 100%; font: inherit; }
+.live-link-unrevoked { margin-top: 0.8rem; }

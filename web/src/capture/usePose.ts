@@ -5,6 +5,8 @@ import { cropRect, type CropMode } from './cropFrame';
 import { NO_HANDS, assignHands, type TrackedHands } from './hands';
 import { CaptureError, closeLandmarkers, createLandmarkers, type CaptureQuality, type Landmarkers } from './landmarkers';
 import { detachStream, stopStream } from './streams';
+import { ProcessingConsent, ProcessingConsentError, type SdkAuthorization } from '../privacy/processingConsent';
+import {observeCamera,type CameraDiagnostics,type CameraSetup,type CameraAttemptStatus,type CameraHandState} from './diagnostics';
 
 export type { CaptureQuality } from './landmarkers';
 
@@ -20,7 +22,7 @@ export interface PoseResult {
   timestampMs: number;
 }
 
-export type PoseStatus = 'loading' | 'ready' | 'error';
+export type PoseStatus = 'off' | 'loading' | 'ready' | 'error';
 
 export interface PoseTracker {
   status: PoseStatus;
@@ -46,13 +48,15 @@ const HAVE_CURRENT_DATA = 2;
  * Default: the built-in camera at 720p. A chosen device (e.g. an upright iPhone via Continuity Camera) only
  * gets a height hint, so a portrait source can deliver a portrait 720x1280 frame instead of a landscape crop.
  */
-async function openCamera(deviceId: string): Promise<MediaStream> {
+async function openCamera(deviceId: string, authorize: SdkAuthorization): Promise<MediaStream> {
+  authorize();
   if (!navigator.mediaDevices?.getUserMedia) throw new CaptureError(INSECURE_CONTEXT_MESSAGE);
   const fallback: MediaTrackConstraints = { width: 1280, height: 720, facingMode: 'user' };
   const video: MediaTrackConstraints = deviceId ? { deviceId: { exact: deviceId }, height: { ideal: 1280 } } : fallback;
   try {
     return await navigator.mediaDevices.getUserMedia({ video, audio: false });
   } catch (error) {
+    authorize();
     const name = error instanceof DOMException ? error.name : '';
     if (!deviceId || (name !== 'OverconstrainedError' && name !== 'NotFoundError' && name !== 'NotReadableError')) {
       throw new CaptureError(describeCameraError(error));
@@ -60,6 +64,7 @@ async function openCamera(deviceId: string): Promise<MediaStream> {
     // The chosen camera vanished or is busy (e.g. the iPhone went to sleep): use the default camera instead.
     console.warn(`Camera ${deviceId} unavailable (${name}); falling back to the default camera.`);
   }
+  authorize();
   try {
     return await navigator.mediaDevices.getUserMedia({ video: fallback, audio: false });
   } catch (error) {
@@ -83,10 +88,14 @@ export function usePose(
   crop: CropMode = 'none',
   /** Skip tracking (the camera keeps running), e.g. while a video file is being imported. */
   paused = false,
+  /** Camera/model access is opt-in. Disabling closes current and late-arriving resources. */
+  enabled = false,
+  processingConsent: ProcessingConsent,
+  diagnostics?:CameraDiagnostics,
 ): PoseTracker {
   const [status, setStatus] = useState<{ status: PoseStatus; message: string }>({
-    status: 'loading',
-    message: LOADING_MESSAGE,
+    status: enabled?'loading':'off',
+    message: enabled?LOADING_MESSAGE:'Camera is off.',
   });
   const [fps, setFps] = useState(0);
   const [frame, setFrame] = useState({ aspect: 16 / 9, cropped: false });
@@ -106,14 +115,17 @@ export function usePose(
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
   useEffect(() => {
+    if(!enabled) {setStatus({status:'off',message:'Camera is off.'});setFps(0);return;}
     const video = videoRef.current;
     if (!video) return;
     let disposed = false;
     let stream: MediaStream | undefined;
     let landmarkers: Landmarkers | undefined;
     let rafId = 0;
+    let authorize:SdkAuthorization;
 
     const release = () => {
+      observeCamera(diagnostics,sink=>sink.interrupt('camera-stopped'));
       cancelAnimationFrame(rafId);
       detachStream(video, stream);
       stopStream(stream);
@@ -123,6 +135,7 @@ export function usePose(
     };
 
     const fail = (error: unknown) => {
+      observeCamera(diagnostics,sink=>sink.interrupt('camera-failed'));
       release();
       if (disposed) return;
       const message = error instanceof CaptureError ? error.message : `Pose tracking stopped: ${String(error)}`;
@@ -143,6 +156,11 @@ export function usePose(
       const cropCanvas = document.createElement('canvas');
       const cropContext = cropCanvas.getContext('2d');
       let publishedFrame = '';
+      const cameraSetup=():CameraSetup=>({width:video.videoWidth,height:video.videoHeight,
+        frameRate:stream?.getVideoTracks()[0]?.getSettings().frameRate??null,
+        poseDelegate:active.poseDelegate??null,handDelegate:active.hands?active.handDelegate??null:null,
+        handModelAvailable:active.hands!==undefined});
+      observeCamera(diagnostics,sink=>sink.setup(cameraSetup()));
 
       /** The frame to track: the video itself, or a centred portrait crop drawn into a canvas. */
       const frameSource = (): { image: HTMLVideoElement | HTMLCanvasElement; width: number; height: number } => {
@@ -164,29 +182,49 @@ export function usePose(
 
       const tick = () => {
         rafId = requestAnimationFrame(tick);
+        try {authorize();}catch(error){fail(error);return;}
         if (pausedRef.current) return;
         if (video.readyState < HAVE_CURRENT_DATA || video.currentTime === lastVideoTime) return;
         lastVideoTime = video.currentTime;
         const timestampMs = performance.now();
         const source = frameSource();
+        let observing=false;
+        observeCamera(diagnostics,sink=>{
+          sink.setup(cameraSetup());
+          observing=sink.active;if(!observing)return;
+          const playback=video.getVideoPlaybackQuality?.();
+          const presented=playback?playback.totalVideoFrames-playback.droppedVideoFrames:null;
+          const inputFrame=presented!==null&&Number.isSafeInteger(presented)&&presented>0?presented:null;
+          sink.begin(lastVideoTime,timestampMs,source.width,source.height,inputFrame);
+        });
+        const wantHands = trackHandsRef.current;
+        let handState:CameraHandState=wantHands?(handTracker?'reused':'unavailable'):'off';
         let result;
         try {
           result = active.pose.detectForVideo(source.image, timestampMs);
+          authorize();
         } catch (error) {
+          if(observing)observeCamera(diagnostics,sink=>sink.end(performance.now(),'detector-error',handState));
           fail(error);
           return;
         }
-        const wantHands = trackHandsRef.current;
         let hands = wantHands && timestampMs - lastHandsMs < HAND_REUSE_MS ? lastHands : NO_HANDS;
+        let handFailed=false;
+        if(wantHands&&handTracker&&(lastHandsMs===0||timestampMs-lastHandsMs>=HAND_REUSE_MS))handState='unavailable';
         if (handTracker && wantHands && frameIndex % HAND_EVERY_N_FRAMES[quality] === 0) {
           try {
             hands = assignHands(handTracker.detectForVideo(source.image, timestampMs), result.landmarks[0], source);
+            authorize();
             lastHands = hands;
             lastHandsMs = timestampMs;
+            handState='ran';
           } catch (error) {
+            if(error instanceof ProcessingConsentError){fail(error);return;}
             console.warn('Hand tracking stopped (body tracking continues):', error);
             handTracker.close();
             handTracker = undefined;
+            active.hands=undefined;
+            handState='unavailable';handFailed=true;
           }
         }
         frameIndex += 1;
@@ -199,6 +237,8 @@ export function usePose(
           lastPublishMs = timestampMs;
           setFps(Math.round(fpsEma));
         }
+        try {authorize();}catch(error){fail(error);return;}
+        let measurementStatus:CameraAttemptStatus=result.worldLandmarks[0]?'ok':'no-pose';
         try {
           onResultRef.current({
             landmarks: result.landmarks[0],
@@ -208,30 +248,44 @@ export function usePose(
             timestampMs,
           });
         } catch (error) {
+          measurementStatus='handler-error';
           // Keep tracking; report the first failure only so the console stays readable.
           if (!callbackFailed) console.error('Pose frame handler failed (further errors suppressed):', error);
           callbackFailed = true;
         }
+        if(observing)observeCamera(diagnostics,sink=>sink.end(performance.now(),measurementStatus,handState));
+        if(handFailed)observeCamera(diagnostics,sink=>sink.setup(cameraSetup()));
       };
       tick();
     };
 
     const start = async () => {
       setStatus({ status: 'loading', message: LOADING_MESSAGE });
-      const [camera, model] = await Promise.allSettled([openCamera(deviceId), createLandmarkers(quality)]);
-      if (camera.status === 'fulfilled') stream = camera.value;
-      if (model.status === 'fulfilled') landmarkers = model.value;
+      authorize=processingConsent.lease();authorize();
+      const cameraTask=openCamera(deviceId,authorize).then(value=>{
+        if(disposed)stopStream(value);
+        else {try {authorize();stream=value;}catch(error){stopStream(value);throw error;}}
+        return value;
+      });
+      const modelTask=createLandmarkers(quality,authorize,diagnostics?{reportDelegate:true}:undefined).then(value=>{
+        if(disposed)closeLandmarkers(value);
+        else {try {authorize();landmarkers=value;}catch(error){closeLandmarkers(value);throw error;}}
+        return value;
+      });
+      const [camera, model] = await Promise.allSettled([cameraTask,modelTask]);
       if (disposed) {
         release();
         return;
       }
       if (camera.status === 'rejected') throw camera.reason;
       if (model.status === 'rejected') throw model.reason;
+      authorize();
       video.srcObject = stream ?? null;
       video.muted = true;
       video.playsInline = true;
       await video.play();
       if (disposed || !landmarkers) return;
+      authorize();
       setStatus({ status: 'ready', message: '' });
       runLoop(landmarkers);
     };
@@ -242,7 +296,7 @@ export function usePose(
       disposed = true;
       release();
     };
-  }, [videoRef, attempt, quality, deviceId]);
+  }, [videoRef, attempt, quality, deviceId, enabled,processingConsent,diagnostics]);
 
   return { ...status, fps, frameAspect: frame.aspect, cropped: frame.cropped, retry };
 }

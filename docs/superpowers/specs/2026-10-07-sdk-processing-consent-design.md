@@ -1,0 +1,25 @@
+# MediaPipe processing disclosure and session consent
+
+The installed @mediapipe/tasks-vision1.0.1README, privacy notice dated2026-06-05, distinguishes on-device image/video processing from Google performance/utilization metrics. It also asks application owners to obtain informed consent as required by applicable law. [Primary upstream notice](https://github.com/google-ai-edge/mediapipe/blob/master/mediapipe/tasks/web/vision/README.md). The already qualified sample-only0external requests do not establish inference telemetry behavior. This increment supplies an informed product choice before SDK use; it does not disable or invent undocumented telemetry behavior.
+
+## User behavior
+
+Add a keyboard-accessible MediaPipe processing section near capture with a labelled, initially unchecked checkbox: Allow MediaPipe performance and usage metrics. Explain that images/video are processed on the device, SDK APIs send performance/usage metrics to Google, and the linked Google privacy policy applies. Explain that camera/video processing requires the choice while samples, saved takes, editing, backup and FBX export remain available without it. Gemini source-video sending is separately controlled by its existing selected-source consent; this choice never grants a Gemini upload.
+
+Checking the box alone performs no SDK/model/camera/network operation. Start camera/video processing still requires its explicit existing action. The choice is session-only: every reload starts unchecked; no IndexedDB/project/archive/provenance/preferences persistence, no API key/token, no SDK request before permission. Disabled capture/import controls describe why and retain understandable keyboard navigation.
+
+Withdrawal is always available, including during camera loading, countdown, recording, calibration or video import. It synchronously invalidates the current processing permission before React cleanup, stops new SDK setup/inference, stops/cancels owned camera/import work, closes late-arriving returned model objects and prevents stale results/callbacks. Recording ends through the existing recorder stop path so original captured frames and final autosave survive; countdown is cancelled through its existing path. Completed projects/takes/edits/source-media choices remain intact. Already started SDK operations/requests may finish and already sent metrics cannot be recalled; disclose this limit without claiming provider deletion.
+
+## Boundaries
+
+Use a mutable session ProcessingConsent with an epoch-bound authorization callback. Default denied, setter invalidates existing leases on transitions; a false→true cycle does not reauthorize an old in-flight lease. Model initialization checks before/after each awaited setup, before GPU→CPU fallback and before hand-model creation. Revocation is not a GPU failure or optional-hand fallback; propagate its specific readable error, close returned owned resources exactly once and do not deliver an unauthorized model bundle.
+
+Camera and video import share the session permission. Check it before camera/file/model admission and before every SDK detection call. Cancellation plus lease checks must cover the window before React unmount/effect cleanup and asynchronous file seeks/model resolutions. Source contract, SDK version/model hashes, smoothing/calibration/solving, recording/checkpoints, durable export, paired relay and Gemini grant/deletion behavior remain unchanged. This is a privacy/lifecycle boundary; no solver/tracking rewrite or library upgrade.
+
+## Verification and limits
+
+Meaningful Vitest fixtures cover default denial before resolver/model APIs, allow without processing, withdrawal/regrant stale leases, each awaited initialization/fallback boundary, owned late pose/hand cleanup, and detection denied before SDK calls. Retain ordinary GPU/CPU fallback and optional-hand failure behavior for admitted processing. Core source tests plus frozen type/build/assets/security gates remain green.
+
+Actual Edge checks with the existing synthetic media/SDK harness cover no permission→no model/camera admission, checkbox-only→no processing, explicit allowed camera→record→withdraw→stop/preserve/reload unchecked, denied video import, pending import/late model withdrawal and keyboard/reload/backup/Gemini separation. Use owned synthetic media/API SDK fixtures, not a physical camera, private recording or real Google telemetry; clearly state those limits. Rebuild production Web and check default/sample-only requests separately from inference. Existing independent Blender geometry remains unchanged.
+
+One cohesive Native task implements factories/hooks/UI/docs and their behavior gates; one fresh TypeScript reviewer at the end. Critical/Important findings receive one watched RED→GREEN fix pass/full relevant green; no rereview. All Rulings+costs/deferred minors retained. Preserve earlier scratch. Continue the authorized M1–M5goal while owner MIT/Unity activation/physical/laptop/clean-machine/new-user/publication gates remain pending.

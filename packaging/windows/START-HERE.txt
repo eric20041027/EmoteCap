@@ -1,0 +1,45 @@
+EmoteCap - internal Windows development candidate
+
+Extract the complete folder, then open start.cmd. Keep the terminal running.
+Studio opens at http://127.0.0.1:8787 after the local service starts.
+If your browser does not open, open that address after the ready message.
+Ctrl+C stops the local service. This package requires no installed Node,
+npm, uv or Python. Use the supplied entry; do not run individual dependencies.
+
+Try the sample project, edit a clip, save, and download a .emotecap backup.
+Your projects are saved in this browser at this address. Download a backup
+before changing browser/address/port/machine, then import it at the new one.
+Camera/video processing requires the initially unchecked "Allow MediaPipe
+performance and usage metrics" choice and a separate Start camera/Import video
+action. The SDK processes inputs on device and sends performance/usage metrics
+to Google. The choice resets on reload. Turning it off stops new processing
+and preserves recorded motion; already-started work may finish and previously
+sent metrics cannot be recalled. Optional Gemini sending has its separate
+selected-source consent/action and a separately configured key.
+
+FBX export needs your separate Blender installation. This candidate's
+Blender qualification covers 4.5.14LTS. Set BLENDER_PATH in your private
+%LOCALAPPDATA%\EmoteCap\settings.env, or start with --blender followed by
+the quoted absolute Blender executable path. No Blender or Unity is bundled.
+Server jobs use %LOCALAPPDATA%\EmoteCap\data. Settings are optional and
+remain private, outside the package's public Web build.
+
+An occupied port reports an error; the package does not stop another app.
+Close an old instance/tab and retry the same address. A changed/incomplete
+package stops before importing the app: obtain the complete verified package.
+Hashes detect changed bytes; they are not a publisher signature.
+
+Read notices/README.txt, notices/third_party/inventory.json and the original
+licensing texts in notices/third_party/licenses/. Their bytes are included
+in the package manifest. This is supplied licensing evidence, with native,
+vendor/model/source-form conditions still pending; not complete redistribution approval.
+Project-owned material is MIT licensed; read the root LICENSE. Upstream
+components retain their own licensing texts and source-access terms.
+Read notices/SOURCE-ACCESS.txt for the three bundled certifi source locations,
+MPL terms and the embedded ensurepip wheel's source entries. Other native and
+SDK/vendor conditions remain under assessment.
+
+This is a LOCAL DEVELOPMENT CANDIDATE, not an approved public release.
+Unity receiver/two rigs, clean-machine and new-user acceptance, physical
+camera/SDK-network/laptop qualification and complete vendor assessment
+are pending. See the source repository's docs/release-progress.md.

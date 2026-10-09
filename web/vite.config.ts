@@ -3,6 +3,7 @@ import { configDefaults, defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [react()],
+  optimizeDeps: { include: ['@zip.js/zip.js'] },
   server: {
     port: 5173,
     // Allow importing ../contracts/bones.json from outside the web/ root.
@@ -16,6 +17,6 @@ export default defineConfig({
   test: {
     environment: 'node',
     // Installation scripts use Node's test runner through npm run test:assets.
-    exclude: [...configDefaults.exclude, 'scripts/**'],
+    exclude: [...configDefaults.exclude, 'scripts/**', 'e2e/**'],
   },
 });

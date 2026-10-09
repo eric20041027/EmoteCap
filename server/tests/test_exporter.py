@@ -101,8 +101,9 @@ def test_export_clips_moves_files_to_exports_and_returns_urls(
 
     files = export_clips([fixture_clip()], settings)
 
-    assert files == [ExportedFile(name="Raise_Right_Arm", url="/files/Raise_Right_Arm.fbx")]
-    exports = settings.data_dir / "exports"
+    assert [f.name for f in files] == ["Raise_Right_Arm"]
+    assert files[0].url.endswith('/Raise_Right_Arm.fbx')
+    exports = settings.data_dir / "exports" / files[0].url.split('/')[2]
     assert (exports / "Raise_Right_Arm.fbx").read_bytes() == b"FBX Raise_Right_Arm"
     assert json.loads((exports / "Raise_Right_Arm.emotecap.json").read_text()) == FIXTURE_SIDECAR
     assert list((settings.data_dir / "jobs").glob("*/out/*")) == []  # moved, not copied
@@ -116,21 +117,25 @@ def test_export_clips_renames_duplicates_on_copies_not_inputs(
 
     files = export_clips(clips, settings)
 
-    assert [file.url for file in files] == ["/files/Wave.fbx", "/files/Wave_2.fbx"]
+    assert [file.url.rsplit('/',1)[-1] for file in files] == ["Wave.fbx", "Wave_2.fbx"]
     assert [clip.name for clip in clips] == ["Wave", "Wave"]
-    sidecar = json.loads((settings.data_dir / "exports" / "Wave_2.emotecap.json").read_text())
+    sidecar = json.loads((settings.data_dir / "exports" / files[0].url.split('/')[2] / "Wave_2.emotecap.json").read_text())
     assert sidecar["name"] == "Wave_2"
 
 
-def test_export_clips_overwrites_an_existing_export(tmp_path: Path, fake_blender: None) -> None:
+def test_same_name_exports_are_isolated(tmp_path: Path, fake_blender: None) -> None:
     settings = make_settings(tmp_path)
     exports = settings.data_dir / "exports"
     exports.mkdir(parents=True)
     (exports / "Raise_Right_Arm.fbx").write_bytes(b"old")
 
-    export_clips([fixture_clip()], settings)
-
-    assert (exports / "Raise_Right_Arm.fbx").read_bytes() == b"FBX Raise_Right_Arm"
+    first=export_clips([fixture_clip()], settings)
+    first_path=exports/first[0].url.removeprefix('/files/')
+    first_bytes=first_path.read_bytes()
+    second=export_clips([fixture_clip()], settings)
+    assert first[0].url != second[0].url
+    assert first_path.read_bytes() == first_bytes
+    assert (exports / "Raise_Right_Arm.fbx").read_bytes() == b"old"
 
 
 def test_export_clips_copies_sidecar_then_fbx_to_unity_dir(
@@ -143,18 +148,19 @@ def test_export_clips_copies_sidecar_then_fbx_to_unity_dir(
 
     def spy_replace(src: str | os.PathLike[str], dst: str | os.PathLike[str]) -> None:
         real_replace(src, dst)
-        if Path(dst).parent == unity_dir:
+        if unity_dir in Path(dst).parents and Path(dst).suffix != '.tmp':
             landed.append(Path(dst).name)
 
     monkeypatch.setattr(os, "replace", spy_replace)
 
-    export_clips([fixture_clip()], settings)
+    files=export_clips([fixture_clip()], settings)
 
+    folder=unity_dir/files[0].url.split('/')[2]
     assert landed == ["Raise_Right_Arm.emotecap.json", "Raise_Right_Arm.fbx"]
-    assert sorted(path.name for path in unity_dir.iterdir()) == sorted(landed)  # no temp files
-    assert (unity_dir / "Raise_Right_Arm.fbx").read_bytes() == b"FBX Raise_Right_Arm"
-    assert json.loads((unity_dir / "Raise_Right_Arm.emotecap.json").read_text()) == FIXTURE_SIDECAR
-    assert (settings.data_dir / "exports" / "Raise_Right_Arm.fbx").is_file()
+    assert list(unity_dir.iterdir()) == [folder]
+    assert (folder / "Raise_Right_Arm.fbx").read_bytes() == b"FBX Raise_Right_Arm"
+    assert json.loads((folder / "Raise_Right_Arm.emotecap.json").read_text()) == FIXTURE_SIDECAR
+    assert (settings.data_dir / "exports" / files[0].url.removeprefix('/files/')).is_file()
 
 
 def test_export_clips_propagates_export_error_unchanged(
@@ -184,15 +190,51 @@ def test_export_clips_raises_when_blender_produced_no_fbx(
         export_clips([fixture_clip()], make_settings(tmp_path))
 
 
-def test_export_clips_raises_when_unity_dir_cannot_be_created(
+def test_unity_copy_failure_preserves_local_files_with_warning(
     tmp_path: Path, fake_blender: None
 ) -> None:
     blocker = tmp_path / "not-a-dir"
     blocker.write_text("file in the way")
     settings = make_settings(tmp_path, unity_export_dir=blocker / "EmoteCap")
 
-    with pytest.raises(ExportError, match="UNITY_EXPORT_DIR"):
-        export_clips([fixture_clip()], settings)
+    job_id='a91b8760-4e75-4e11-b237-7f9eb79dd455'
+    job_dir=settings.data_dir/'jobs'/job_id
+    job_json=exporter.write_job(job_dir,[fixture_clip()])
+    fake_run_blender(settings,job_json,job_dir/'out')
+    files,warning=exporter.publish_job(job_dir/'out',settings,job_id,['Raise_Right_Arm'])
+    assert warning and 'UNITY_EXPORT_DIR' in warning
+    assert (settings.data_dir/'exports'/files[0].url.removeprefix('/files/')).is_file()
+
+
+def test_case_only_names_are_unique() -> None:
+    assert unique_names(['Wave','wave','Wave_2']) == ['Wave','wave_3','Wave_2']
+
+
+def test_publication_missing_file_exposes_no_partial_job(tmp_path: Path) -> None:
+    settings=make_settings(tmp_path)
+    job_id='a91b8760-4e75-4e11-b237-7f9eb79dd455'
+    out=tmp_path/'out';out.mkdir();(out/'Wave.emotecap.json').write_text('{}')
+    with pytest.raises(ExportError,match='Wave.fbx'):
+        exporter.publish_job(out,settings,job_id,['Wave'])
+    assert not (settings.data_dir/'exports'/job_id).exists()
+
+
+def test_publication_never_overwrites_an_existing_job_directory(tmp_path: Path) -> None:
+    settings=make_settings(tmp_path);job_id='a91b8760-4e75-4e11-b237-7f9eb79dd455'
+    job=tmp_path/'job';json_path=exporter.write_job(job,[fixture_clip('Wave')]);fake_run_blender(settings,json_path,job/'out')
+    exporter.publish_job(job/'out',settings,job_id,['Wave'])
+    fake_run_blender(settings,json_path,job/'out')
+    with pytest.raises(ExportError,match='already exists'):
+        exporter.publish_job(job/'out',settings,job_id,['Wave'])
+
+
+def test_publication_rejects_linked_output_before_rename(tmp_path: Path,monkeypatch: pytest.MonkeyPatch) -> None:
+    settings=make_settings(tmp_path);out=tmp_path/'out';out.mkdir()
+    (out/'Wave.fbx').write_bytes(b'FBX');(out/'Wave.emotecap.json').write_text('{}')
+    original=Path.is_symlink
+    monkeypatch.setattr(Path,'is_symlink',lambda path:path.name=='Wave.fbx' or original(path))
+    with pytest.raises(ExportError,match='regular'):
+        exporter.publish_job(out,settings,'a91b8760-4e75-4e11-b237-7f9eb79dd455',['Wave'])
 
 
 # --- run_blender error paths --------------------------------------------------

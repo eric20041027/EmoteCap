@@ -10,6 +10,7 @@ interface CameraViewProps {
   status: PoseStatus;
   message: string;
   onRetry: () => void;
+  startDisabled?: boolean;
   showStepBackHint: boolean;
   /** Seconds recorded so far, or null when not recording. */
   recordingSeconds: number | null;
@@ -38,6 +39,8 @@ export function CameraView(props: CameraViewProps) {
     <div className="camera" style={shape}>
       <video ref={videoRef} className={`camera__media mirrored${cropped ? ' camera__media--cover' : ''}`} muted playsInline />
       <canvas ref={overlayRef} className="camera__media mirrored" />
+      {status==='off' && <div className="camera__cover"><p>Use a sample or saved project, or start camera capture.</p>
+        <button type="button" className="btn btn--secondary" disabled={props.startDisabled} onClick={onRetry}>Start camera</button></div>}
 
       {recordingSeconds !== null && (
         <div className="rec-badge" role="status">
@@ -75,7 +78,7 @@ export function CameraView(props: CameraViewProps) {
       {status === 'error' && (
         <div className="camera__cover camera__cover--error" role="alert">
           <p className="camera__error">{message}</p>
-          <button type="button" className="btn btn--secondary" onClick={onRetry}>
+          <button type="button" className="btn btn--secondary" disabled={props.startDisabled} onClick={onRetry}>
             Retry
           </button>
         </div>

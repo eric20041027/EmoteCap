@@ -13,6 +13,7 @@ import {
 
 const VIDEO = new Blob(['webm-bytes'], { type: 'video/webm;codecs=vp9' });
 const SEGMENT = { name: 'Wave_Right', start: 1.2, end: 2.5, loop: false, description: 'Waves the right hand' };
+const CONSENT={token:'c'.repeat(43),takeId:'604e37e2-814a-40f8-9c0a-6dc702c73dbb'};
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -129,9 +130,13 @@ describe('preflightFailure', () => {
 });
 
 describe('requestSegments', () => {
+  it('requires explicit permission before any HTTP request',async()=>{
+    const fetchFn=vi.fn(async()=>jsonResponse(200,{segments:[SEGMENT]}));
+    await expect(requestSegments(VIDEO,5,{fetchFn})).rejects.toMatchObject({kind:'consent-required'});expect(fetchFn).not.toHaveBeenCalled();
+  });
   it('POSTs the multipart take and returns the segments', async () => {
     const fetchFn = vi.fn(async () => jsonResponse(200, { takeId: 't1', segments: [SEGMENT] }));
-    await expect(requestSegments(VIDEO, 5, { fetchFn })).resolves.toEqual([SEGMENT]);
+    await expect(requestSegments(VIDEO, 5, { fetchFn,consent:CONSENT })).resolves.toEqual([SEGMENT]);
     expect(fetchFn).toHaveBeenCalledWith('/api/takes', expect.objectContaining({ method: 'POST' }));
     const init = (fetchFn.mock.calls[0] as unknown as [string, RequestInit])[1];
     expect(init.body).toBeInstanceOf(FormData);
@@ -140,13 +145,13 @@ describe('requestSegments', () => {
 
   it('turns a 503 into a not-configured failure', async () => {
     const fetchFn = vi.fn(async () => jsonResponse(503, { detail: 'Gemini is not configured' }));
-    const failure = await failureOf(requestSegments(VIDEO, 5, { fetchFn }));
+    const failure = await failureOf(requestSegments(VIDEO, 5, { fetchFn,consent:CONSENT }));
     expect([failure.kind, failure.details]).toEqual(['not-configured', 'Gemini is not configured']);
   });
 
   it('reads a non-JSON error body as text', async () => {
     const fetchFn = vi.fn(async () => new Response('Bad Gateway', { status: 502 }));
-    const failure = await failureOf(requestSegments(VIDEO, 5, { fetchFn }));
+    const failure = await failureOf(requestSegments(VIDEO, 5, { fetchFn,consent:CONSENT }));
     expect([failure.kind, failure.details]).toEqual(['gemini-failed', 'Bad Gateway']);
   });
 
@@ -154,7 +159,7 @@ describe('requestSegments', () => {
     const fetchFn = vi.fn(async () => {
       throw new TypeError('Failed to fetch');
     });
-    expect((await failureOf(requestSegments(VIDEO, 5, { fetchFn }))).kind).toBe('unreachable');
+    expect((await failureOf(requestSegments(VIDEO, 5, { fetchFn,consent:CONSENT }))).kind).toBe('unreachable');
   });
 
   it('rejects with the abort reason (timeout or skip)', async () => {
@@ -163,7 +168,7 @@ describe('requestSegments', () => {
       controller.abort(sliceFailure('timeout'));
       throw init.signal?.reason;
     });
-    const failure = await failureOf(requestSegments(VIDEO, 5, { fetchFn, signal: controller.signal }));
+    const failure = await failureOf(requestSegments(VIDEO, 5, { fetchFn, signal: controller.signal,consent:CONSENT }));
     expect(failure.kind).toBe('timeout');
   });
 });

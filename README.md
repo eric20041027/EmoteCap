@@ -1,156 +1,73 @@
-<div align="center">
-
 # EmoteCap
 
-### Act once. Animate anything.
+Act once. Animate anything.
 
-<a href="https://ushackathons.com/events/hacknite"><img src="https://img.shields.io/badge/HackNite_Hackathon_2026-%F0%9F%8F%86_Overall_Winner-F4C430?style=for-the-badge" alt="HackNite Hackathon 2026: Overall Winner"></a>
+A local motion studio for turning camera or video performance into Humanoid animation. This rebuild keeps the core of our hackathon-winning, twelve-hour MVP and adds saved projects, editable clips, portable backups, durable exports and explicit processing choices.
 
-Turn a webcam, an iPhone, or any video into **Humanoid animation clips for Unity**.<br>
-Stream your pose live, act a whole take in one go, and let **Gemini** cut it into named, loopable moves.
+**Status: unreleased development preview.** These instructions apply to the rebuilt checkout. Public default main and the historical demo can still show the MVP. No approved public installer or release of this rebuild is available yet. [繁體中文快速上手](docs/quickstart.zh-TW.md) · [Release progress](docs/release-progress.md)
 
-<a href="https://youtu.be/ETPATTBDosc"><img src="https://img.shields.io/badge/Watch_the_demo-1%3A41-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Watch the demo on YouTube (1:41)"></a>
+## What works in the local rebuild
 
-<a href="https://youtu.be/ETPATTBDosc"><img src="docs/media/hero.gif" alt="The actor on the webcam (left) waves an arm and the Unity character (right) mirrors him live, knocking a table and a tower of cubes over" width="900"></a>
+| Workflow | Current qualification |
+|---|---|
+| Synthetic sample → edit → save → reload → backup/import | Actual Edge with native browser storage; no camera or cloud key needed |
+| Camera/video → original take → editable clips | Implemented; synthetic lifecycle checks pass; real tracking/encoder/hardware measurements pending |
+| `.emotecap` project backup, optional source video | Validated archives; import creates a new project identity; original motion preserved |
+| FBX jobs, cancel/retry/restart recovery | Local service and Blender export qualified; each job preserves its submitted clip revision |
+| Paired local Live Link | Service/browser/paired Unity receiver accepted locally; original-rig FBX/player/render evidence added; sample review/corrections verified locally; physical acceptance pending |
+| Windows package | Internal candidate qualified locally; needs new SDK UI rebuild, notices/rights and clean-machine acceptance |
 
-<sub>Live Link: the webcam actor (left) drives a physics-enabled Unity character (right) in real time. Click for the full demo.</sub>
+The current motion contract has **48 driven bones**, with **52 full-skeleton export bones** or **22 body-only export bones**. Coordinates, meters, bone order and validation are defined in the [motion v2 contract](contracts/motion-v1.md); its historical filename is retained.
 
-</div>
+## Start from this source checkout
 
-## Why
+Use Node **24.19.0**, npm **11.21.0**, and uv **0.12.6**. The launcher selects Python **3.12.14**. Keep the committed lockfiles. In a Windows terminal at the repository root:
 
-Indie and student game developers animate their characters with whatever premade clips they can find. The move you actually need (*your* sword slash, *your* victory dance) is never in the library, and optical mocap costs thousands. EmoteCap turns the camera you already have into a mocap studio that speaks Unity.
-
-## What you can do
-
-| | |
-|:--|:--|
-| 🎥 **Live Link to Unity**<br>Your body and all ten fingers drive a Unity character over WebSocket while you act. Body colliders let it push props around a physics playground. | ✂️ **One take, many clips**<br>Act several moves in one continuous take. Gemini watches the video and returns named, loop-tagged clips with descriptions; cut points snap to your pauses. |
-| 📼 **Import any video**<br>Drop in an mp4, mov or webm (up to 3 min). Every frame is analysed, the take auto-calibrates from its first T-pose, then it flows through the same pipeline. | 📦 **One click to Humanoid FBX**<br>Headless Blender writes Mixamo-named, T-pose-rest FBX files; the Unity package imports them as in-place Humanoid clips that retarget to any humanoid. |
-| ✋ **Finger-level mocap**<br>48 driven bones: full body plus 30 finger joints, so fists, pointing and peace signs survive into Unity. Lost hands relax naturally instead of freezing. | 🧍 **Steady and grounded**<br>An on-screen T-pose outline for calibration, per-bone smoothing (Low / Medium / High), feet planted flat, jumps detected, and Unity easing between frames. |
-
-<table>
-  <tr>
-    <td width="50%"><img src="docs/media/gemini-slicing.jpg" alt="Review panel listing six clips sliced by Gemini, next to the Unity scene"><br><sub>Gemini sliced one take into six named clips (left); Unity plays them back (right).</sub></td>
-    <td width="50%"><img src="docs/media/import-video.jpg" alt="An imported dance video being analysed frame by frame while the 3D preview follows"><br><sub>Importing a phone video: every frame is analysed while the 3D preview follows.</sub></td>
-  </tr>
-</table>
-
-## How Gemini is used
-
-- **Video understanding with structured output.** The raw take (or the imported file) goes to Gemini with a JSON schema: `name`, `start`, `end`, `loop`, `description` for every move. The prompt asks for one segment per distinct action and game-style names such as `Wave_Right` or `Punching_Combo`.
-- **Grounded in the motion.** Gemini's cut points are snapped to the nearest pause in the solved motion (angular speed summed over all bones), so every clip starts and ends cleanly.
-- **Resilient.** If the configured model is overloaded, the server falls back through other Gemini Flash models within the same time budget; if Gemini is unreachable, the take is split at pauses locally and you still get clips.
-- **Even the demo narration** was generated with Gemini text-to-speech.
-
-## How it works
-
-```mermaid
-flowchart LR
-  cam[Webcam / iPhone] --> mp[MediaPipe Pose + Hands<br/>world landmarks]
-  file[Video file] -->|frame by frame| mp
-  mp --> solver[Quaternion solver<br/>smoothing + grounding]
-  solver --> preview[3D mannequin preview]
-  solver -->|Live Link WebSocket| relay[FastAPI relay] --> live[Unity character<br/>real time]
-  solver --> rec[Recorder]
-  rec -->|raw video| gemini[Gemini video understanding<br/>named segments]
-  gemini --> clips[Clips]
-  rec -->|manual trim| clips
-  clips -->|POST /api/export| blender[Blender headless<br/>Humanoid FBX]
-  blender --> unity[Unity AssetPostprocessor<br/>Humanoid + loop configured]
-```
-
-**One motion format everywhere.** Every frame is 48 quaternions (each bone's *world rotation relative to T-pose*) plus hips height ([`contracts/motion-v1.md`](contracts/motion-v1.md)). Any rig applies it as `boneWorld = delta × restWorld`, so the browser preview, the exported FBX and the Unity Live Link show exactly the same pose.
-
-**The solver** builds an orthonormal frame per bone from a primary axis (e.g. shoulder → elbow) and a secondary axis (the elbow's bend-plane normal), and divides it by the same frame computed from a T-pose. Straight limbs reuse the previous bend normal so twists never flip; elbows and knees are clamped to 150°; One Euro filters on the landmarks and on each bone's rotation remove jitter without adding lag. Hands use the palm frame (wrist → knuckles, pinky → index) from Hand Landmarker, and each finger segment curls about the palm's lateral axis. Forward kinematics keeps the lowest sole exactly on the floor and plants standing feet flat.
-
-**Calibration.** MediaPipe's 3D estimates of the face and of the body's lean are biased by the camera angle (we measured a 30° head tilt on a level head). A T-pose captured with the on-screen outline, or found automatically in an imported video, becomes the rest pose and cancels that bias.
-
-## Quick start
-
-The browser app and the server are all you need to capture, preview, record and slice. Blender adds FBX export, Unity adds Live Link and the clips in your game.
-
-### 1. Install the tools
-
-| Tool | Version | Needed for |
-|---|---|---|
-| [Node.js](https://nodejs.org/) | 24.19.0 (npm 11.21.0) | the web app |
-| [uv](https://docs.astral.sh/uv/getting-started/installation/) | 0.12.6 (Python 3.12.14) | the server |
-| [Blender](https://www.blender.org/download/) | 4.4 or newer (tested on 5.1) | FBX export (optional) |
-| [Unity](https://unity.com/download) | Unity 6 recommended (tested on 6000.5; the package targets 2021.3+) | Live Link and clips in Unity (optional) |
-| Chrome or Safari, and a webcam | Safari also lists an iPhone through Continuity Camera | capture |
-
-### 2. Get the code and configure it
-
-```bash
-git clone https://github.com/eric20041027/EmoteCap.git
-cd EmoteCap
-cp .env.example .env
-```
-
-Open `.env` and set:
-
-- `BLENDER_PATH`: your Blender executable (the default is the macOS path; examples for Windows and Linux are in the file).
-- `GEMINI_API_KEY` (optional): a key from [Google AI Studio](https://aistudio.google.com/apikey).
-- `UNITY_EXPORT_DIR` (optional): `<YourUnityProject>/Assets/EmoteCap`, so exported clips land in Unity by themselves.
-
-> [!NOTE]
-> **No Gemini API key? Everything still works.** Auto-slice still finds the moves in your take by splitting it at the pauses in your motion, but the clips are named `Clip_01`, `Clip_02`, … instead of Gemini's names and descriptions (`Wave_Right`, `Punching_Combo`, …). You can rename them before exporting.
-
-### 3. Run it (two terminals)
-
-```bash
-# Terminal 1: the server, on http://localhost:8787
-cd server
-uv sync --frozen --python 3.12.14
-uv run --frozen --python 3.12.14 uvicorn emotecap_server.main:app --host 127.0.0.1 --port 8787
-```
-
-```bash
-# Terminal 2: the web app, on http://localhost:5173
+```powershell
 cd web
 npm ci
-npm run dev
+npm run build
+cd ..
+.\start.cmd
 ```
 
-The first `npm run dev` downloads the MediaPipe models (about 48 MB). Open **http://localhost:5173**, allow camera access, and check that the status bar says **Export server online**.
+The first Web build downloads and verifies approximately48MB of model assets. Studio opens in your system browser at **http://127.0.0.1:8787**. Keep the terminal running; Ctrl+C stops the service. An occupied port reports an error without stopping another application. If the browser does not open, use the printed address after startup succeeds.
 
-### 4. Capture your first clips (browser only)
+For Linux/macOS source development use root `./start.sh` after the same build. Current production-browser/packaging qualification is Windows; the passing M1 three-OS CI does not qualify later changes or other devices. See [source operation](docs/local-start.md), [development](docs/development.md) and [internal Windows candidate](docs/windows-candidate.md).
 
-1. Stand 2–3 m from the camera so your whole body is in frame.
-2. Press the orange **⚠ Calibrate T-pose** button on the camera view and hold a T-pose inside the outline until the countdown ends.
-3. Press **Record**, act a few moves with a short pause between them, then press **Stop**.
-4. Press **✦ Auto-slice with Gemini**, adjust the clips if you like, then **Export all**. The FBX files are listed for download (and copied into Unity when `UNITY_EXPORT_DIR` is set).
+## Try it without a camera
 
-Already have a video? **Import video** turns it into a take instead; start the video with a one-second T-pose so it calibrates itself.
+1. Select **Use sample project**. The synthetic right-arm take contains60original frames.
+2. Rename **Clip 1 name**, adjust its time range, or use **Find pauses**. Wait for **Saved**.
+3. Select **Download project** to keep an `.emotecap` backup.
+4. Reload the page; your clip edits and original take remain. Select **Import project** to restore the downloaded backup into a new project identity.
 
-### 5. Use it in Unity (optional)
+Browser saving is a recovery copy for that browser and exact address. Download a backup before changing browser, port, address or machine, then import it at the new location. Source video is optional and has its own retention/backup choices.
 
-1. Package Manager → **+** → **Add package from git URL…** → `https://github.com/eric20041027/EmoteCap.git?path=/unity/com.emotecap.mocap`
-2. Bring in a Humanoid character, for example **Y Bot** from [Mixamo](https://www.mixamo.com/) (download as *FBX for Unity*, in T-pose), and set **Rig → Animation Type** to **Humanoid**.
-3. **Clips:** exported FBX files in `Assets/EmoteCap/` import as Humanoid clips. Add **EmoteCap Clip Player** to the character to play them from an on-screen menu, or drag a clip into your own Animator Controller and tick **Foot IK**.
-4. **Live Link:** add **EmoteCap Live Link** to a character with an Avatar and *no* Animator Controller, press Play, then switch on **Live Link** in the web app.
-5. Physics props, prop reset and Live Link settings: see the [Unity package README](unity/com.emotecap.mocap/README.md).
+## Capture and export
 
-### Troubleshooting
+For a new take, read **Camera and video processing** and choose whether to allow MediaPipe performance and usage metrics. Then explicitly select **Start camera** or **Import video**. Use **Calibrate T-pose**, **Record** and **Stop**, then review clips. Turning processing off stops new work and preserves recorded motion through final save. The choice resets on reload. Real camera/video quality and target-laptop performance remain release gates.
 
-- **"Export server offline"** in the web app: the server in Terminal 1 is not running on port 8787.
-- **Export fails**: `BLENDER_PATH` in `.env` does not point to a Blender executable. Restart the server after editing `.env`.
-- **Head or body looks tilted**: calibrate again (after reloading the page, moving the camera or switching cameras).
-- **Choppy Live Link**: keep **Fast** mode on; use **Accurate** for recordings and imported videos.
-- **iPhone missing from the camera list**: use Safari, keep the iPhone locked, mounted and near the Mac.
+FBX export requires a separate Blender installation. Actual qualification covers **Blender4.5.14LTS**; other versions need verification. Start with your quoted executable path, for example:
 
-## Tests
+```powershell
+.\start.cmd --blender "C:\Program Files\Blender Foundation\Blender 4.5\blender.exe"
+```
 
-Run `npm run test:assets`, `npm test`, and `npm run build` in `web/`.
-Run `uv run --frozen --python 3.12.14 pytest -q -m "not slow"` in `server/`.
-Real Blender smoke tests are separate (`-m slow`); Unity and camera checks
-remain separate release requirements. See [Development](docs/development.md)
-for the pinned tools, network setup, and what each check proves.
+Select **Export FBX** and follow **Export jobs** for completion/download, cancellation or a new retry. Blender and Unity are not bundled. The local Unity UPM0.2.0requires6000.5; actual Windows6000.5.9f1Editor and paired receiver tests run locally. Enter Play mode first, paste Studio’s code in the receiver Inspector, then Connect. The new source remains unpublished; install the local package from disk. [Receiver guide](unity/com.emotecap.mocap/Documentation~/paired-receiver.md). The original [Starter Rigs sample](unity/com.emotecap.mocap/Documentation~/sample-playback.md) creates a saved two-character scene and plays real FBX without a camera/key/pairing. Actual Windows6000.5.9f1/Built-in checks pass; sample review/corrections verified locally; physical/hardware/new-user/rights/publication gates remain pending.2021.3is unqualified.
 
----
+## Data and processing choices
 
-<div align="center">
-  <img src="docs/media/dozed-off.gif" alt="The Live Link character slumped on the floor with Z z z above it" width="420"><br>
-  <sub>🏆 <b>Team EmoteCap: Overall Winners at <a href="https://ushackathons.com/events/hacknite">HackNite Hackathon 2026</a></b><br>We built it overnight. Our Live Link actor didn't quite make it to morning.</sub>
-</div>
+MediaPipe processes image/video inputs on the device and its APIs send performance/utilization metrics to Google, according to the [upstream privacy notice](https://github.com/google-ai-edge/mediapipe/blob/master/mediapipe/tasks/web/vision/README.md). EmoteCap requires a session choice before camera/video processing. Checking alone starts neither. Already-started operations may finish and already-sent metrics cannot be recalled. [SDK privacy guide](docs/sdk-privacy.md)
+
+**Keep source video** controls local retention; **Include source video in backup** controls portable media. Optional Gemini suggestions require a separate selected-source consent and explicit **Send selected video**. A Gemini key is unnecessary for samples, tracking, local pause detection, backup or export. Source settings use private root `.env`; packaged settings use `%LOCALAPPDATA%\EmoteCap\settings.env`. Never place settings or captured media in the public Web directory. Server jobs and browser projects are separate stores. [Source operation](docs/local-start.md)
+
+## Development and release
+
+Read [CONTRIBUTING](CONTRIBUTING.md), [development checks](docs/development.md), [SECURITY](SECURITY.md) and [CHANGELOG](CHANGELOG.md). Motion/relay/archives have versioned contracts; keep their consumers coordinated. Publication requires the [release checklist](docs/release-checklist.md), fresh validation and explicit owner approval.
+
+Project-owned code, documentation and original assets are [MIT licensed](LICENSE), following the owner's [confirmed rights record](docs/release-license-proposal.md). Dependencies, models and runtimes retain their upstream terms; complete redistribution assessment and formal release acceptance remain separate.
+
+## Origin
+
+EmoteCap began as the winning HackNite MVP described in the [historical submission](docs/submission.md). The [original demo](https://youtu.be/ETPATTBDosc) shows that prototype, including its earlier Unity/cloud flow. Original contributors include **eric20041027** and **leokao0806**; their history and attribution are preserved. Existing demo images/GIFs remain unembedded here while publication rights are confirmed.

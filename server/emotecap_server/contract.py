@@ -75,3 +75,15 @@ class Segment(BaseModel):
 class TakeResponse(BaseModel):
     takeId: str  # wire name from contracts/motion-v1.md (POST /api/takes)
     segments: list[Segment]
+    cleanup: "TakeCleanup | None" = None
+
+
+class TakeCleanup(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    localVideo:Literal['deleted','failed']
+    warning:Annotated[str|None,Field(max_length=512)]=None
+    remoteFiles:Literal['not-used','deleted','failed','unknown']='not-used'
+    remoteWarning:Annotated[str|None,Field(max_length=512)]=None
+    model:Annotated[str|None,Field(max_length=100)]=None
+
+TakeResponse.model_rebuild()

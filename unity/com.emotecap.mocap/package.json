@@ -1,8 +1,11 @@
 {
   "name": "com.emotecap.mocap",
-  "version": "0.1.0",
+  "version": "0.2.0",
+  "license": "MIT",
   "displayName": "EmoteCap Mocap",
   "description": "Webcam motion capture for Unity: automatic Humanoid import of EmoteCap FBX clips and a Live Link receiver.",
-  "unity": "2021.3",
-  "author": { "name": "EmoteCap team" }
+  "unity": "6000.5",
+  "author": { "name": "EmoteCap team" },
+  "dependencies": { "com.unity.nuget.newtonsoft-json": "3.2.2" },
+  "samples": [{"displayName":"Starter Rigs","path":"Samples~/Starter Rigs","description":"Two original Humanoids and an FBX playback scene"}]
 }

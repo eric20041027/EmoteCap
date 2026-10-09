@@ -1,18 +1,23 @@
 """EmoteCap server: FBX export (phase 1), Live Link relay (phase 2), Gemini slicing (phase 3)."""
 import logging
 import shutil
-from typing import Annotated
+from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket
+from fastapi import FastAPI, HTTPException, Request, WebSocket
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 
-from . import exporter, gemini, takes
 from .config import load_settings
-from .contract import ExportRequest, ExportResponse, TakeResponse
+from .contract import ExportedFile, ExportResponse
+from .jobs.api import router as jobs_router,get_service,invoke,read_submission
+from .jobs.service import JobService,ServiceUnavailable
+from .jobs.runner import TIMEOUT_SECONDS
+from .media.api import MediaService,router as media_router
 from .relay import LiveRelay
+from .live.api import router as live_router
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -25,7 +30,24 @@ exports_dir = settings.data_dir / "exports"
 exports_dir.mkdir(parents=True, exist_ok=True)  # StaticFiles refuses a missing directory
 relay = LiveRelay()
 
-app = FastAPI(title="EmoteCap")
+@asynccontextmanager
+async def lifespan(application:FastAPI):
+    service=JobService(settings)
+    service.start();application.state.jobs=service
+    try:
+        application.state.media=MediaService(settings)
+        yield
+    finally:
+        await relay.aclose()
+        service.close()
+        del application.state.jobs
+        if hasattr(application.state,'media'):del application.state.media
+
+
+app = FastAPI(title="EmoteCap",lifespan=lifespan)
+app.include_router(jobs_router)
+app.include_router(media_router)
+app.include_router(live_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -50,61 +72,31 @@ def health() -> dict:
         "ok": True,
         "blender": shutil.which(settings.blender_path) is not None,
         "gemini": settings.gemini_api_key is not None,
+        "exportJobs": 1,
     }
 
 
 @app.post("/api/export")
-def export(request: ExportRequest) -> ExportResponse:
-    """Sync on purpose: FastAPI runs it in a threadpool while Blender works."""
-    try:
-        files = exporter.export_clips(request.clips, settings)
-    except exporter.ExportError as exc:
-        logger.error("Export failed: %s\n%s", exc.message, exc.stderr_tail)
-        raise HTTPException(
-            status_code=500, detail={"message": exc.message, "stderr": exc.stderr_tail}
-        ) from exc
-    return ExportResponse(files=files)
-
-
-@app.post("/api/takes")
-def create_take(
-    video: Annotated[UploadFile, File(description="The recorded take (webm)")],
-    duration: Annotated[float, Form(gt=0, allow_inf_nan=False, description="Take length in seconds")],
-) -> TakeResponse:
-    """Phase 3: store the take's video and let Gemini split it into named segments.
-
-    Sync on purpose: FastAPI runs it in a threadpool while Gemini works (up to 30 s).
-    """
-    api_key = settings.gemini_api_key
-    if api_key is None:
-        raise HTTPException(status_code=503, detail=GEMINI_NOT_CONFIGURED)
-    mime_type = gemini.video_mime_type(video.content_type)
-    if mime_type is None:
-        raise HTTPException(status_code=415, detail="The upload must be a video (video/webm)")
-    if duration > takes.MAX_TAKE_SECONDS:
-        raise HTTPException(
-            status_code=413, detail=f"The take is longer than {takes.MAX_TAKE_SECONDS:g} s"
-        )
-    take_id = takes.new_take_id()
-    try:
-        video_path = takes.store_upload(video.file, settings.data_dir / "takes", take_id)
-    except takes.TakeTooLargeError as exc:
-        raise HTTPException(status_code=413, detail=str(exc)) from exc
-    try:
-        segments = gemini.slice_take(
-            video_path, mime_type, duration, api_key=api_key, model=settings.gemini_model
-        )
-    except gemini.GeminiError as exc:
-        logger.warning("Take %s: Gemini slicing failed, web app falls back: %s", take_id, exc)
-        raise HTTPException(
-            status_code=502, detail={"message": str(exc), "fallback": MOTION_ENERGY_FALLBACK}
-        ) from exc
-    return TakeResponse(takeId=take_id, segments=segments)
+async def export(request: Request) -> ExportResponse:
+    """Compatibility adapter; every HTTP export runs through the same finite worker."""
+    service=get_service(request);submission=await read_submission(request)
+    job=await run_in_threadpool(invoke,lambda:service.submit(submission))
+    # The last admitted job may wait behind four healthy120second runs.
+    wait_budget=(service.max_waiting+1)*(TIMEOUT_SECONDS+10)
+    try:result=await run_in_threadpool(service.wait,job.id,wait_budget)
+    except ServiceUnavailable as exc:
+        raise HTTPException(503,detail={'message':str(exc)[:512],'jobId':job.id,
+                                       'statusUrl':f'/api/export-jobs/{job.id}'}) from exc
+    if result.state!='succeeded':
+        error=result.error
+        raise HTTPException(500 if result.state=='failed' else 409,detail={
+            'message':error.message if error else result.phase,'stderr':error.details if error else ''})
+    return ExportResponse(files=[ExportedFile(name=file.name,url=file.url) for file in result.files])
 
 
 @app.websocket("/ws/live")
 async def live_link(websocket: WebSocket, role: str | None = None) -> None:
-    """Phase 2 Live Link: ?role=source (browser) or ?role=sink (Unity)."""
+    """Local Live Link requires a role-specific paired v2 hello before frames."""
     await relay.serve(websocket, role)
 
 

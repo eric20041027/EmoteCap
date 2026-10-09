@@ -69,11 +69,18 @@ export function makeClip(frames: readonly MotionFrame[], options: ClipOptions): 
     throw new Error(`Invalid clip name "${options.name}": use 1-24 letters, digits, or underscores`);
   }
   const fps = options.fps ?? DEFAULT_FPS;
-  const picked = frames.filter((f) => f.t >= options.start && f.t <= options.end).sort((a, b) => a.t - b.t);
-  if (picked.length === 0) throw new Error('No frames in the selected range');
-
-  const t0 = picked[0].t;
-  const duration = picked[picked.length - 1].t - t0;
+  const available = [...frames].sort((a, b) => a.t - b.t);
+  const t0 = Math.max(options.start, available[0]?.t ?? Infinity);
+  const end = Math.min(options.end, available.at(-1)?.t ?? -Infinity);
+  if (!Number.isFinite(t0) || !Number.isFinite(end) || end < t0) throw new Error('No frames in the selected range');
+  const boundary = (t: number): MotionFrame => {
+    const hi = available.findIndex(f => f.t >= t);
+    const b = available[hi], a = available[Math.max(0, hi - 1)];
+    const span = b.t - a.t;
+    return { t, ...interpolate(a, b, span > 0 ? (t - a.t) / span : 0) };
+  };
+  const picked = [boundary(t0), ...available.filter(f => f.t > t0 && f.t < end), ...(end > t0 ? [boundary(end)] : [])];
+  const duration = end - t0;
   const count = Math.floor(duration * fps + 1e-6) + 1;
   const out: MotionFrame[] = [];
   let j = 0;

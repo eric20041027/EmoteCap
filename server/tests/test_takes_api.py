@@ -12,6 +12,9 @@ from fastapi.testclient import TestClient
 
 from emotecap_server import gemini, main, takes
 from emotecap_server.gemini import GeminiError, GeminiTimeoutError
+from emotecap_server.jobs.service import JobService
+from job_support import write_outputs
+from test_media_consent import TAKE_ID
 
 API_KEY = "test-key-not-a-real-key"
 MODEL = "gemini-test-model"
@@ -45,7 +48,7 @@ class FakeGemini:
     calls: list[GeminiCall] = field(default_factory=list)
 
     def request_segments(
-        self, video: Path, mime_type: str, duration: float, *, api_key: str, model: str
+        self, video: Path, mime_type: str, duration: float, *, api_key: str, model: str,cleanup=None
     ) -> object:
         self.calls.append(GeminiCall(video, video.read_bytes(), mime_type, duration, api_key, model))
         if isinstance(self.answer, Exception):
@@ -79,8 +82,9 @@ def fake_gemini(monkeypatch: pytest.MonkeyPatch) -> FakeGemini:
 
 
 @pytest.fixture
-def client() -> TestClient:
-    return TestClient(main.app)
+def client(data_dir,monkeypatch) -> TestClient:
+    monkeypatch.setattr(main,'JobService',lambda settings:JobService(settings,runner=write_outputs))
+    with TestClient(main.app) as browser:yield browser
 
 
 def post_take(
@@ -91,8 +95,15 @@ def post_take(
     duration: str | None = "12.5",
 ) -> httpx.Response:
     files = None if video is None else {"video": ("take.webm", video, content_type)}
-    data = None if duration is None else {"duration": duration}
-    return client.post("/api/takes", files=files, data=data)
+    try:allowed_duration=float(duration) if duration is not None else 12.5
+    except ValueError:allowed_duration=12.5
+    if not 0<allowed_duration<=180:allowed_duration=12.5
+    kind=gemini.video_mime_type(content_type) or 'video/webm'
+    consent=client.post('/api/cloud-consent',json={'provider':'gemini','policyVersion':1,'allowUpload':True,
+        'takeId':TAKE_ID,'size':len(video or VIDEO),'duration':allowed_duration,'mimeType':kind})
+    if consent.status_code!=200:return consent
+    data = {"takeId":TAKE_ID,**({"duration":duration} if duration is not None else {})}
+    return client.post("/api/takes", files=files, data=data,headers={'X-EmoteCap-Consent':consent.json()['token']})
 
 
 def stored_takes(data_dir: Path) -> list[Path]:
@@ -110,11 +121,11 @@ def test_take_is_stored_and_sliced_by_gemini(
 
     assert res.status_code == 200, res.text
     body = res.json()
-    assert set(body) == {"takeId", "segments"}
-    assert re.fullmatch(r"[0-9a-f]{32}", body["takeId"])
+    assert set(body) == {"takeId", "segments", "cleanup"}
+    assert body['takeId']==TAKE_ID and body['cleanup']['localVideo']=='deleted'
     assert body["segments"] == GOOD_SEGMENTS
-    stored = data_dir / "takes" / f"{body['takeId']}.webm"
-    assert stored_takes(data_dir) == [stored]
+    stored = fake_gemini.calls[0].video
+    assert stored_takes(data_dir) == [] and not stored.exists()
     assert fake_gemini.calls == [GeminiCall(stored, VIDEO, "video/webm", 12.5, API_KEY, MODEL)]
 
 
@@ -155,12 +166,12 @@ def test_malformed_gemini_output_is_cleaned(
 def test_without_api_key_returns_503_and_stores_nothing(
     client: TestClient, data_dir: Path, fake_gemini: FakeGemini, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(main, "settings", dataclasses.replace(main.settings, gemini_api_key=None))
+    monkeypatch.setattr(main.app.state.media, "settings", dataclasses.replace(main.settings, gemini_api_key=None))
 
     res = post_take(client)
 
     assert res.status_code == 503
-    assert res.json() == {"detail": "Gemini is not configured: set GEMINI_API_KEY in .env"}
+    assert res.json() == {"detail": "Gemini is not configured on the local service"}
     assert fake_gemini.calls == []
     assert stored_takes(data_dir) == []
 
@@ -179,12 +190,13 @@ def test_non_video_upload_returns_415(
 def test_upload_over_the_size_limit_returns_413_and_leaves_no_file(
     client: TestClient, data_dir: Path, fake_gemini: FakeGemini, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(takes, "MAX_UPLOAD_BYTES", len(VIDEO) - 1)
+    from emotecap_server.media import api
+    monkeypatch.setattr(api, "MAX_VIDEO_BYTES", len(VIDEO) - 1)
 
     res = post_take(client)
 
     assert res.status_code == 413
-    assert "MB" in res.json()["detail"]
+    assert "MiB" in res.json()["detail"]
     assert fake_gemini.calls == []
     assert stored_takes(data_dir) == []
 
@@ -192,7 +204,8 @@ def test_upload_over_the_size_limit_returns_413_and_leaves_no_file(
 def test_upload_exactly_at_the_size_limit_is_accepted(
     client: TestClient, data_dir: Path, fake_gemini: FakeGemini, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(takes, "MAX_UPLOAD_BYTES", len(VIDEO))
+    from emotecap_server.media import api
+    monkeypatch.setattr(api, "MAX_VIDEO_BYTES", len(VIDEO))
 
     assert post_take(client).status_code == 200
 
@@ -229,8 +242,9 @@ def test_gemini_failure_returns_502_with_fallback_hint(
     res = post_take(client)
 
     assert res.status_code == 502
-    assert res.json() == {"detail": {"message": str(error), "fallback": FALLBACK}}
-    assert len(stored_takes(data_dir)) == 1  # the upload is kept for debugging
+    assert res.json()['detail']['message']==str(error) and res.json()['detail']['fallback']==FALLBACK
+    assert res.json()['detail']['cleanup']['localVideo']=='deleted'
+    assert stored_takes(data_dir)==[] and not fake_gemini.calls[0].video.exists()
 
 
 @pytest.mark.parametrize("answer", [[], [{"name": "Wave"}], {"note": "nothing here"}, "nonsense"])
@@ -242,10 +256,8 @@ def test_gemini_answer_without_usable_segments_returns_502(
     res = post_take(client)
 
     assert res.status_code == 502
-    assert res.json()["detail"] == {
-        "message": "Gemini found no usable segments in this take",
-        "fallback": FALLBACK,
-    }
+    assert res.json()["detail"]['message']=="Gemini found no usable segments in this take"
+    assert res.json()["detail"]['fallback']==FALLBACK and res.json()['detail']['cleanup']['localVideo']=='deleted'
 
 
 @pytest.mark.parametrize(

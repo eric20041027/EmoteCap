@@ -345,6 +345,10 @@ input {
 }
 
 /* Narrow screens */
+@media(max-width:640px) {
+  .panel__head {flex-wrap:wrap;}
+  .legend {flex-wrap:wrap;min-width:0;}
+}
 @media (max-width: 960px) {
   .app {
     padding: 14px 16px 24px;

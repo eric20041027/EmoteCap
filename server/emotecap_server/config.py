@@ -9,7 +9,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SERVER_DIR = REPO_ROOT / "server"
 DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
 
-load_dotenv(REPO_ROOT / ".env")
+load_dotenv(Path(os.getenv('EMOTECAP_ENV_FILE') or str(REPO_ROOT/'.env')))
 
 
 @dataclass(frozen=True)
@@ -31,6 +31,6 @@ def load_settings() -> Settings:
         unity_export_dir=Path(unity_dir) if unity_dir else None,
         gemini_api_key=os.getenv("GEMINI_API_KEY") or None,
         gemini_model=os.getenv("GEMINI_MODEL", "").strip() or DEFAULT_GEMINI_MODEL,
-        data_dir=SERVER_DIR / "data",
+        data_dir=Path(os.environ['EMOTECAP_DATA_DIR']).resolve() if os.getenv('EMOTECAP_DATA_DIR') else SERVER_DIR/'data',
         bones_path=REPO_ROOT / "contracts" / "bones.json",
     )

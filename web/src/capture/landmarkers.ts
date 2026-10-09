@@ -1,6 +1,7 @@
 import { FilesetResolver, PoseLandmarker, type HandLandmarker } from '@mediapipe/tasks-vision';
 import { describeModelError } from './captureChecks';
 import { createHandLandmarker } from './hands';
+import { ProcessingConsentError, type SdkAuthorization } from '../privacy/processingConsent';
 
 const WASM_PATH = '/mediapipe/wasm';
 
@@ -19,37 +20,56 @@ export interface Landmarkers {
   pose: PoseLandmarker;
   /** Optional: body tracking keeps working if the hand model fails to load. */
   hands: HandLandmarker | undefined;
+  /** Actual successful pose delegate, reported only to an explicit diagnostic caller. */
+  poseDelegate?: 'GPU' | 'CPU';
+  handDelegate?: 'GPU' | 'CPU' | null;
 }
 
 /** Pose (GPU, falling back to CPU) and hand landmarkers in VIDEO mode, shared by the camera and video import. */
-export async function createLandmarkers(quality: CaptureQuality): Promise<Landmarkers> {
+export async function createLandmarkers(quality: CaptureQuality, authorize: SdkAuthorization,
+  options: {reportDelegate?:boolean} = {}): Promise<Landmarkers> {
+  let pose: PoseLandmarker | undefined;
+  let hands: HandLandmarker | undefined;
+  let poseDelegate: 'GPU' | 'CPU' = 'GPU';
+  let handDelegate: 'GPU' | 'CPU' | null = null;
   try {
+    authorize();
     const fileset = await FilesetResolver.forVisionTasks(WASM_PATH);
-    const options = (delegate: 'GPU' | 'CPU') => ({
+    authorize();
+    const poseOptions = (delegate: 'GPU' | 'CPU') => ({
       baseOptions: { modelAssetPath: POSE_MODEL_PATH[quality], delegate },
       runningMode: 'VIDEO' as const,
       numPoses: 1,
     });
-    let pose: PoseLandmarker;
     try {
-      pose = await PoseLandmarker.createFromOptions(fileset, options('GPU'));
+      authorize();
+      pose = await PoseLandmarker.createFromOptions(fileset, poseOptions('GPU'));
     } catch (gpuError) {
+      authorize();
       console.warn('PoseLandmarker GPU delegate failed, retrying on CPU:', gpuError);
-      pose = await PoseLandmarker.createFromOptions(fileset, options('CPU'));
+      pose = await PoseLandmarker.createFromOptions(fileset, poseOptions('CPU'));
+      poseDelegate = 'CPU';
     }
-    let hands: HandLandmarker | undefined;
+    authorize();
     try {
-      hands = await createHandLandmarker(fileset);
+      hands = await createHandLandmarker(fileset,authorize,
+        options.reportDelegate ? delegate=>{handDelegate=delegate;} : undefined);
     } catch (handError) {
+      authorize();
+      if(handError instanceof ProcessingConsentError)throw handError;
       console.warn('Hand tracking unavailable; continuing with body only:', handError);
     }
-    return { pose, hands };
+    authorize();
+    return { pose, hands, ...(options.reportDelegate ? {poseDelegate,handDelegate} : {}) };
   } catch (error) {
+    pose?.close();
+    hands?.close();
+    if(error instanceof ProcessingConsentError)throw error;
     throw new CaptureError(describeModelError(error));
   }
 }
 
 export function closeLandmarkers(landmarkers: Landmarkers | undefined): void {
-  landmarkers?.pose.close();
-  landmarkers?.hands?.close();
+  try {landmarkers?.pose.close();}
+  finally {landmarkers?.hands?.close();}
 }
