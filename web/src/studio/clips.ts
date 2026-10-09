@@ -13,7 +13,18 @@ export function clipNameIssues(clips:readonly ProjectClip[]):ReadonlyMap<string,
 export function projectClips(take:ProjectTake):Clip[] {
   if(!take.frames.length || !take.clips.length) throw new ProjectDataError('Add a clip with recorded frames before exporting.');
   const issues=clipNameIssues(take.clips);if(issues.size) throw new ProjectDataError(issues.values().next().value!);
-  return take.clips.map(clip=>({...makeClip(take.frames,clip),skeleton:take.provenance.skeleton}));
+  return take.clips.map(clip=>prepareProjectClip(take,clip));
+}
+function prepareProjectClip(take:ProjectTake,clip:ProjectClip):Clip {
+  return {...makeClip(take.frames,clip),skeleton:take.provenance.skeleton};
+}
+/** The selected preview and batch export use the identical derived-frame preparation. */
+export function projectClip(take:ProjectTake,clipId:string):Clip {
+  if(!take.frames.length) throw new ProjectDataError('Add recorded frames before previewing a clip.');
+  const clip=take.clips.find(candidate=>candidate.id===clipId);
+  if(!clip) throw new ProjectDataError('The selected clip no longer exists.');
+  const issue=clipNameIssues(take.clips).get(clipId);if(issue) throw new ProjectDataError(issue);
+  return prepareProjectClip(take,clip);
 }
 export function clampClipTime(clip:ProjectClip,field:'start'|'end',seconds:number,duration:number):number {
   if(!Number.isFinite(seconds) || !Number.isFinite(duration)) throw new ProjectDataError('Clip time must be finite.');

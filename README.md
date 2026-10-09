@@ -44,6 +44,8 @@ For Linux/macOS source development use root `./start.sh` after the same build. C
 
 Browser saving is a recovery copy for that browser and exact address. Download a backup before changing browser, port, address or machine, then import it at the new location. Source video is optional and has its own retention/backup choices.
 
+Clip **Play** previews the same trimmed, resampled and smoothed motion prepared for export. **Play original take** reviews the captured frames. The source label identifies the current preview; editing a clip stops its preview until you press Play again. Both controls preserve the original take.
+
 ## Capture and export
 
 For a new take, read **Camera and video processing** and choose whether to allow MediaPipe performance and usage metrics. Then explicitly select **Start camera** or **Import video**. Use **Calibrate T-pose**, **Record** and **Stop**, then review clips. Turning processing off stops new work and preserves recorded motion through final save. The choice resets on reload. Real camera/video quality and target-laptop performance remain release gates.

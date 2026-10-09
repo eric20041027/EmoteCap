@@ -1,18 +1,16 @@
-import { useEffect, type RefObject } from 'react';
-import { tposeFrame, type MotionFrame } from '../motion/index';
+import { type RefObject } from 'react';
+import { type MotionFrame } from '../motion/index';
 import { editClip, removeClip, replaceClips, undoClips, type ClipPatch } from '../project/model';
 import { MAX_CLIPS, type ProjectTake } from '../project/types';
 import type { Exporter } from '../record/useExporter';
-import { usePlayback } from '../record/usePlayback';
 import { TimeField } from '../take/TimeField';
 import type { ServerHealth } from '../ui/useServerHealth';
 import { clampClipTime, clipNameIssues, localClips, projectClips } from './clips';
 import type { StudioSession } from './session';
+import { useReviewPlayback } from './useReviewPlayback';
 interface Props {take:ProjectTake;session:StudioSession;frameRef:RefObject<MotionFrame|null>;server:ServerHealth;exporter:Exporter;locked:boolean}
 export function ProjectReview({take,session,frameRef,server,exporter,locked}:Props) {
-  const playback=usePlayback(take.frames,frameRef),duration=take.frames.at(-1)?.t??0,issues=clipNameIssues(take.clips);
-  const {seek}=playback;
-  useEffect(()=>{if(take.frames.length) seek(take.frames[0].t);else frameRef.current=tposeFrame();},[seek,take.frames,frameRef]);
+  const playback=useReviewPlayback(take,frameRef),duration=take.frames.at(-1)?.t??0,issues=clipNameIssues(take.clips);
   const apply=(action:()=>void)=>{try {action();} catch(error) {session.reportError(error);}};
   const patch=(id:string,change:ClipPatch)=>apply(()=>session.update(p=>editClip(p,take.id,id,change)));
   const addClip=()=>apply(()=>{
@@ -24,6 +22,8 @@ export function ProjectReview({take,session,frameRef,server,exporter,locked}:Pro
       <p className="studio-help">{duration.toFixed(2)} seconds · {take.frames.length} original frames</p></div>
       <button type="button" className="btn btn--secondary" onClick={playback.stop}>Stop playback</button>
     </div>
+    <p className="studio-help" role="status">{playback.sourceLabel}</p>
+    <button type="button" className="btn btn--secondary" disabled={!take.frames.length} onClick={playback.playOriginal}>Play original take</button>
     {take.status==='interrupted' && <p className="studio-warning" role="status">Interrupted recording: this is the last saved prefix. Frames after that checkpoint were not recovered.</p>}
     <p className="studio-help">{take.provenance.calibration.note}</p>
     {take.frames.length===0 && <p className="studio-help">This checkpoint has no captured frames. Keep the project or start a new take.</p>}
@@ -42,11 +42,12 @@ export function ProjectReview({take,session,frameRef,server,exporter,locked}:Pro
           <label className="studio-field">End (seconds)<TimeField label={`Clip ${index+1} end (seconds)`} value={clip.end} min={clip.start+0.1} max={duration}
             onChange={value=>patch(clip.id,{end:clampClipTime(clip,'end',value,duration)})} /></label>
           <label className="studio-check"><input type="checkbox" aria-label={`Clip ${index+1} loop`} checked={clip.loop} onChange={event=>patch(clip.id,{loop:event.target.checked})} />Loop</label>
-          <button type="button" className="btn btn--secondary" aria-label={`Play clip ${index+1}`} onClick={()=>playback.play(clip.start,clip.end,clip.loop)}>Play</button>
+          <button type="button" className="btn btn--secondary" aria-label={`Play clip ${index+1}`} disabled={issues.has(clip.id)||!take.frames.length}
+            onClick={()=>apply(()=>playback.playClip(clip.id))}>Play</button>
           <button type="button" className="btn btn--ghost" aria-label={`Delete clip ${index+1}`} onClick={()=>apply(()=>session.update(p=>removeClip(p,take.id,clip.id)))}>Delete</button>
         </div>
         <label className="studio-field">Description<input aria-label={`Clip ${index+1} description`} value={clip.description} maxLength={512} onChange={event=>patch(clip.id,{description:event.target.value})} /></label>
-        {issues.has(clip.id) && <p id={`clip-error-${clip.id}`} className="studio-error">{issues.get(clip.id)} Export is unavailable until names are valid.</p>}
+        {issues.has(clip.id) && <p id={`clip-error-${clip.id}`} className="studio-error">{issues.get(clip.id)} Clip preview and export are unavailable until names are valid. You can still play the original take.</p>}
       </li>)}</ol>
       <button type="button" className="btn btn--primary" disabled={exporter.busy||server!=='online'||issues.size>0||!take.clips.length||!take.frames.length}
         onClick={()=>{const frozen=take,projectId=session.getSnapshot().project.id;void exporter.exportClips(()=>projectClips(frozen),{projectId,takeId:frozen.id,clipRevision:frozen.clipRevision});}}>Export FBX</button>
