@@ -31,3 +31,25 @@ Both entire Node/service/browser trees are owned by the existing Windows job hel
 - Use a native post-crash/pre-app stored snapshot to settle the observed racing checkpoint; cost: it proves committed-frame recovery, not unobserved unsaved raw-tail fidelity or exact maximum-loss timing.
 
 One fresh independent Native review follows task completion. The original22requirements and outstanding Mac A–D/authenticated job input, physical/finger/jitter/foot quality, target thresholds/support matrix, second Windows/five users, complete vendor/Microsoft rights and final owner-approved release remain pending. This software-only result does not certify them.
+
+## Independent review
+
+One fresh gpt-6-astra Native reviewer checked9e62fb0..722912c/privatehelpers/actualreceipts:0Critical/0Important/0Minor. Read-only postflight passes; no correction pass or deferred minor. Review accepts only actual renderer-crash recovery/import of42committed frames. Reviewed screenshot and native health-before-app oracle substantiate the result. Reviewer CIM was unavailable; its fresh targeted Get-Process/netstat fallback found no recorded IDs/ports, separately from the original timestamped CIM receipt.
+
+The executor accepts each declined scope below without waiving any requirement:
+
+1. Whole-browser/OS/power-loss/physical durability remain unqualified; browser/storage stayed alive. Cost if wrong: unsupported durability promise.
+2. Exact raw-tail count/fidelity/duration remains unknown; no full raw oracle exists at the crash instant. Cost if wrong: misstated recording loss.
+3. Universal5000ms loss/cadence remains unqualified; observed interval is read-to-control. Cost if wrong: unsupported checkpoint guarantee.
+4. Other scheduling/first-checkpoint/prolonged/multi-take/media-heavy/cross-tab crash scenarios remain separate. Cost if wrong: unobserved failure windows.
+5. Quota/disk/transaction/unavailable-storage/conflict behavior is not newly qualified. Cost if wrong: unsupported failure recovery.
+6. Optional source-video retention/deletion and malformed archives keep existing separate evidence. Cost if wrong: unsupported media or hostile-input behavior.
+7. Future edit/import preservation is not universally proven; only tested recovery identity/new namespace is accepted. Cost if wrong: overstated future data preservation.
+8. Network-wide privacy/provider retention/all telemetry absence are not claimed from bounded page observations. Cost if wrong: unsupported privacy promise.
+9. Physical anatomy/fingers/jitter/foot/calibration/targetFPSlatency remain pending; source is synthetic640x480software. Cost if wrong: unsupported physical quality/performance.
+10. No fresh Blender/FBX/Unity qualification is inferred from this run. Cost if wrong: false export/playback coverage.
+11. Other platforms/browsers/hardware/secondWindows/five beginners remain pending. Cost if wrong: unsupported support/usability claims.
+12. Complete vendor/model/SDK/runtime/Microsoft rights and authenticated external job input remain separate pending work. Cost if wrong: incorrect rights or lineage assertion.
+13. RemoteCI/PRconflicts/mainmerge/tag/release require independent current checks and owner authority. Cost if wrong: stale readiness or unauthorized publication.
+14. ReviewerCIM unavailable is retained; original timestamped CIM and reviewer targeted fallback are sufficient only for this owned-run lifecycle. Cost if wrong: overstated whole-system census.
+15. Review checks audit/supplement bindings and pending gates, not a fresh full22product requalification. Cost if wrong: false whole-goal completion.
