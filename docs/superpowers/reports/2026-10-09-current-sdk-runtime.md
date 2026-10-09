@@ -34,4 +34,27 @@ The original22requirements remain intact. M1–M3have implemented/reviewed softw
 - Preserve all consumed artifacts, original failed controls and private workspace: additional local disk space is required for auditability.
 - Keep current candidate bytes and core unchanged, while qualification-only source changes are documentation: this increment does not supply a newly released artifact or fresh CI for unrelated code.
 
-Private proof lives under .superpowers/sdd/2026-10-09-current-sdk-runtime/. Final independent Native review follows actual task completion; this validation is not a formal release or whole M1–M5 completion.
+## Independent review and retained limits
+
+One fresh gpt-6-astra Native TypeScript reviewer checked e54649e..c523d17, the private probe/driver/verifier, actual retained receipts, screenshot and all22audit references. Read-only postflight and Web non-emitting TypeScript check passed. Review found0Critical/0Important/0Minor; no correction pass or deferred minor arose in this increment. The verdict accepts qualification evidence only, not PR merge readiness or a full release. The local qualification branch and private originals are retained, with no additional public push/CI required for unchanged application bytes.
+
+The executor accepts each of the reviewer's16declined-to-judge limits below. These are boundaries on the evidence, not waivers of required outcomes; a mistaken extension would carry the stated cost.
+
+1. Physical camera/consent/anatomy/fingers/occlusion/jitter/foot sliding remain pending: a mannequin stream cannot establish them; cost is unsupported physical quality.
+2. Laptop720p throughput/interaction/visibility/support thresholds retain separate Mac scopes:640x480SwiftShader does not qualify them; cost is an unsupported performance promise.
+3. Mac installation/UI/interaction and original job input remain pending: no new Mac run occurred; cost is missed platform or lineage defects.
+4. Second-machine and five-person acceptance remain pending: automation/PATH isolation are neither; cost is unnoticed installation or usability failure.
+5. Complete upstream/model/native/SDK/Microsoft rights remain pending: collected texts/signatures are evidence only; cost is an incorrect redistribution claim.
+6. Owner publication/remote main/live PR/CI status require separate current checks and authority: this local review supplies none; cost is stale readiness or unauthorized publication.
+7. Network-wide traffic/image absence/logger semantics/provider retention are unproven: bounded page metadata cannot establish them; cost is an unsupported privacy claim.
+8. Zero requests after withdrawal is not claimed: two admitted logger requests occurred; stopped processing/preserved motion stands; cost is a misleading withdrawal promise.
+9. Actual-SDK take FBX/Unity fidelity and new Unity receiver qualification remain separate: this run exports a sample/tests browser-service pairing; cost is false end-to-end coverage.
+10. Crash/power loss/disk-full/real quota/eviction/arbitrary-hardware checkpoint timing remain separate: one persisted checkpoint cannot cover them; cost is unqualified recovery behavior.
+11. Full accessibility/layout/error recovery remain separate: one narrow view/no page errors is limited; cost is overlooked user barriers.
+12. New full unit/build/security/asset/CI coverage is not claimed: unchanged code keeps prior source-scoped evidence; cost is mistaking historical tests for a fresh suite.
+13. Future process absence/independent descendant PID history is not claimed: owned job terminal receipts plus timestamped CIM are sufficient for this run; cost is overstating lifecycle coverage.
+14. Hostile evidence/new arbitrary candidates/general admission security remain outside this fixed-run verifier: frozen inputs are its scope; cost is misuse as an untrusted-input gate.
+15. Broad historical probe/helper refactoring is deferred as out of scope, with no observed qualification defect: current paths substantiate this run; cost is latent unexercised helper behavior.
+16. Withdrawal does not mean source-video deletion or pixel erasure: processing consent and retention/deletion are distinct controls; cost is a misleading deletion expectation.
+
+Private proof and the full independent review live under .superpowers/sdd/2026-10-09-current-sdk-runtime/. This validation is not a formal release or whole M1–M5 completion.
