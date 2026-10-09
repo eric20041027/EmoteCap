@@ -22,6 +22,16 @@ An additional author-written empty-text control revealed that a hash-consistent 
 
 Final corrected full fast backend:982passed/1platform skip/19slow deselected in146.87seconds. Existing Starlette/httpxdeprecation warning remains; it is not a new failure and no dependency upgrade is included. Slow/runtime/device/human tests are not inferred from this suite.
 
+## Fixed-source actual delivery
+
+Clean6daf710dabae140536b1a12f39174de30f97e991produced two identical88,518,514-byte internal Windows ZIPs, SHA256ecb754077c193398c40a77bcfea058785a9d6b141bb9302266f03183b9851ae0. Independent verification reread all5,764entries, all488texts, all480old text hashes, exact original Rust metadata and all eight source/recipient licensing links. All5,246application/runtime/Web/entry/MIT records match the earlier84d89a7licensed candidate. Existing SDK/browser/inference evidence retains its previous scope; no fresh npm build or new physical qualification is inferred from byte equality.
+
+Actual bundled Python-I-S-B with System32-onlyPATH and poisonedPYTHONPATH starts production health/Web, with Blender/Gemini disabled and notices outside the Web route. A full owned candidate copy with one supplemental text damaged exits1before private data/settings creation. Both owned trees close. Independent unsandboxed process/port check at2026-10-09T15:54:46Z confirms PIDs18088/5052absent and port50345has zero listeners.
+
+The first cleanup audit used a swallowed sandbox CIM error and displayed a null PID array; it is INVALID as port-absence evidence. Explicit error handling caught the limitation, postflight rejected missing corrected evidence, then an authorized read-only unsandboxed check supplied the actual terminal proof. No product failure or unrelated process termination is inferred. Final postflight passes; failed/partial checks remain private and retained.
+
+Source-bound candidates stay private with releaseGate=pending. Full vendor/physical/human/publication acceptance remains false. Independent final review follows this exact source/material/artifact state.
+
 ## Remaining supplier and release work
 
 Fresh official1.0.1npm metadata and SRI-verified tarball still have14files/no licensing text and nine exact observed prebuilt matches. A fifth bounded official source snapshot, v1.1.0, does not match those digests. Existing maintainer statements cover general Apache2license declarations, not full artifact-specific third-party enumeration. A concrete private question is ready; external posting awaits explicit authorization. Absence of build attestation itself is not treated as an Apache2requirement.
