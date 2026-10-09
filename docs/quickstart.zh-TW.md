@@ -29,6 +29,8 @@ Linux/macOS 原始碼開發可在相同建置後使用根目錄 `./start.sh`。�
 
 瀏覽器儲存是復原副本，與瀏覽器和完整網址綁定。更換瀏覽器、連接埠、網址或電腦前，先下載備份，再到新位置匯入。原始影片的保留與備份需另外選擇；不保留影片仍可編輯已解算的動作。
 
+片段的 **Play** 會播放與匯出相同的裁切、重新取樣及平滑後動作；**Play original take** 播放原始影格。來源標籤會顯示目前預覽內容；修改片段後會停止播放，需要再按 Play。兩種播放都保留原始動作。
+
 ## 3. 錄製或匯入影片
 
 建立新 take 後，先閱讀 **Camera and video processing**。MediaPipe 在裝置上處理影像與影片，但 SDK 會向 Google 傳送效能與使用指標。自行決定是否勾選 **Allow MediaPipe performance and usage metrics**，再明確按 **Start camera** 或 **Import video**。

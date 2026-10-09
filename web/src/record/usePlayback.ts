@@ -59,7 +59,10 @@ export function usePlayback(frames: readonly MotionFrame[], frameRef: RefObject<
     [show],
   );
 
-  useEffect(() => () => cancelAnimationFrame(rafRef.current), []);
+  useEffect(() => {
+    stop();
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [frames, frameRef, stop]);
 
   return { playhead, play, stop, seek };
 }
