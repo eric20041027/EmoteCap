@@ -21,6 +21,10 @@ Evidence is retained privately in `.superpowers/sdd/2026-10-09-unity-sample-inst
 
 The unchanged qualification-runner regression suite also passes44cases. Its first sandbox attempt had39temporary-directory setup errors; a fresh in-workspace pytest base directory resolved that environment limitation. No product failure was hidden or mislabeled as a pass.
 
+One fresh Native C# review on the strongest available model approved the code/proof range1093691..bcffec6 with no Critical/Important finding. A Minor spacing nit in the new guide/development paragraphs is deferred. Its independent read-only verifier also passed. Decisions/risks and all behaviors the reviewer declined to independently execute remain recorded in the private ledger; none removes a release gate. Post-review changes only mark this completion and update public evidence scope.
+
+Two private standalone UPM development archives are byte-identical:123,574bytes,96members, SHA256 `3425eec6e67015b282846be18c9dac8a72a271d0be7d47722d80f746fec46b46`. All member bytes equal the qualified current package, including canonical MIT. Their source marker is bcffec6; post-review report/plan changes do not alter their package payload. No archive is uploaded as a public release.
+
 ## Mac evidence and remaining scope
 
 The returned1093691MacBook Pro13-inch2022/M2/16GB/macOS26.5.2 package had181files; supplied ZIP SHA256 `286bae8efce439b5b560f26b368e7a95020e484be7e89c0313d03d7383a423b1` and all180listed content digests matched. Source/lock/model/instrumentation digests matched the fixed commit. Independent raw-attempt arithmetic reproduced three observed Fast/no crop/full/Medium/calibrated/delivered1280x720GPU laptop runs: effective FPS25.5749–27.6143, median27.5200; p95detection-to-render-call40.5–40.9ms, median40.6. Qualification remains pending, with no invented performance threshold. The fourth completed short/uncalibrated receipt and three counter-reset incomplete receipts remain excluded from that baseline.

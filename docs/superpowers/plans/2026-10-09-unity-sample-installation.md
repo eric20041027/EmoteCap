@@ -84,4 +84,4 @@ git commit -m "fix: make Unity sample tests optional for normal installation"
 ```
 
 Retain actual source-bound RED/GREEN,118-case XML and static docs/metadata parity checks; mark ledger completion only after all required evidence exists.
-- [ ] **Step 8: Request one fresh whole-branch Native review.** Use the most capable available model and C# reviewer, include spec/plan/review-focus/ledger and frozen actual receipts. Re-grade findings and make one RED/GREEN correction pass if needed. Existing push/draft-PR authorization applies after qualified review; remote merge/tag/release stays separate unless specifically authorized for this branch.
+- [x] **Step 8: Request one fresh whole-branch Native review.** Use the most capable available model and C# reviewer, include spec/plan/review-focus/ledger and frozen actual receipts. Re-grade findings and make one RED/GREEN correction pass if needed. Existing push/draft-PR authorization applies after qualified review; remote merge/tag/release stays separate unless specifically authorized for this branch.
