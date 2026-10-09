@@ -92,6 +92,8 @@ The output must be fresh. This creates only an owned project, runs real Blender,
 
 ## Changes and review
 
+Normal Starter Rigs users do not need developer test dependencies. The package and sample test asmdefs use a Test Framework package-version define and a matching compilation constraint, so they are excluded when `com.unity.test-framework`1.7.0or later is unavailable. The qualification manifest explicitly pins1.7.0and declares `testables: ["com.emotecap.mocap"]`; preserve both when running the original Editor/Play suite. Do not add Test Framework to the production UPM dependency list to work around an installation error.
+
 Use small `feat:`, `fix:`, `test:`, `docs:`, `build:`, or `chore:` commits.
 Run checks for the code you change and request review. Keep original motion
 fixtures and valid v2 consumers working. Update contract documentation and

@@ -5,5 +5,7 @@
   "overrideReferences": true,
   "precompiledReferences": ["nunit.framework.dll", "Newtonsoft.Json.dll"],
   "optionalUnityReferences": ["TestAssemblies"],
-  "autoReferenced": false
+  "autoReferenced": false,
+  "defineConstraints": ["EMOTECAP_TEST_FRAMEWORK"],
+  "versionDefines": [{"name":"com.unity.test-framework","expression":"1.7.0","define":"EMOTECAP_TEST_FRAMEWORK"}]
 }
