@@ -32,6 +32,12 @@ The first cleanup audit used a swallowed sandbox CIM error and displayed a null 
 
 Source-bound candidates stay private with releaseGate=pending. Full vendor/physical/human/publication acceptance remains false. Independent final review follows this exact source/material/artifact state.
 
+## Independent final review
+
+One fresh Native Python review of1bceeb5..d8e3f2dapproved with zero Critical/Important/Minor findings. Reviewer ran26targeted tests and postflight, independently recalculated38source-file Git blobs, verified8original terms/480preserved records/root Rust bytes and confirmed artifact-source-to-review-head changes were documentation only. Ruff/mypy/pylint/black were unavailable; no static-analysis result is claimed and no tooling installation was introduced.
+
+Declined judgments remain mandatory separate work: signed upstream authentication, whole-archive/commit equivalence and full binary graph; legal/SDK/Microsoft/model obligations; Mac/physical/clean-Windows/five-new-user/formal release; supplier posting without human authorization. Approval completes only scoped recipient licensing delivery. No correction pass or deferred Minor in this task.
+
 ## Remaining supplier and release work
 
 Fresh official1.0.1npm metadata and SRI-verified tarball still have14files/no licensing text and nine exact observed prebuilt matches. A fifth bounded official source snapshot, v1.1.0, does not match those digests. Existing maintainer statements cover general Apache2license declarations, not full artifact-specific third-party enumeration. A concrete private question is ready; external posting awaits explicit authorization. Absence of build attestation itself is not treated as an Apache2requirement.
