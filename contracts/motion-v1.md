@@ -1,89 +1,100 @@
-# EmoteCap motion contract v1
+# EmoteCap motion contract v2
 
-Source of truth for data exchanged between `web/`, `server/`, and `unity/`.
-Machine-readable part: [`bones.json`](bones.json). Change either file only after telling the whole team.
+Current contract for web, server, Blender export, and Unity. This historical
+filename remains stable for existing links. `bones.json` is the machine-readable
+source of truth. Coordinate or bone-order changes require a new contract version
+and a coordinated migration across all consumers.
 
-## Coordinate systems
+## Coordinates
 
-| Space | Handedness | Up | Character faces | Units |
-|---|---|---|---|---|
-| **Canonical** (all JSON on the wire) | right | +Y | +Z | meters |
-| MediaPipe world landmarks | right | −Y (y points down) | −Z (z grows away from camera) | meters, origin = hip midpoint |
-| Unity | left | +Y | +Z | meters |
-| Blender | right | +Z | −Y | meters |
-
-Conversions (pure functions, every lane implements its own copy):
-
-| From → To | Position | Quaternion `(x, y, z, w)` |
-|---|---|---|
-| MediaPipe → canonical | `(x, -y, -z)` | – |
-| canonical → Unity | `(-x, y, z)` | `(x, -y, -z, w)` |
-| canonical → Blender | `(x, -z, y)` | `Quaternion((w, x, -z, y))` (Blender is w-first) |
-
-The video frame fed to MediaPipe is **not mirrored**. Mirror only the on-screen display with CSS.
-
-**Acceptance test ("raise right hand"):** the actor raises their right arm → the character raises its **right** arm with the head up, in the browser preview, in the exported FBX, and in Unity. Fixture: `fixtures/raise-right-arm.clip.json`.
+Canonical space is right-handed, +Y up, character facing +Z, in meters.
+MediaPipe positions become `(x, -y, -z)`. Unity positions become `(-x, y, z)`
+and quaternions become `(x, -y, -z, w)`. Blender positions become `(x, -z, y)`
+and its w-first quaternion is `(w, x, -z, y)`.
+Detection inputs are not mirrored; mirroring is a preview-only operation.
 
 ## Bones
 
-`bones.json.driven` lists the 18 driven bones in wire order (parents first). Names equal Unity's `HumanBodyBones` enum names. `bones.json.skeleton` is the export skeleton: 22 bones in T-pose with Mixamo names (`fbx`), head/tail positions in canonical meters, parents first. `LeftShoulder`, `RightShoulder`, `LeftToeBase`, `RightToeBase` are never driven and keep their rest rotation relative to their parent.
+Version 2 has 48 driven bones: 18 body bones followed by 30 finger bones.
+The full export skeleton has 52 bones. Body-only export has 22 bones, but its
+input frames still carry all 192 rotation values. `bones.json.driven` defines
+wire order; `bones.json.skeleton` defines the parent-first export skeleton.
+`LeftShoulder`, `RightShoulder`, `LeftToeBase`, and `RightToeBase` are not driven.
+The canonical hips rest height is 0.95 meters.
 
-`hipsRestHeight` (`H0` = 0.95) is the canonical Hips height in T-pose.
+## Motion and clip
 
-## MotionFrame
-
-```json
-{ "t": 1.2333, "h": [0.0, 0.93, 0.0], "r": [0, 0, 0, 1, "... 72 floats total ..."] }
+```typescript
+interface MotionFrame {
+  t: number;
+  h: [number, number, number];
+  r: number[];
+}
+interface Clip {
+  name: string;
+  loop: boolean;
+  fps: number;
+  frames: MotionFrame[];
+  skeleton?: 'full' | 'body';
+}
+interface Segment {
+  name: string;
+  start: number;
+  end: number;
+  loop: boolean;
+  description: string;
+}
 ```
 
-- `t` — seconds since the start of the take (or clip).
-- `h` — Hips position in canonical meters, already scaled to the canonical skeleton. `x` and `z` are always 0 (in-place animation).
-- `r` — 18 × 4 = 72 floats, quaternions `(x, y, z, w)` in `driven` order. Each is the bone's **world-space rotation relative to T-pose** ("world delta").
-- Apply to any humanoid rig: `boneWorldRotation = r[b] * restWorldRotation[b]`, parents before children. A child that should keep its pose relative to its parent must carry the same world delta; children do **not** inherit `r` automatically.
+Each `r` has 192 finite numbers, grouped as `(x,y,z,w)` world-delta quaternions
+relative to T-pose. Apply `boneWorld = delta * restWorld`, parents first.
+Each quaternion norm differs from 1 by at most 0.02. All motion numbers must
+be finite. This in-place contract requires `abs(h.x)` and `abs(h.z)` <= 0.000001.
 
-Only flat arrays are used so Unity's `JsonUtility` can parse frames directly.
+Export clips start at `t=0`, with strictly increasing subsequent timestamps,
+ending no later than 180 seconds. FPS is an integer from 1 through 120.
+The inclusive maximum is 21601 frames. The export endpoint accepts at most
+50 clips per request. Names match `^[A-Za-z0-9_]{1,24}$`.
+Segments describe editable ranges inside a take; the Web app produces clips.
 
-## Clip
+## HTTP
 
-```json
-{ "name": "Idle_Breathing", "loop": true, "fps": 30, "frames": [ "MotionFrame, uniformly sampled at fps, t starts at 0" ] }
-```
+| Method | Path | Input / output |
+|---|---|---|
+| GET | `/api/health` | `{ok, blender, gemini}` |
+| POST | `/api/export` | `{clips: Clip[]}` → `{files: [{name, url}]}` |
+| GET | `/files/{name}.fbx` | FBX download |
+| POST | `/api/takes` | Multipart video + duration → `{takeId, segments}` |
 
-- `name` matches `^[A-Za-z0-9_]{1,24}$`. Duplicate names in one export get `_2`, `_3`, … appended.
-- `frames` are filtered, grounded, and resampled to exactly `fps` (frame `k` has `t = k / fps`).
-- `skeleton` (optional): `"full"` (default) exports all 52 bones; `"body"` leaves the 30 finger bones out of the FBX (22 bones) for characters without fingers. Frames always carry all 48 driven rotations.
+Uploads retain the current 100 MiB / 180 second limit. Supported decoding
+depends on the browser and provider; a `video/*` MIME type alone is not a codec
+guarantee. The video sent for semantic slicing is unmirrored.
 
-## Segment (phase 3, Gemini)
+422 rejects invalid input before Blender starts. Validation details expose
+location, message, and error type, not raw payload values. Other current codes:
+413 size/duration, 415 media type, 500 export failure, 503 Gemini unconfigured,
+502 Gemini failure. The Web app can fall back to local motion-energy slicing.
 
-```json
-{ "name": "Sword_Slash", "start": 12.4, "end": 14.1, "loop": false, "description": "..." }
-```
+## FBX sidecar
 
-Time range inside a take; the web app cuts Clips from it.
+`<name>.emotecap.json` contains `name: string`, `loop: boolean`, `fps: number`.
+Unity reads it to configure clip naming and looping. Publishing currently
+allows same-name replacement; job-scoped non-overwriting output is a later
+product milestone, not a guarantee of this contract revision.
 
-## HTTP API (server, default `http://localhost:8787`)
+## Live Link
 
-| Phase | Method | Path | Body | Response |
-|---|---|---|---|---|
-| 1 | GET | `/api/health` | – | `{ "ok": true, "blender": bool, "gemini": bool }` |
-| 1 | POST | `/api/export` | `{ "clips": Clip[] }` | `{ "files": [{ "name": str, "url": "/files/<name>.fbx" }] }` |
-| 1 | GET | `/files/<name>.fbx` | – | FBX file (a `<name>.emotecap.json` sidecar sits next to it) |
-| 3 | POST | `/api/takes` | multipart `video` (any `video/*`: the recorded webm take or an imported mp4/mov/webm file; ≤ 100 MB, ≤ 3 min), `duration` | `{ "takeId": str, "segments": Segment[] }` |
+Endpoint: `/ws/live?role=source|sink`. The source sends a hello with
+`type="hello"`, `version=2`, and `bones` equal to `bones.json.driven`, then
+frames with `type="frame"` and the MotionFrame fields. Live timestamps are
+stream timestamps; export clip timestamp bounds do not constrain live uptime.
+The current relay forwards text; protocol negotiation, origin/session checks,
+and source ownership are separate M3 work. `clip_ready` is not a completed
+delivery feature. Legacy v1 data is outside the current acceptance matrix.
 
-Errors: `422` invalid body, `500` Blender failure (`detail` holds the last 20 lines of Blender stderr), `503` Gemini not configured, `413` take over 100 MB or 180 s, `415` upload is not a video, `502` Gemini failed or returned nothing usable (`detail = {"message": ..., "fallback": "motion-energy"}` — the web app then splits the take locally with `fallbackSegments`).
+## Acceptance fixtures
 
-The uploaded video must be **un-mirrored** (the raw camera stream, or an imported file as filmed) so Gemini's Left/Right clip names match the actor's own sides.
-
-## Sidecar `<name>.emotecap.json`
-
-```json
-{ "name": "Wave_Right", "loop": false, "fps": 30 }
-```
-
-Read by the Unity importer to name the clip and set Loop Time / Loop Pose.
-
-## Live Link WebSocket (phase 2): `ws://localhost:8787/ws/live?role=source|sink`
-
-- Source (browser) sends once: `{"type":"hello","version":1,"bones":[...driven names...]}`, then per frame: `{"type":"frame","t":…,"h":[…],"r":[…]}`.
-- The server forwards source messages unchanged to every sink (Unity).
-- Quality phase: after an export the server broadcasts `{"type":"clip_ready","name":"…","url":"…","loop":true}` to sinks.
+`fixtures/tpose.clip.json` and `fixtures/raise-right-arm.clip.json` are shared
+regression inputs. A right-arm raise must remain a right-arm raise with the
+head up in the browser, exported FBX, and Unity. Source parity tests are only
+one part of that check; real Blender/Unity playback must also be verified.

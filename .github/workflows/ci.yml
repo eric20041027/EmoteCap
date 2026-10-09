@@ -1,0 +1,44 @@
+name: unit-and-web-build
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    name: unit-and-web-build (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm install --global npm@11.21.0
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: '0.12.6'
+          enable-cache: false
+      - run: uv python install 3.12.14
+      - run: npm ci
+        working-directory: web
+      - run: npm run test:assets
+        working-directory: web
+      - run: npm run test:security
+        working-directory: web
+      - run: npm run audit:deps
+        working-directory: web
+      - run: npm test
+        working-directory: web
+      - run: npm run build
+        working-directory: web
+      - run: uv sync --frozen --python 3.12.14
+        working-directory: server
+      - run: uv run --frozen --python 3.12.14 pytest -q -m "not slow"
+        working-directory: server

@@ -4,13 +4,16 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "fetch-assets": "node scripts/fetch-mediapipe.mjs",
-    "predev": "node scripts/fetch-mediapipe.mjs",
+    "fetch-assets": "node --use-system-ca --use-env-proxy scripts/fetch-mediapipe.mjs",
+    "predev": "node --use-system-ca --use-env-proxy scripts/fetch-mediapipe.mjs",
     "dev": "vite",
-    "prebuild": "node scripts/fetch-mediapipe.mjs",
+    "prebuild": "node --use-system-ca --use-env-proxy scripts/fetch-mediapipe.mjs",
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:assets": "node --test scripts/asset-integrity.test.mjs",
+    "test:security": "node --test scripts/dependency-security.test.mjs",
+    "audit:deps": "npm audit --audit-level=high"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^1.0.1",
@@ -27,5 +30,10 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.1",
     "vitest": "^5.0.2"
-  }
+  },
+  "engines": {
+    "node": ">=24.19.0 <25",
+    "npm": ">=11.21.0 <12"
+  },
+  "packageManager": "npm@11.21.0"
 }

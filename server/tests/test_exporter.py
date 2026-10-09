@@ -2,6 +2,8 @@
 import dataclasses
 import json
 import os
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -36,10 +38,23 @@ def fake_run_blender(settings: Settings, job_json: Path, out_dir: Path) -> None:
         (out_dir / f"{name}.emotecap.json").write_text(json.dumps(sidecar))
 
 
-def write_fake_blender(tmp_path: Path, shell_body: str) -> str:
-    script = tmp_path / "fake-blender"
-    script.write_text(f"#!/bin/sh\n{shell_body}\n")
-    script.chmod(0o755)
+def write_fake_blender(
+    tmp_path: Path, python_body: str, monkeypatch: pytest.MonkeyPatch
+) -> str:
+    directory = tmp_path / "測試 with spaces"
+    directory.mkdir()
+    script = directory / "fake_blender.py"
+    script.write_text(python_body, encoding="utf-8")
+    real_run = subprocess.run
+
+    def run_python(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        assert command[0] == str(script)
+        assert command[1:3] == ["-b", "--factory-startup"]
+        assert kwargs["cwd"] == REPO_ROOT
+        assert kwargs.get("shell", False) is False
+        return real_run([sys.executable, str(script), *command[1:]], **kwargs)
+
+    monkeypatch.setattr(exporter.subprocess, "run", run_python)
     return str(script)
 
 
@@ -190,9 +205,16 @@ def test_run_blender_raises_export_error_when_blender_is_missing(tmp_path: Path)
         run_blender(settings, tmp_path / "clips.json", tmp_path / "out")
 
 
-def test_run_blender_raises_with_last_20_output_lines_on_nonzero_exit(tmp_path: Path) -> None:
+def test_run_blender_raises_with_last_20_output_lines_on_nonzero_exit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     blender = write_fake_blender(
-        tmp_path, 'echo "Blender 5.1"\nfor i in $(seq 1 30); do echo "err $i" >&2; done\nexit 3'
+        tmp_path,
+        "import sys\n"
+        "print('Blender test')\n"
+        "for i in range(1, 31): print(f'err {i}', file=sys.stderr)\n"
+        "sys.exit(3)\n",
+        monkeypatch,
     )
     settings = make_settings(tmp_path, blender_path=blender)
 
@@ -205,8 +227,13 @@ def test_run_blender_raises_with_last_20_output_lines_on_nonzero_exit(tmp_path: 
 def test_run_blender_raises_export_error_on_timeout(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(exporter, "BLENDER_TIMEOUT_S", 0.5)
-    settings = make_settings(tmp_path, blender_path=write_fake_blender(tmp_path, "exec sleep 5"))
+    monkeypatch.setattr(exporter, "BLENDER_TIMEOUT_S", 2.0)
+    blender = write_fake_blender(
+        tmp_path, "import time\nprint('started', flush=True)\ntime.sleep(5)\n", monkeypatch
+    )
+    settings = make_settings(tmp_path, blender_path=blender)
 
-    with pytest.raises(ExportError, match="timed out"):
+    with pytest.raises(ExportError, match="timed out") as excinfo:
         run_blender(settings, tmp_path / "clips.json", tmp_path / "out")
+
+    assert "started" in excinfo.value.stderr_tail
