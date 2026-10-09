@@ -40,3 +40,7 @@ Invalid trials are retained separately: v1 assumed prefab contained ClipPlayer, 
 Authenticate existing personal job input before final source-fidelity claims. Independently review diagnostic math/controls, separate axial/bind/muscle conventions from geometric differences, then diagnose actual production differences and create a dedicated verified repair. Preserve both FootIK modes; do not suppress import warnings or enable translation DOF just to clean Console.
 
 Mac standard Package Manager/visibility trace/operation responses, support matrix, stationary/stance/finger tracking accuracy, clean Windows/five independent beginners, full native/SDK redistribution and owner-approved release remain pending. Earlier118-case Windows and Mac smoke retain original scope; this analysis replaces no mandatory gate.
+
+## Independent review
+
+One fresh Native C# review of304e3e2and the private probes/receipts approved this aggregate documentation with zero Critical/Important/Minor findings. The reviewer independently ran read-only postflight, recalculated statistics and checked returned archive/FBX/sidecar/sample identity. Unity/Blender were not rerun by the reviewer; root dotnet commands could not run without a project/solution, so no dotnet success is claimed. Declined judgments remain required work: authenticate personal export input; establish independent physical/anatomical truth; validate full Live Link, Mac parity and all release gates. Review approval closes only this diagnostic task.
