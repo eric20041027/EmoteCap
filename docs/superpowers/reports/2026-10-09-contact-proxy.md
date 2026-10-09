@@ -30,3 +30,22 @@ Read-only postflight rehashes all frozen originals/evaluator/contracts, both ins
 The first postflight looked up helper basename records at repository root instead of their private workspace and failed FileNotFoundError before any measurement judgment; resolving them within the workspace corrects the harness check. Original production/input data remain unchanged. Private evidence is .superpowers/sdd/2026-10-09-contact-proxy/. One fresh independent Native review follows actual task completion.
 
 Rulings: use unchanged accepted evaluator/source inspection rather than invent a production RED (cost: proxy evidence is weaker than ground truth); retain original private media/packets/failures/workspace (cost: local disk/access requirements). No public-media action or unrelated CI is needed. The original22requirements remain intact; broader annotated motion/finger accuracy, Mac A–D/authenticated job input, actual target thresholds/support matrix, second Windows/five new users, complete vendor/Microsoft rights and final owner-approved release remain pending.
+
+## Independent review
+
+One fresh gpt-6-astra Native reviewer checked9b0523b..5e0d5b4/privatehelpers/actual source sheets and receipts. Read-only postflight passes. Verdict: scoped annotation-only acceptance,0Critical/0Important/1deferredMinor; no correction pass required. The deferred Minor is the earlier zero finger values wording: receipt finger-bone RMS is nonzero (~3.003689degrees left/~1.065207degrees right), with no assigned hand observation. The original packets and computed values remain unchanged; a later wording pass is needed.
+
+All declined scopes are accepted as evidence boundaries without waiving requirements:
+
+1. Requested/player seek times are not decoded-frame PTS; exact physical event timing stays unqualified. Cost if wrong: false frame-accurate event timing.
+2. Sampled visible foot placement supports operator labels, not continuous/anatomical heel contact. Cost if wrong: unsupported physical contact certainty.
+3. Five cold-start samples do not separate noise, breathing, voluntary motion or initialization. Cost if wrong: misattributed tracking noise.
+4. Short initial quiet interval is not representative jitter across subjects/time/motions. Cost if wrong: overgeneralized quality baseline.
+5. Canonical in-place heel path is not real-world sliding distance or anatomical error. Cost if wrong: misstated physical accuracy.
+6. No assigned hand observation means wrist/finger proxy values cannot qualify finger tracking or handedness. Cost if wrong: unsupported finger accuracy.
+7. Preview packet numbers cannot qualify final calibrated clips/FBX/Unity. Cost if wrong: false final-export coverage.
+8. No fresh inference/current candidate/newSDK or historical-model reconstruction is implied. Cost if wrong: misstated source/inference qualification.
+9. Independent verifier covers these all-success/zero-warmup packets, not general malformed/failure/warmup robustness. Cost if wrong: misuse as a general admission service.
+10. Hashes/lineage/operator chronology show internal consistency, not independent capture/rights/pre-score authentication. Cost if wrong: unsupported authenticity or rights assertion.
+11. Historical offline timings cannot establish improvement/camera-display/Fast720p/laptop/support acceptance. Cost if wrong: unsupported performance promise.
+12. Mac/secondWindows/five users/complete vendor-Microsoft rights/full release gates remain pending. Cost if wrong: false whole-goal completion.
