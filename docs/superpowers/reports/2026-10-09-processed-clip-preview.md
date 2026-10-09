@@ -38,4 +38,25 @@ Private logs, runners, original failures, ZIPs, tarballs, backup/export and kit 
 - Retain all private/original evidence and this workspace: local disk use grows; no public actor data or binary publication.
 - Preserve the original fixed-rate endpoint semantics: final grid frame can precede requested end by less than one output frame.
 
-Final independent Native review and exact-head CI are recorded after execution; this increment does not complete M1–M5.
+## Final independent Native review
+
+One fresh strongest-model reviewer approves88550fe..c96ff00 with0Critical/0Important/1Minor. Fresh TypeScript,9shared cases and complete delivery postflight pass; FBX/sidecar/backup hashes are independently reread. No source/index/HEAD changes or second review. ESLint is absent; the reviewer's GitHub connection fails, so that review makes no CI claim. Publication is checked separately after the review.
+
+Minor deferred: the pre-existing nonloop usePlayback comparison uses elapsed > length, so an exact endpoint callback briefly wraps to the first frame; the next callback restores the final frame. Stop in that interval can hold the first pose. The reviewer independently reproduces this arithmetic. The endpoint test currently advances beyond the exact endpoint. This brief existing timing edge is graded Minor by its actual effect, recorded without entering this increment's Critical/Important correction pass; no anatomical or complete endpoint-fidelity qualification follows.
+
+The reviewer declined the following judgments. Each remains an explicit boundary rather than an inferred pass:
+
+| Considered behavior | Ruling and cost if wrong |
+|---|---|
+| Physical camera, SDK inference, sensor-to-screen | Sample-only run cannot qualify them; additional real measurements remain necessary |
+| Anatomy, Humanoid retargeting, foot sliding, physical quality | Packet equality is narrower; motion-quality work remains open |
+| Unity playback of this newly generated FBX | Not performed here; prior unchanged UPM tests do not certify this new output |
+| Mac follow-up and platform support | Fixed-source separate tasks stay pending; an incorrect boundary would overstate supported devices |
+| Second physical Windows machine | Same-host isolation is insufficient; actual second-machine evidence remains necessary |
+| Five independent beginners | Five blank rows count as zero; actual participants and outcomes remain necessary |
+| Complete vendor/native/SDK/model/Microsoft rights | Text delivery is not approval; distribution assessment remains pending |
+| Formal release, binary publication, main merge | Separate owner authorization remains required; this draft source action does not authorize those effects |
+| New algorithm/model/kernel/dependency/UPM qualification | Bytes unchanged; existing scoped evidence is retained, broader correctness is not newly proven |
+| Process absence beyond observed cleanup time | The receipt proves its timestamp only; a later live claim requires a fresh census |
+
+Exact-head hosted CI follows separately. This increment does not complete M1–M5.
