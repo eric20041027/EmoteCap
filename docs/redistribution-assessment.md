@@ -1,5 +1,13 @@
 # Redistribution evidence and remaining decisions
 
+## Current upstream licensing supplements
+
+On2026-10-09, eight original commit-linked upstream licensing files were collected for fortanix-sgx-abi0.6.1, vex-sdk0.27.1, wasip1 1.0.0 and wit-bindgen-rt0.39.0. Four exact crates.io archive SHA256 pins match;38source-code files match their recorded upstream Git blobs. vex-sdk records vcsDirty=true: matching those28code files does not prove whole-archive/commit equivalence. Original archive declarations and480licensing files remain unchanged. The new strict owner descriptor separates supplements from archive members, binds original identity/checksum/literal terms, checks raw source URL/commit/path and file SHA256/Git blob, and retains pending redistribution assessment.
+
+Current material contains488texts/372Rust text associations. The original archive count remains four manifest-only cases; four have eight collected upstream supplements, leaving zero of those four without collected licensing text. This is neither complete native enumeration nor legal/release approval. Existing source-lock corpus includes build/dev/other-target entries; full SDK/native/model/Microsoft assessment remains required. [Plan](superpowers/plans/2026-10-09-upstream-rust-licenses.md).
+
+Fresh official npm metadata and retained SRI-verified1.0.1tarball still show14files with no LICENSE/NOTICE/COPYING, no gitHead/build-attestation field, and nine installed binaries matching. The newly inspected officialv1.1.0wasm_files.bzl at821db8a4428baf58bf4c09a0330c937e6e0a3753contains none of those nine digests. Five bounded source snapshots do not establish that no mapping exists elsewhere. A concrete artifact-specific supplier question is prepared privately; posting awaits explicit human authorization. Missing build attestation alone is not an Apache2obligation or a legal prohibition.
+
 The original native/runtime observations below came from the internal Windows candidate built from `79ce9871bc5d404e2ca54d5109c77573f820a21d`, with source inspection at `98757c1c869250e93e40fff8117eea0814ccdc7f`. Corrected source-notice candidatef9d5fc2now incorporates the two supplemental texts and all14certifi sources. A [new native Rust assessment](superpowers/reports/2026-10-08-native-rust-assessment.md) atfbba563also verifies three official wheel/native matches,196checksum-pinned source archives and358license/attribution texts. That corpus remains research rather than recipient-delivered candidate material. The candidate and [frozen material](../third_party/inventory.json) still have assessment/release status pending; no project LICENSE or public-release approval is created here.
 
 ## Observed material
