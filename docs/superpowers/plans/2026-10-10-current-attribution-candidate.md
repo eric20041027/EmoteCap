@@ -31,7 +31,7 @@
 - Startup/cleanup proof must cover the actual supplied entry and owned process tree/port; isolated same-machine health is not a second cleanWindows or user-study pass.
 - Reused earlier SDK/FBX/camera/UPM evidence must retain its source and byte scope, original22 outcomes, pending rights/physical/human gates, and publication authorization limits.
 
-### Task1: Build, compare and qualify current internal candidate
+### Task 1: Build, compare and qualify current internal candidate
 
 **Files:** This plan and docs/superpowers/reports/2026-10-10-current-attribution-candidate.md only; private inputs, owned logs/completion receipts, builds/ZIPs, full comparison, startup/tamper outputs and goal audit in this plan workspace. No product/tool/test/lock/inventory/license bytes modified.
 
