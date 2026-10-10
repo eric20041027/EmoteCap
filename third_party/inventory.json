@@ -1739,6 +1739,46 @@
         "licenses/rust-standard-library/88d9e12ae178fab0fb5cc050a94da85685d449ea/LICENSE-MIT"
       ],
       "version": "source-lock-superset-2026-10-08"
+    },
+    {
+      "declaredLicense": "MIT AND Apache-2.0",
+      "embeddedIn": [
+        {
+          "path": "python/python312.dll",
+          "sha256": "786648b36f66e3476e9591a54aa3a0ca43ed09c3fb4ad0affbfd2768a4c6dbcd",
+          "size": 6969856
+        }
+      ],
+      "evidenceScope": "Exact pinned runtime metadata lists four HACL hash core objects; CPython 3.12.14 source headers and support headers provide supplementary MIT and Apache-2.0 material. Version/object-name context does not prove the observed binary was built from this source commit or establish complete native/static redistribution coverage. Full assessment remains pending.",
+      "kind": "native-static",
+      "name": "HACL* and KaRaMeL support (CPython hashlib)",
+      "runtimeMetadata": {
+        "coreObjects": [
+          "build/core/Hacl_Hash_MD5.obj",
+          "build/core/Hacl_Hash_SHA1.obj",
+          "build/core/Hacl_Hash_SHA2.obj",
+          "build/core/Hacl_Hash_SHA3.obj"
+        ],
+        "interpretation": "Supplier-declared object list, not independently reconstructed build",
+        "path": "notices/runtime/PYTHON.json",
+        "sha256": "5de98c133b229be266064d329a3c086ab68b469ccbf8a65fd92d9d657bef8577"
+      },
+      "sourceEvidence": [
+        "https://raw.githubusercontent.com/python/cpython/2abcf904b8dac8c999d2b3aac76681abb333798a/Modules/_hacl/README.md",
+        "https://raw.githubusercontent.com/python/cpython/2abcf904b8dac8c999d2b3aac76681abb333798a/Modules/_hacl/refresh.sh",
+        "https://raw.githubusercontent.com/python/cpython/2abcf904b8dac8c999d2b3aac76681abb333798a/Modules/_hacl/Hacl_Hash_MD5.c",
+        "https://raw.githubusercontent.com/python/cpython/2abcf904b8dac8c999d2b3aac76681abb333798a/Modules/_hacl/include/krml/FStar_UInt128_Verified.h",
+        "https://raw.githubusercontent.com/python/cpython/2abcf904b8dac8c999d2b3aac76681abb333798a/Modules/_hacl/include/krml/fstar_uint128_struct_endianness.h"
+      ],
+      "status": "native-and-vendor-coverage-pending",
+      "supplementaryLicenses": [
+        "licenses/native-static/cpython-3.12.14-hacl/LICENSE.HACL-MIT.txt",
+        "licenses/native-static/cpython-3.12.14-hacl/NOTICE.KARAMEL.1.txt",
+        "licenses/native-static/cpython-3.12.14-hacl/NOTICE.KARAMEL.2.txt",
+        "licenses/native-static/cpython-3.12.14-hacl/LICENSE.APACHE-2.0.txt"
+      ],
+      "suppliedLicenses": [],
+      "version": "CPython-3.12.14-source-context"
     }
   ],
   "context": {
@@ -1782,6 +1822,42 @@
     }
   ],
   "files": [
+    {
+      "origin": {
+        "input": "https://files.pythonhosted.org/packages/42/8b/cb12b1b60c91b074ca6bf0fdd59aa8f10d8bc5f73af8faece86ef0421b37/cryptography-50.0.1-cp311-abi3-win_amd64.whl#cryptography-50.0.1.dist-info/licenses/LICENSE.APACHE",
+        "kind": "reused-full-license-text-from-verified-wheel"
+      },
+      "path": "licenses/native-static/cpython-3.12.14-hacl/LICENSE.APACHE-2.0.txt",
+      "sha256": "aac73b3148f6d1d7111dbca32099f68d26c644c6813ae1e4f05f6579aa2663fe",
+      "size": 11360
+    },
+    {
+      "origin": {
+        "input": "https://raw.githubusercontent.com/python/cpython/2abcf904b8dac8c999d2b3aac76681abb333798a/Modules/_hacl/Hacl_Hash_MD5.c",
+        "kind": "supplementary-native-source-license-header"
+      },
+      "path": "licenses/native-static/cpython-3.12.14-hacl/LICENSE.HACL-MIT.txt",
+      "sha256": "912ad428ca5f4b181100446204776c71c53552a265e13413d769ef6671204993",
+      "size": 1206
+    },
+    {
+      "origin": {
+        "input": "https://raw.githubusercontent.com/python/cpython/2abcf904b8dac8c999d2b3aac76681abb333798a/Modules/_hacl/include/krml/FStar_UInt128_Verified.h",
+        "kind": "supplementary-native-source-license-header"
+      },
+      "path": "licenses/native-static/cpython-3.12.14-hacl/NOTICE.KARAMEL.1.txt",
+      "sha256": "511880afbff3f2f29d61ef38837a610f8c9fc9b50581c974583c1a2501d3eac7",
+      "size": 116
+    },
+    {
+      "origin": {
+        "input": "https://raw.githubusercontent.com/python/cpython/2abcf904b8dac8c999d2b3aac76681abb333798a/Modules/_hacl/include/krml/fstar_uint128_struct_endianness.h",
+        "kind": "supplementary-native-source-license-header"
+      },
+      "path": "licenses/native-static/cpython-3.12.14-hacl/NOTICE.KARAMEL.2.txt",
+      "sha256": "c08e0378f872c9c177f03a27220f62226672a1fe5a24675db91c9250793e2f1a",
+      "size": 115
+    },
     {
       "origin": {
         "input": "https://github.com/openssl/openssl/blob/openssl-4.0.2/LICENSE.txt",
