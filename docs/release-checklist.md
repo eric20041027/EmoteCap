@@ -34,7 +34,7 @@ This is a required gate for a formal release, not a claim that the rebuild has p
 - [ ] Prepare fixed-version UPM/source-linked release files, artifact SHA256 and support/operation/privacy/known-limit documentation. Inspect final packaged contents and scan for credentials/private media/unapproved assets.
 - [ ] Verify every required gate above is green and any optional limitation is explicitly owner-accepted; no mandatory pending box is silently waived.
 - [ ] Show the exact source commit, artifacts/checksums, tag, release title/body and publication destination for owner approval.
-- [ ] Obtain explicit approval for the new public push/PR/tag/release actions. M1 draft-PR approval does not authorize M2–M5 publication or remote main merge.
+- [ ] Confirm authorization covers the exact final publication actions and contents. New branch pushes, draft PRs and CI are already authorized in this session; PR1/2merges were separately approved and completed. Do not infer approval for additional remote main merges, public tags or binary/GitHub releases from those earlier permissions.
 - [ ] Publish only the approved contents and verify the resulting URLs/digests/state; attach any created PR to the task. Record publication separately from local completion.
 
 Checked rights items rely on the owner's explicit2026-10-08confirmation. Existing software/artifact qualifications retain their linked source scopes; remaining boxes are not waived. This document does not merge, tag or publish a release.
