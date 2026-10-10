@@ -113,7 +113,7 @@ export class CameraMeasurements implements CameraDiagnostics {
     const run=this.run;
     if(this.pending){this.interrupt('unfinished-attempt');return;}
     if(run.attempts.length>=MAX_ATTEMPTS){this.interrupt('attempt-limit');return;}
-    if(!finite(inputTimeS)||(run.attempts.length>0&&inputTimeS<=run.attempts.at(-1)!.inputTimeS)){
+    if(!finite(inputTimeS)){
       this.interrupt('invalid-input-time');return;
     }
     const tracked=cropRect(run.setup.width,run.setup.height,run.context.crop);
@@ -121,8 +121,15 @@ export class CameraMeasurements implements CameraDiagnostics {
     if(inputFrame!==null){
       if(!Number.isSafeInteger(inputFrame)||!finite(inputFrame)){this.interrupt('invalid-input-frame-counter');return;}
       if(run.lastInputFrame!==null&&inputFrame<run.lastInputFrame){this.interrupt('input-frame-counter-reset');return;}
-      run.lastInputFrame=inputFrame;
     }
+    const previous=run.attempts.at(-1);
+    // Native frame identity can advance while a rounded/slow media clock repeats.
+    // Keep the actual observed clock; missing or repeated IDs cannot excuse it.
+    if(previous&&(inputTimeS<previous.inputTimeS||(inputTimeS===previous.inputTimeS
+      &&!(inputFrame!==null&&previous.inputFrame!==null&&inputFrame>previous.inputFrame)))){
+      this.interrupt('invalid-input-time');return;
+    }
+    if(inputFrame!==null)run.lastInputFrame=inputFrame;
     this.pending={inputTimeS,inputFrame,startedMs};
   }
   solved(frame:MotionFrame){
