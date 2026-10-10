@@ -1,7 +1,7 @@
 import {describe,expect,it} from 'vitest';
 import {tposeFrame} from '../motion/index';
 import {observeCamera,type CameraContext,type CameraSetup} from '../capture/diagnostics';
-import {CameraMeasurements,type CameraMetadata} from './cameraMeasurements';
+import {CameraMeasurements,validCameraMetadata,type CameraMetadata} from './cameraMeasurements';
 
 const context:CameraContext={cameraKey:'private-device:fast:1',quality:'fast',crop:'none',skeleton:'full',
   smoothing:'medium',workflow:'live-preview',calibrated:false,liveLink:false,mirrored:true,status:'ready',allowed:true};
@@ -9,7 +9,7 @@ const setup:CameraSetup={width:1280,height:720,frameRate:30,poseDelegate:'GPU',h
 function metadata():CameraMetadata{return {sourceCommit:'a'.repeat(40),classification:'synthetic',
   environment:{kind:'laptop',model:'Controlled test',os:'Windows 11',cpu:'Declared CPU',gpu:'Declared GPU',browser:'Edge 154'},
   warmupMs:0,localProcessingAuthorized:true,
-  sourceDigests:{App:'b'.repeat(64),usePose:'c'.repeat(64),PreviewCanvas:'d'.repeat(64),cameraMeasurements:'e'.repeat(64)}};}
+  sourceDigests:{App:'b'.repeat(64),usePose:'c'.repeat(64),PreviewCanvas:'d'.repeat(64),cameraMeasurements:'e'.repeat(64),videoFrameLoop:'f'.repeat(64)}};}
 function ready(){let time=1000;const probe=new CameraMeasurements(()=>time);
   probe.configure({...context});probe.setup({...setup});probe.previewReady(true);
   return {probe,setTime:(value:number)=>{time=value;}};}
@@ -19,6 +19,14 @@ function ok(probe:CameraMeasurements,input:number,start:number,end:number,render
   if(render!==null)probe.rendered(frame,render);return frame;
 }
 describe('camera measurement receipts',()=>{
+  it('requires the frame-loop digest and binds the new input identity definition',()=>{
+    const missing=metadata();delete missing.sourceDigests.videoFrameLoop;
+    expect(validCameraMetadata(missing)).toBe(false);
+    const {probe,setTime}=ready();probe.start(metadata());
+    ok(probe,0,1000,1010,1020,1);setTime(2000);probe.stop();
+    expect(probe.getSnapshot().result).toMatchObject({inputFrameDefinition:'video-frame-callback-presented-frames',
+      metadata:{sourceDigests:{videoFrameLoop:'f'.repeat(64)}}});
+  });
   it('requires real ready setup, preview, local actor rights and bounded declarations',()=>{
     const probe=new CameraMeasurements(()=>1000);
     expect(probe.getSnapshot().ready).toBe(false);expect(()=>probe.start(metadata())).toThrow();

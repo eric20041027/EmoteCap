@@ -7,6 +7,7 @@ import { CaptureError, closeLandmarkers, createLandmarkers, type CaptureQuality,
 import { detachStream, stopStream } from './streams';
 import { ProcessingConsent, ProcessingConsentError, type SdkAuthorization } from '../privacy/processingConsent';
 import {observeCamera,type CameraDiagnostics,type CameraSetup,type CameraAttemptStatus,type CameraHandState} from './diagnostics';
+import {startVideoFrameLoop} from './videoFrameLoop';
 
 export type { CaptureQuality } from './landmarkers';
 
@@ -42,7 +43,6 @@ const HAND_REUSE_MS = 150;
 const LOADING_MESSAGE = 'Starting the camera and loading the pose model…';
 const FPS_SMOOTHING = 0.1;
 const FPS_PUBLISH_MS = 500;
-const HAVE_CURRENT_DATA = 2;
 
 /**
  * Default: the built-in camera at 720p. A chosen device (e.g. an upright iPhone via Continuity Camera) only
@@ -74,7 +74,7 @@ async function openCamera(deviceId: string, authorize: SdkAuthorization): Promis
 
 /**
  * Webcam + MediaPipe PoseLandmarker loop. Calls `onResult` once per new video frame
- * (from requestAnimationFrame, outside React rendering). The latest `onResult` is always used.
+ * (from video-frame callbacks, with a RAF fallback, outside React rendering). The latest `onResult` is always used.
  */
 export function usePose(
   videoRef: RefObject<HTMLVideoElement | null>,
@@ -121,12 +121,12 @@ export function usePose(
     let disposed = false;
     let stream: MediaStream | undefined;
     let landmarkers: Landmarkers | undefined;
-    let rafId = 0;
+    let stopFrameLoop=()=>{};
     let authorize:SdkAuthorization;
 
     const release = () => {
       observeCamera(diagnostics,sink=>sink.interrupt('camera-stopped'));
-      cancelAnimationFrame(rafId);
+      stopFrameLoop();
       detachStream(video, stream);
       stopStream(stream);
       closeLandmarkers(landmarkers);
@@ -148,7 +148,6 @@ export function usePose(
       let frameIndex = 0;
       let lastHands = NO_HANDS;
       let lastHandsMs = 0;
-      let lastVideoTime = -1;
       let lastDetectMs = 0;
       let lastPublishMs = 0;
       let fpsEma = 0;
@@ -180,22 +179,16 @@ export function usePose(
         return { image: cropCanvas, width: rect.sw, height: rect.sh };
       };
 
-      const tick = () => {
-        rafId = requestAnimationFrame(tick);
+      const tick = (inputTimeS:number,inputFrame:number|null) => {
         try {authorize();}catch(error){fail(error);return;}
         if (pausedRef.current) return;
-        if (video.readyState < HAVE_CURRENT_DATA || video.currentTime === lastVideoTime) return;
-        lastVideoTime = video.currentTime;
         const timestampMs = performance.now();
         const source = frameSource();
         let observing=false;
         observeCamera(diagnostics,sink=>{
           sink.setup(cameraSetup());
           observing=sink.active;if(!observing)return;
-          const playback=video.getVideoPlaybackQuality?.();
-          const presented=playback?playback.totalVideoFrames-playback.droppedVideoFrames:null;
-          const inputFrame=presented!==null&&Number.isSafeInteger(presented)&&presented>0?presented:null;
-          sink.begin(lastVideoTime,timestampMs,source.width,source.height,inputFrame);
+          sink.begin(inputTimeS,timestampMs,source.width,source.height,inputFrame);
         });
         const wantHands = trackHandsRef.current;
         let handState:CameraHandState=wantHands?(handTracker?'reused':'unavailable'):'off';
@@ -256,7 +249,7 @@ export function usePose(
         if(observing)observeCamera(diagnostics,sink=>sink.end(performance.now(),measurementStatus,handState));
         if(handFailed)observeCamera(diagnostics,sink=>sink.setup(cameraSetup()));
       };
-      tick();
+      stopFrameLoop=startVideoFrameLoop(video,tick);
     };
 
     const start = async () => {

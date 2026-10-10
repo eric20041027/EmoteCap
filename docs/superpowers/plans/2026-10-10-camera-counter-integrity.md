@@ -73,21 +73,29 @@
 
 ### Task 2: Native input-frame scheduling
 
-**Files:** Create web/src/capture/videoFrameLoop.ts and videoFrameLoop.test.ts; modify usePose.ts; update this plan's private browser probe and final report.
+**Files:** Create web/src/capture/videoFrameLoop.ts and videoFrameLoop.test.ts; create web/src/evaluation/CameraCounterEvidence.tsx and CameraCounterEvidence.test.tsx; modify usePose.ts, cameraMeasurements.ts/test and CameraMeasurementsPage.tsx for helper binding; update this plan's private browser probe and final report.
 
 **Interfaces:** Consumes the ready HTMLVideoElement and emits (inputTimeS:number,inputFrame:number|null) to existing detection tick. Produces startVideoFrameLoop(video,onFrame):()=>void, an idempotent cancellation function. Task1 consumes the emitted ID via CameraMeasurements.begin.
 
 - [ ] Write a boundary test harness whose native callback and RAF queues are under test control, with a real helper under test. Use IDs8,8,9,7: expect callbacks only for8,9,7, preserving a reset instead of hiding it. Stop, invoke a captured late callback and assert no new callback/request. Without native request/cancel pair, advance currentTime0,.1 and expect IDsnull with no invented count. For invalid metadata IDs (negative/fractional/nonfinite), expect null; for not-ready video skip inference. Also stop synchronously from the first handler, verifying cancellation of its already-scheduled successor.
   ```ts
-  const seen:number[]=[];
-  const stop=startVideoFrameLoop(video,(_time,id)=>{if(id!==null)seen.push(id);});
+  const queue=new Map<number,VideoFrameRequestCallback>();let next=1;
+  const video={readyState:2,currentTime:0,
+    requestVideoFrameCallback:(fn:VideoFrameRequestCallback)=>{const id=next++;queue.set(id,fn);return id;},
+    cancelVideoFrameCallback:(id:number)=>{queue.delete(id);}};
+  const metadata=(id:number):VideoFrameCallbackMetadata=>({presentedFrames:id,mediaTime:video.currentTime,
+    presentationTime:1000,expectedDisplayTime:1016,width:1280,height:720,processingDuration:.01});
+  const emit=(id:number)=>{const [handle,fn]=queue.entries().next().value!;queue.delete(handle);video.currentTime+=.1;fn(1000,metadata(id));};
+  const seen:(number|null)[]=[];
+  const stop=startVideoFrameLoop(video,(_time,id)=>seen.push(id));
   emit(8);emit(8);emit(9);emit(7);
   expect(seen).toEqual([8,9,7]);
-  stop();emitLate(10);expect(seen).toEqual([8,9,7]);
+  const late=queue.values().next().value!;stop();late(1000,metadata(10));expect(seen).toEqual([8,9,7]);
   ```
 - [ ] Run `node web/node_modules/vitest/vitest.mjs run --root web src/capture/videoFrameLoop.test.ts`; Expected: fail due to missing production helper, then correct import/setup as needed until meaningful behavioral assertions run; do not claim a module-load error alone is behavioral RED. Initially supply only the existing RAF behavior to get the native behavior assertions RED before implementing native scheduling.
 - [ ] Implement the helper with a cancellation-owned native callback when both native request/cancel exist; schedule the successor before the handler so a synchronous release can cancel it. Track last native ID only for equality dedup; valid IDs must be finite nonnegative safe integers. Fallback uses RAF and strictly changing currentTime, with null ID. Guard disposed/not-ready/late callbacks. `stop()` cancels only its own scheduled handle and prevents rescheduling.
 - [ ] In usePose, replace RAF ownership with the returned stopper, and pass helper inputTimeS/inputFrame into the existing detection/diagnostic pipeline. Remove getVideoPlaybackQuality identity arithmetic; preserve all authorization checks, pause handling and ordinary errors. Expected: existing capture/consent/cleanup tests stay green.
+- [ ] Test missing frame-loop source binding RED→GREEN, require all five source digests and emit the explicit native inputFrameDefinition. Extract/test actual counter-warning presentation with three warning states and one advancing state; verify its rendered production component in the browser fixture. Expected: truthful method/digest/visible evidence, old receipts preserved.
 - [ ] Run target and full Web tests plus non-emitting TypeScript/Vite build; Expected: exit0 and no failed test cases. Use the actual owned Edge probe to dynamically import the helper through an owned loopback Vite service; verify advancing production helper IDs and changing pixels offscreen without changing browser APIs. Verify cleanup and all consumed inputs before/after.
 - [ ] Commit source/tests/report, run task-done, and obtain one whole-branch fresh strongest-model TypeScript review. Address material findings in one RED→GREEN correction pass; ledger all declined judgments and minors. Push/attach a new stacked draft PR based on fix/processed-clip-preview and check exact-head CI under existing authorization. Expected: actual CI checks green; no remote main merge/release.
 

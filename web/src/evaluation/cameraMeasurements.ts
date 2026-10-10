@@ -12,6 +12,7 @@ export interface CameraReceipt {
   schema:'emotecap-camera-measurement-v1';qualification:'pending';outcome:'completed'|'incomplete';reason:string|null;
   runId:string;metadata:CameraMetadata;context:Omit<CameraContext,'cameraKey'>;setup:CameraSetup;
   sdkVersion:string;modelSha256:string;handModelSha256:string;
+  inputFrameDefinition:'video-frame-callback-presented-frames';
   clock:'performance-monotonic';latencyDefinition:'detection-to-render-call';responseDefinition:'event-to-next-animation-frame';
   startedMs:number;finishedMs:number|null;fast720pLaptopCandidate:boolean;interactionSamplesCapped:boolean;
   attempts:CameraAttempt[];interactions:{startedMs:number;finishedMs:number}[];
@@ -39,7 +40,7 @@ export function validCameraMetadata(value:CameraMetadata):boolean {
     &&['desktop','laptop'].includes(environment.kind)
     &&['kind','model','os','cpu','gpu','browser'].every(key=>Object.hasOwn(environment,key))
     &&Object.keys(environment).length===6&&['model','os','cpu','gpu','browser'].every(key=>description(Reflect.get(environment,key)))
-    &&Object.keys(sources).sort().join(',')==='App,PreviewCanvas,cameraMeasurements,usePose'
+    &&Object.keys(sources).sort().join(',')==='App,PreviewCanvas,cameraMeasurements,usePose,videoFrameLoop'
     &&Object.values(sources).every(value=>typeof value==='string'&&/^[0-9a-f]{64}$/.test(value));
 }
 function validSetup(value:CameraSetup):boolean {
@@ -188,6 +189,7 @@ export class CameraMeasurements implements CameraDiagnostics {
     const receipt:CameraReceipt={schema:'emotecap-camera-measurement-v1',qualification:'pending',runId:run.runId,
       outcome:reason?'incomplete':'completed',reason,metadata:run.metadata,context,setup:run.setup,
       sdkVersion:lock.packages['node_modules/@mediapipe/tasks-vision'].version,
+      inputFrameDefinition:'video-frame-callback-presented-frames',
       modelSha256:pins.find(p=>p.file===(context.quality==='fast'?'pose_landmarker_full.task':'pose_landmarker_heavy.task'))!.sha256,
       handModelSha256:pins.find(p=>p.file==='hand_landmarker.task')!.sha256,
       clock:'performance-monotonic',latencyDefinition:'detection-to-render-call',responseDefinition:'event-to-next-animation-frame',
