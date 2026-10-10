@@ -12,12 +12,14 @@ export interface CameraReceipt {
   schema:'emotecap-camera-measurement-v1';qualification:'pending';outcome:'completed'|'incomplete';reason:string|null;
   runId:string;metadata:CameraMetadata;context:Omit<CameraContext,'cameraKey'>;setup:CameraSetup;
   sdkVersion:string;modelSha256:string;handModelSha256:string;
+  inputFrameDefinition:'video-frame-callback-presented-frames';
   clock:'performance-monotonic';latencyDefinition:'detection-to-render-call';responseDefinition:'event-to-next-animation-frame';
   startedMs:number;finishedMs:number|null;fast720pLaptopCandidate:boolean;interactionSamplesCapped:boolean;
   attempts:CameraAttempt[];interactions:{startedMs:number;finishedMs:number}[];
   summary:{effectiveRenderedFps:number|null;renderedOutputFps:number;attemptFps:number;failureRate:number|null;p95DetectionToRenderCallMs:number|null;
     p95OutputDetectionToRenderCallMs:number|null;p95NextAnimationFrameResponseMs:number|null;measuredWallMs:number;renderedCount:number|null;
-    renderedOutputCount:number;attemptCount:number;unrenderedCount:number;inputIdentityAvailable:boolean}|null;
+    renderedOutputCount:number;attemptCount:number;unrenderedCount:number;inputIdentityAvailable:boolean;
+    inputCounterProgress:'unavailable'|'insufficient'|'stalled'|'advancing'}|null;
 }
 export interface CameraAttempt {
   inputTimeS:number;inputFrame:number|null;startedMs:number;finishedMs:number;renderedMs:number|null;
@@ -38,7 +40,7 @@ export function validCameraMetadata(value:CameraMetadata):boolean {
     &&['desktop','laptop'].includes(environment.kind)
     &&['kind','model','os','cpu','gpu','browser'].every(key=>Object.hasOwn(environment,key))
     &&Object.keys(environment).length===6&&['model','os','cpu','gpu','browser'].every(key=>description(Reflect.get(environment,key)))
-    &&Object.keys(sources).sort().join(',')==='App,PreviewCanvas,cameraMeasurements,usePose'
+    &&Object.keys(sources).sort().join(',')==='App,PreviewCanvas,cameraMeasurements,usePose,videoFrameLoop'
     &&Object.values(sources).every(value=>typeof value==='string'&&/^[0-9a-f]{64}$/.test(value));
 }
 function validSetup(value:CameraSetup):boolean {
@@ -111,7 +113,7 @@ export class CameraMeasurements implements CameraDiagnostics {
     const run=this.run;
     if(this.pending){this.interrupt('unfinished-attempt');return;}
     if(run.attempts.length>=MAX_ATTEMPTS){this.interrupt('attempt-limit');return;}
-    if(!finite(inputTimeS)||(run.attempts.length>0&&inputTimeS<=run.attempts.at(-1)!.inputTimeS)){
+    if(!finite(inputTimeS)){
       this.interrupt('invalid-input-time');return;
     }
     const tracked=cropRect(run.setup.width,run.setup.height,run.context.crop);
@@ -119,8 +121,15 @@ export class CameraMeasurements implements CameraDiagnostics {
     if(inputFrame!==null){
       if(!Number.isSafeInteger(inputFrame)||!finite(inputFrame)){this.interrupt('invalid-input-frame-counter');return;}
       if(run.lastInputFrame!==null&&inputFrame<run.lastInputFrame){this.interrupt('input-frame-counter-reset');return;}
-      run.lastInputFrame=inputFrame;
     }
+    const previous=run.attempts.at(-1);
+    // Native frame identity can advance while a rounded/slow media clock repeats.
+    // Keep the actual observed clock; missing or repeated IDs cannot excuse it.
+    if(previous&&(inputTimeS<previous.inputTimeS||(inputTimeS===previous.inputTimeS
+      &&!(inputFrame!==null&&previous.inputFrame!==null&&inputFrame>previous.inputFrame)))){
+      this.interrupt('invalid-input-time');return;
+    }
+    if(inputFrame!==null)run.lastInputFrame=inputFrame;
     this.pending={inputTimeS,inputFrame,startedMs};
   }
   solved(frame:MotionFrame){
@@ -169,12 +178,15 @@ export class CameraMeasurements implements CameraDiagnostics {
     const samples=run.attempts.filter(a=>a.startedMs>=run.startedMs+run.metadata.warmupMs);
     const outputs=samples.filter(a=>a.status==='ok'&&a.renderedMs!==null);
     const inputIdentityAvailable=samples.every(a=>a.inputFrame!==null),unique=new Map<number,CameraAttempt>();
+    const inputCounterProgress=!inputIdentityAvailable?'unavailable':samples.length<2?'insufficient'
+      :samples.some(a=>a.inputFrame!==samples[0].inputFrame)?'advancing':'stalled';
     if(inputIdentityAvailable)for(const attempt of outputs)if(!unique.has(attempt.inputFrame!))unique.set(attempt.inputFrame!,attempt);
     const rendered=Array.from(unique.values());
     const responses=run.interactions.filter(a=>a.startedMs>=run.startedMs+run.metadata.warmupMs);
-    const summary=reason?null:{measuredWallMs,attemptCount:samples.length,renderedCount:inputIdentityAvailable?rendered.length:null,
+    const summary:CameraReceipt['summary']=reason?null:{measuredWallMs,attemptCount:samples.length,renderedCount:inputIdentityAvailable?rendered.length:null,
       effectiveRenderedFps:inputIdentityAvailable?rendered.length*1000/measuredWallMs:null,
-      renderedOutputCount:outputs.length,renderedOutputFps:outputs.length*1000/measuredWallMs,inputIdentityAvailable,attemptFps:samples.length*1000/measuredWallMs,
+      renderedOutputCount:outputs.length,renderedOutputFps:outputs.length*1000/measuredWallMs,inputIdentityAvailable,inputCounterProgress,
+      attemptFps:samples.length*1000/measuredWallMs,
       failureRate:samples.length?samples.filter(a=>a.status!=='ok').length/samples.length:null,
       unrenderedCount:samples.filter(a=>a.status==='ok'&&a.renderedMs===null).length,
       p95DetectionToRenderCallMs:p95(rendered.map(a=>a.renderedMs!-a.startedMs)),
@@ -184,12 +196,14 @@ export class CameraMeasurements implements CameraDiagnostics {
     const receipt:CameraReceipt={schema:'emotecap-camera-measurement-v1',qualification:'pending',runId:run.runId,
       outcome:reason?'incomplete':'completed',reason,metadata:run.metadata,context,setup:run.setup,
       sdkVersion:lock.packages['node_modules/@mediapipe/tasks-vision'].version,
+      inputFrameDefinition:'video-frame-callback-presented-frames',
       modelSha256:pins.find(p=>p.file===(context.quality==='fast'?'pose_landmarker_full.task':'pose_landmarker_heavy.task'))!.sha256,
       handModelSha256:pins.find(p=>p.file==='hand_landmarker.task')!.sha256,
       clock:'performance-monotonic',latencyDefinition:'detection-to-render-call',responseDefinition:'event-to-next-animation-frame',
       startedMs:run.startedMs,finishedMs,attempts:run.attempts,interactions:run.interactions,
       interactionSamplesCapped:run.interactionSamplesCapped,summary,
       fast720pLaptopCandidate:!!summary&&summary.inputIdentityAvailable&&run.metadata.classification==='observed'&&run.metadata.environment.kind==='laptop'
+        &&summary.inputCounterProgress==='advancing'&&summary.renderedOutputCount>0
         &&context.quality==='fast'&&context.crop==='none'&&run.setup.width===1280&&run.setup.height===720
         &&run.setup.poseDelegate!==null&&(context.skeleton==='body'||(run.setup.handModelAvailable&&run.setup.handDelegate!==null))};
     this.run=null;this.pending=null;this.awaitingRender=null;this.publish(receipt);
