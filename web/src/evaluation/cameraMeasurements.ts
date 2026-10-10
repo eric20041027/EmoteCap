@@ -17,7 +17,8 @@ export interface CameraReceipt {
   attempts:CameraAttempt[];interactions:{startedMs:number;finishedMs:number}[];
   summary:{effectiveRenderedFps:number|null;renderedOutputFps:number;attemptFps:number;failureRate:number|null;p95DetectionToRenderCallMs:number|null;
     p95OutputDetectionToRenderCallMs:number|null;p95NextAnimationFrameResponseMs:number|null;measuredWallMs:number;renderedCount:number|null;
-    renderedOutputCount:number;attemptCount:number;unrenderedCount:number;inputIdentityAvailable:boolean}|null;
+    renderedOutputCount:number;attemptCount:number;unrenderedCount:number;inputIdentityAvailable:boolean;
+    inputCounterProgress:'unavailable'|'insufficient'|'stalled'|'advancing'}|null;
 }
 export interface CameraAttempt {
   inputTimeS:number;inputFrame:number|null;startedMs:number;finishedMs:number;renderedMs:number|null;
@@ -169,12 +170,15 @@ export class CameraMeasurements implements CameraDiagnostics {
     const samples=run.attempts.filter(a=>a.startedMs>=run.startedMs+run.metadata.warmupMs);
     const outputs=samples.filter(a=>a.status==='ok'&&a.renderedMs!==null);
     const inputIdentityAvailable=samples.every(a=>a.inputFrame!==null),unique=new Map<number,CameraAttempt>();
+    const inputCounterProgress=!inputIdentityAvailable?'unavailable':samples.length<2?'insufficient'
+      :samples.some(a=>a.inputFrame!==samples[0].inputFrame)?'advancing':'stalled';
     if(inputIdentityAvailable)for(const attempt of outputs)if(!unique.has(attempt.inputFrame!))unique.set(attempt.inputFrame!,attempt);
     const rendered=Array.from(unique.values());
     const responses=run.interactions.filter(a=>a.startedMs>=run.startedMs+run.metadata.warmupMs);
-    const summary=reason?null:{measuredWallMs,attemptCount:samples.length,renderedCount:inputIdentityAvailable?rendered.length:null,
+    const summary:CameraReceipt['summary']=reason?null:{measuredWallMs,attemptCount:samples.length,renderedCount:inputIdentityAvailable?rendered.length:null,
       effectiveRenderedFps:inputIdentityAvailable?rendered.length*1000/measuredWallMs:null,
-      renderedOutputCount:outputs.length,renderedOutputFps:outputs.length*1000/measuredWallMs,inputIdentityAvailable,attemptFps:samples.length*1000/measuredWallMs,
+      renderedOutputCount:outputs.length,renderedOutputFps:outputs.length*1000/measuredWallMs,inputIdentityAvailable,inputCounterProgress,
+      attemptFps:samples.length*1000/measuredWallMs,
       failureRate:samples.length?samples.filter(a=>a.status!=='ok').length/samples.length:null,
       unrenderedCount:samples.filter(a=>a.status==='ok'&&a.renderedMs===null).length,
       p95DetectionToRenderCallMs:p95(rendered.map(a=>a.renderedMs!-a.startedMs)),
@@ -190,6 +194,7 @@ export class CameraMeasurements implements CameraDiagnostics {
       startedMs:run.startedMs,finishedMs,attempts:run.attempts,interactions:run.interactions,
       interactionSamplesCapped:run.interactionSamplesCapped,summary,
       fast720pLaptopCandidate:!!summary&&summary.inputIdentityAvailable&&run.metadata.classification==='observed'&&run.metadata.environment.kind==='laptop'
+        &&summary.inputCounterProgress==='advancing'&&summary.renderedOutputCount>0
         &&context.quality==='fast'&&context.crop==='none'&&run.setup.width===1280&&run.setup.height===720
         &&run.setup.poseDelegate!==null&&(context.skeleton==='body'||(run.setup.handModelAvailable&&run.setup.handDelegate!==null))};
     this.run=null;this.pending=null;this.awaitingRender=null;this.publish(receipt);

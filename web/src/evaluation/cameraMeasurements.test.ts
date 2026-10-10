@@ -75,7 +75,13 @@ describe('camera measurement receipts',()=>{
       if(kind==='crop')probe.configure({...context,crop:'portrait'});
       if(kind==='resolution')probe.setup({...setup,width:640,height:480});
       if(kind==='delegate')probe.setup({...setup,poseDelegate:null});
-      probe.start(m);setTime(2000);probe.stop();expect(probe.getSnapshot().result?.fast720pLaptopCandidate).toBe(kind==='eligible');
+      probe.start(m);
+      for(let i=0;i<2;i++){
+        const frame=tposeFrame();frame.t=i*.1;
+        probe.begin(frame.t,1000+i*100,kind==='crop'?540:kind==='resolution'?640:1280,kind==='resolution'?480:720,i);
+        probe.solved(frame);probe.end(1010+i*100,'ok','ran');probe.rendered(frame,1020+i*100);
+      }
+      setTime(2000);probe.stop();expect(probe.getSnapshot().result?.fast720pLaptopCandidate).toBe(kind==='eligible');
       expect(probe.getSnapshot().result?.qualification).toBe('pending');
     }
   });
@@ -129,16 +135,59 @@ describe('camera measurement receipts',()=>{
       fast720pLaptopCandidate:false,summary:{effectiveRenderedFps:1}});
   });
   it('deduplicates repeated camera inputs without hiding detector output throughput',()=>{
-    const {probe,setTime}=ready();probe.start(metadata());
+    const {probe,setTime}=ready();probe.start({...metadata(),classification:'observed'});
     ok(probe,0,1000,1010,1020,9);ok(probe,.1,1100,1110,1150,9);
     ok(probe,.2,1200,1210,1240,10);ok(probe,.3,1300,1310,1370,10);setTime(2000);probe.stop();
     expect(probe.getSnapshot().result?.summary).toMatchObject({effectiveRenderedFps:2,renderedOutputFps:4,
-      renderedCount:2,renderedOutputCount:4,attemptFps:4,p95DetectionToRenderCallMs:40,inputIdentityAvailable:true});
+      renderedCount:2,renderedOutputCount:4,attemptFps:4,p95DetectionToRenderCallMs:40,inputIdentityAvailable:true,
+      inputCounterProgress:'advancing'});
+    expect(probe.getSnapshot().result?.fast720pLaptopCandidate).toBe(true);
+  });
+  it('does not admit a stalled input counter while preserving output and response observations',()=>{
+    const {probe,setTime}=ready();probe.start({...metadata(),classification:'observed'});
+    ok(probe,0,1000,1010,1020,3682);ok(probe,.1,1100,1110,1120,3682);
+    probe.interaction(1200,1263.4);setTime(2000);probe.stop();
+    const report=probe.getSnapshot().result!;
+    expect(report).toMatchObject({outcome:'completed',qualification:'pending',fast720pLaptopCandidate:false,
+      summary:{inputCounterProgress:'stalled',inputIdentityAvailable:true,effectiveRenderedFps:1,
+        renderedOutputFps:2,renderedCount:1,renderedOutputCount:2,attemptCount:2}});
+    expect(report.summary?.p95NextAnimationFrameResponseMs).toBeCloseTo(63.4,8);
+    expect(report.attempts.map(a=>a.inputFrame)).toEqual([3682,3682]);
+  });
+  it.each([0,1])('does not admit insufficient counter observations (%i attempt)',count=>{
+    const {probe,setTime}=ready();probe.start({...metadata(),classification:'observed'});
+    if(count)ok(probe,0,1000,1010,1020,3682);setTime(2000);probe.stop();
+    expect(probe.getSnapshot().result).toMatchObject({fast720pLaptopCandidate:false,
+      summary:{inputCounterProgress:'insufficient',attemptCount:count}});
+  });
+  it('does not use warmup counter advances to admit a stalled measured interval',()=>{
+    const {probe,setTime}=ready();probe.start({...metadata(),classification:'observed',warmupMs:200});
+    ok(probe,0,1000,1010,1020,1);ok(probe,.1,1100,1110,1120,2);
+    ok(probe,.2,1200,1210,1220,3);ok(probe,.3,1300,1310,1320,3);setTime(2200);probe.stop();
+    expect(probe.getSnapshot().result).toMatchObject({fast720pLaptopCandidate:false,
+      summary:{inputCounterProgress:'stalled',attemptCount:2,renderedCount:1,renderedOutputCount:2}});
+  });
+  it('does not admit advancing inputs without a successful render output',()=>{
+    const {probe,setTime}=ready();probe.start({...metadata(),classification:'observed'});
+    probe.begin(0,1000,1280,720,1);probe.end(1010,'no-pose','ran');
+    probe.begin(.1,1100,1280,720,2);probe.end(1110,'no-pose','ran');setTime(2000);probe.stop();
+    expect(probe.getSnapshot().result).toMatchObject({fast720pLaptopCandidate:false,
+      summary:{inputCounterProgress:'advancing',renderedCount:0,failureRate:1}});
+  });
+  it('does not inherit counter progress when a new measurement starts',()=>{
+    const {probe,setTime}=ready();const m={...metadata(),classification:'observed' as const};probe.start(m);
+    ok(probe,0,1000,1010,1020,1);ok(probe,.1,1100,1110,1120,2);setTime(2000);probe.stop();
+    expect(probe.getSnapshot().result?.fast720pLaptopCandidate).toBe(true);
+    setTime(3000);probe.start(m);ok(probe,0,3000,3010,3020,3682);ok(probe,.1,3100,3110,3120,3682);
+    setTime(4000);probe.stop();
+    expect(probe.getSnapshot().result).toMatchObject({fast720pLaptopCandidate:false,
+      summary:{inputCounterProgress:'stalled',attemptCount:2}});
   });
   it('keeps output timings but withholds effective camera FPS when input identity is unavailable',()=>{
     const {probe,setTime}=ready();probe.start(metadata());const frame=tposeFrame();
     probe.begin(0,1000,1280,720);probe.solved(frame);probe.end(1010,'ok','ran');probe.rendered(frame,1020);setTime(2000);probe.stop();
-    expect(probe.getSnapshot().result?.summary).toMatchObject({effectiveRenderedFps:null,renderedOutputFps:1,inputIdentityAvailable:false});
+    expect(probe.getSnapshot().result?.summary).toMatchObject({effectiveRenderedFps:null,renderedOutputFps:1,inputIdentityAvailable:false,
+      inputCounterProgress:'unavailable'});
     expect(probe.getSnapshot().result?.fast720pLaptopCandidate).toBe(false);
   });
   it('rejects a source frame-counter reset while source time still advances',()=>{

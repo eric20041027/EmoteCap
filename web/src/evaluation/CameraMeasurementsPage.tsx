@@ -50,7 +50,7 @@ function CameraMeasurementsPage(){
     <section className="camera-measurement-panel" aria-label="Camera measurement controls">
       <h1>Studio camera measurements</h1>
       <p>This private tool observes the Studio below. Camera and SDK choices remain separate; measurement never starts them.</p>
-      <p>Effective FPS counts distinct presented video inputs after their first successful 3D render call. Repeated processing of one input stays in the raw data and output FPS, with no increase to effective FPS. Latency runs from detection start to render-call return; it excludes sensor exposure, GPU completion and physical screen presentation.</p>
+      <p>Effective FPS counts distinct compositor-submitted video inputs after their first successful 3D render call. Repeated processing of one input stays in the raw data and output FPS, with no increase to effective FPS. Without video-frame callback identity, effective FPS is unavailable. Latency runs from detection start to render-call return; it excludes sensor exposure, GPU completion and physical screen presentation.</p>
       <fieldset disabled={snapshot.busy} className="camera-measurement-metadata"><legend>Declared source and device conditions</legend>
         <label>Source commit<input aria-label="Source commit" maxLength={40} value={sourceCommit} onChange={event=>setSourceCommit(event.target.value)} /></label>
         <label>Device kind<select value={environment.kind} onChange={event=>setEnvironment(previous=>({...previous,kind:event.target.value as 'desktop'|'laptop'}))}>
@@ -71,6 +71,8 @@ function CameraMeasurementsPage(){
       <p role="status" aria-label="Measurement status" aria-live="polite">{snapshot.busy?status:snapshot.result?`${snapshot.result.outcome}: ${snapshot.result.reason??'receipt ready'}`:status}</p>
       {summary&&<p>Effective rendered FPS: {summary.effectiveRenderedFps===null?'unavailable':summary.effectiveRenderedFps.toFixed(2)}; p95 detection-to-render-call: {summary.p95DetectionToRenderCallMs===null?'unavailable':`${summary.p95DetectionToRenderCallMs.toFixed(2)}ms`};
         failed attempts: {summary.failureRate===null?'unavailable':`${(summary.failureRate*100).toFixed(2)}%`}. Qualification remains pending.</p>}
+      {summary&&<p role="status" aria-label="Input counter evidence">Measured input counter: {summary.inputCounterProgress}.
+        {summary.inputCounterProgress!=='advancing'&&' This receipt cannot establish fresh-camera throughput. Output and response observations are retained; repeat with a working frame counter.'}</p>}
       <p>Keep the raw receipt. Source commit, classification, rights and hardware are declarations; exact source digests identify instrumentation. Fast720p laptop eligibility is a pending label, with no automatic threshold or supported-device claim.</p>
       <p>Change capture conditions or hide the tab to end an incomplete receipt. Maximum180seconds/21601attempts/32MiB; optional response observations cap at32. Stop/start diagnostics can leave the camera running; use Stop camera or withdraw SDK permission when finished.</p>
     </section>
