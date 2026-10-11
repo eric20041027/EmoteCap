@@ -2,6 +2,8 @@
 
 This packaging work targets Windows11 x64. It prepares an internal development candidate. Scoped Unity and SDK checks exist; complete rights, physical quality, clean-machine and beginner acceptance remain pending. It is not an approved public release. [Release progress](release-progress.md) records those gates.
 
+The newer [runtime-terms candidate](superpowers/reports/2026-10-11-windows-runtime-terms.md) is built from833ace3, SHA256f4e3faf0…d1270ba, with5,771members/492licensing texts. Its first-launch choice is described below. Retained older packages keep their original entry behavior; they do not acquire the terms gate by changing documentation.
+
 ## Retained camera-counter candidate
 
 Application source: `3967beb98c9781b18ab737d3f2f70ed8b8e6dc6d`. Two independently verified ZIPs contain identical 88,518,977 bytes and 5,764 members, SHA256 `d82ce36debfedd0d4c901af67c7c09d94e6821bef17b9215c1c5e9540789c549`. They include root MIT, SDK processing choice, processed clip preview, upstream Rust supplements and native video-frame capture. The licensing corpus contains488texts; this does not establish complete redistribution permission. Documentation-only qualification commits are separate from this application/build identity.
