@@ -1,6 +1,7 @@
 """Isolated, stdlib-only entry for an internal Windows candidate."""
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -69,7 +70,8 @@ def validate_package(root: Path) -> dict:
         if total>MAX_TOTAL_BYTES:
             raise PackageError('Package exceeds its payload budget')
         required={'bootstrap.py','start.cmd','python/python.exe','app/server/emotecap_server/__init__.py',
-            'app/server/emotecap_server/launcher.py','app/web/dist/index.html','app/contracts/bones.json'}
+            'app/server/emotecap_server/launcher.py','app/web/dist/index.html','app/contracts/bones.json',
+            'runtime_terms.py','RUNTIME-TERMS.en.txt','RUNTIME-TERMS.zh-TW.txt','python/LICENSE.txt'}
         if not required.issubset(expected):
             raise PackageError('Package is missing a required runtime/application file')
         actual=set();visited=0
@@ -109,13 +111,27 @@ def main(argv=None) -> int:
     parser.add_argument('--port',default='8787')
     parser.add_argument('--blender')
     parser.add_argument('--no-browser',action='store_true')
+    parser.add_argument('--read-runtime-terms',action='store_true',help='Read offline runtime terms, then exit without starting Studio')
     args=parser.parse_args(argv)
     try:
-        validate_package(PACKAGE_ROOT)
+        manifest=validate_package(PACKAGE_ROOT)
         if any(selected.resolve().is_relative_to(PACKAGE_ROOT.resolve()) for selected in (args.data_dir,args.env_file)):
             raise PackageError('Choose private data and settings outside the verified package folder')
         if not sys.flags.isolated or not sys.flags.no_site or not sys.flags.dont_write_bytecode:
             raise PackageError('Use start.cmd to select the isolated site-disabled bundled runtime')
+        if hasattr(sys.stdout,'reconfigure'):
+            sys.stdout.reconfigure(encoding='utf-8',errors='replace')
+        specification=importlib.util.spec_from_file_location('emotecap_runtime_terms',PACKAGE_ROOT/'runtime_terms.py')
+        terms=importlib.util.module_from_spec(specification);specification.loader.exec_module(terms)
+        try:
+            if args.read_runtime_terms:
+                terms.show_terms(PACKAGE_ROOT,original=True)
+                return 0
+            if not terms.ensure_accepted(PACKAGE_ROOT,manifest,args.data_dir):
+                return 2
+        except (terms.TermsError,OSError) as error:
+            print(f'EmoteCap runtime terms: {error}',file=sys.stderr)
+            return 1
         sys.dont_write_bytecode=True
         sys.path=[path for path in sys.path if not path.replace('\\','/').lower().endswith('/site-packages')]
         sys.path[:0]=[str(PACKAGE_ROOT/'app/server'),str(PACKAGE_ROOT/'deps')]

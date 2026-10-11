@@ -173,7 +173,8 @@ def build(repo: Path, prepared: Path, destination: Path, archive: Path) -> dict:
                 raise PackageError('Copied project license differs from admitted source')
             frozen.append(dict(source_records['LICENSE']))
         frozen.extend({**entry,'path':'notices/'+entry['path']} for entry in material['noticeFiles'])
-        for name in ('bootstrap.py','start.cmd','START-HERE.txt'):
+        for name in ('bootstrap.py','start.cmd','START-HERE.txt','runtime_terms.py',
+                     'RUNTIME-TERMS.en.txt','RUNTIME-TERMS.zh-TW.txt'):
             source=snapshot/'packaging/windows'/name
             with source.open('rb') as incoming,(staged/name).open('xb') as output:
                 output.write(incoming.read())

@@ -1,0 +1,27 @@
+Windows runtime: Microsoft Code recipient requirements
+
+This Windows package includes Microsoft Distributable Code embedded in the
+Python executable, DLLs and native modules. Before starting, read the original
+Windows section in the delivered python/LICENSE.txt (choose READ below).
+ACCEPT means you agree to the following requirements for Microsoft Code:
+
+- Preserve Microsoft's copyright, trademark and patent notices.
+- Do not use Microsoft's trademarks to suggest Microsoft supplied or endorsed
+  your program.
+- Do not distribute Microsoft Code to run outside Microsoft operating systems,
+  runtime technologies or application platforms.
+- Do not include Microsoft Code in malicious, deceptive or unlawful programs.
+- If you further distribute programs containing Microsoft Code, comply with
+  the applicable Microsoft distribution restrictions and require distributors
+  and external end users to agree to terms protecting that code at least as
+  much as Microsoft's requirements. Read the original text for details.
+
+These requirements apply only to Microsoft Code. They do not relicense
+EmoteCap's MIT source, Python or other third-party components, whose own
+licenses still apply. This screen does not ask you to accept a Visual Studio
+developer contract or its publisher indemnity obligations.
+
+READ shows the original delivered license offline. ACCEPT stores only a
+content fingerprint, affirmative choice and UTC time in your selected private
+data folder. Nothing is uploaded. EXIT, empty input or closing this terminal
+stops before starting Studio. Changed terms/runtime require a fresh choice.

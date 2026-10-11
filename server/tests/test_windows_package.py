@@ -38,9 +38,17 @@ def build_inputs(tmp_path):
     git(repo,'add','.');git(repo,'commit','-qm','synthetic candidate source')
     prepared=tmp_path/'prepared';payload=prepared/'payload'
     for name,data in {'python/python.exe':b'synthetic exe','deps/normal.py':b'normal = True',
+        'python/LICENSE.txt':b'Owned synthetic Python license. Microsoft runtime test restrictions.\n',
         'requirements.txt':b'synthetic requirements','runtime-source.json':json.dumps(pins).encode(),
         'dependency-inventory.json':b'{"schema":"fixture"}'}.items():
         path=payload/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(data)
+    for name in ('runtime_terms.py','RUNTIME-TERMS.en.txt','RUNTIME-TERMS.zh-TW.txt'):
+        source=ROOT/'packaging/windows'/name
+        if source.exists():
+            target=repo/'packaging/windows'/name
+            target.write_bytes(source.read_bytes())
+    if git(repo,'status','--porcelain'):
+        git(repo,'add','.');git(repo,'commit','-qm','bundled entry terms source fixture')
     files.write_json(prepared/'prepared.json',{'schema':'emotecap-prepared-windows-v1','runtime':pins,
         'serverSourceHashes':{name:files.sha256_file(repo/'server'/name) for name in ('uv.lock','pyproject.toml')},
         'files':files.file_inventory(payload),'releaseGate':'pending'})

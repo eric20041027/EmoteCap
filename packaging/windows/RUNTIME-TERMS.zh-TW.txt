@@ -1,0 +1,21 @@
+Windows runtime：Microsoft Code 使用者要求
+
+本 Windows 套件的 Python 執行檔、DLL 與原生模組內含 Microsoft
+Distributable Code。啟動前可輸入 READ，離線閱讀隨包 python/LICENSE.txt
+的完整原文與 Windows 條款。輸入 ACCEPT 表示同意下列 Microsoft Code 要求：
+
+- 保留 Microsoft 的著作權、商標及專利告知。
+- 不使用 Microsoft 商標讓人誤以為你的程式由 Microsoft 提供或背書。
+- 不將 Microsoft Code 散布到 Microsoft 作業系統、runtime 技術或應用平台
+  以外的平台執行。
+- 不將 Microsoft Code 加入惡意、欺騙或違法程式。
+- 若進一步散布含 Microsoft Code 的程式，須遵守適用的 Microsoft 散布限制，
+  並要求散布者及外部使用者同意至少同等保護該程式碼的條款。詳見原文。
+
+以上只適用 Microsoft Code，不重新授權 EmoteCap 的 MIT 原始碼、Python
+或其他第三方元件；各自的授權仍適用。本畫面不要求你接受 Visual Studio
+開發者合約或發布者的賠償義務。此繁中摘要不替代原始條款。
+
+READ：閱讀離線原文。ACCEPT：只在你選定的私人資料目錄保存內容雜湊、
+同意選擇與 UTC 時間，不上傳任何紀錄。EXIT、空白輸入或關閉終端機會
+在 Studio 啟動前退出。條款或 runtime 內容變更後會要求重新選擇。
