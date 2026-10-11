@@ -49,7 +49,7 @@ def test_first_launch_eof_never_imports_app_or_creates_private_data(terms_candid
 - [x] Run new gate tests plus existing portable/bootstrap/package/notices suites. Expected: all pass, observed app marker only after explicit acceptance or valid matching receipt; old integrity/isolation behavior retained. Run full backend `server/.venv/Scripts/python.exe -B -m pytest -q -m 'not slow'` from server. Expected: no failures; actual skips/counts retained.
 - [x] Commit scoped implementation/docs; freeze clean source. Build two fresh complete candidates using existing prepared input and 600s owned builder processes. Expected: both exit0, identical ZIPs/all manifest/member bytes and492 old licensing texts intact; no download.
 - [x] Exercise actual supplied start.cmd with owned private test paths: EOF/EXIT/read-only cause no service/private state; synthetic explicit ACCEPT launches health, matching receipt relaunches without prompt; corrupted new summary is rejected before state. Terminate only owned services, record actual exits/PIDs/ports. Expected: full package outcomes, not human/legal acceptance. Preserve all files.
-- [ ] Write qualification report/all22 completion audit, commit docs, run task-done with gate/packaging suite. One fresh gpt-6-astra review whole branch including private evidence; apply at most one material TDD correction pass, ledger every ruling/decline/cost and deferred Minor; no cleanup.
+- [x] Write qualification report/all22 completion audit, commit docs, run task-done with gate/packaging suite. One fresh gpt-6-astra review whole branch including private evidence; apply at most one material TDD correction pass, ledger every ruling/decline/cost and deferred Minor; no cleanup.
 
 ## Self-review
 
