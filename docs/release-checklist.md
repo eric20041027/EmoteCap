@@ -10,7 +10,7 @@ These completed candidate tasks do not check off a broader final-release require
 - [x] Two complete fixed Windows candidates:88,530,946bytes/5,771members/SHA2561a109d04…338b101;12supplied-entry cases, immutable member/manifest checks and owned-process postflight passed. The existing machine is not a second clean-machine test.
 - [x] Fresh main56ccbcc source/history scan:275commits/1,529history blobs/1,090current files,0findings/0missing, independently verified. A later selected publication source requires its own final scan.
 - [x] Carry forward listed runtime42image/nine-text correspondence to the current candidate and exact existing original archives, without downloads. This is not whole native/runtime redistribution approval.
-- [ ] Prepare and inspect fixed-source UPM/source preview archives, manifest/checksums and local publication draft. [Scope and instructions](release-preview.zh-TW.md).
+- [x] Prepare and inspect fixed-source UPM/source preview archives, manifest/checksums and local publication draft. [Scope and instructions](release-preview.zh-TW.md).
 
 Mac3967B2, clean second Windows, five new users, physical quality/performance, complete rights and the exact publication decision remain mandatory. Historical raw snapshots retain their original source/date/phase.
 

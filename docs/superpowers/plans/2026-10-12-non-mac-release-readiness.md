@@ -39,9 +39,9 @@
 
 **Files:** private archive builder/verification, fresh owner-local preview ZIP/source/UPM/checksums/manifest/ChineseREADME; new qualification report.
 
-- [ ] Freeze clean Task1preparation commit; produce two source archives and two UPM archives from Git. Expected: deterministic pairs, all members exact/safe, UPM96members unchanged from qualified payload.
-- [ ] Verify previous Windows ZIP and copy bytes into a fresh preview directory. Expected:1a109d04digest identical, private acceptance/config absent; no binary rebuild/download/publication claim.
-- [ ] Generate accurate manifest/checksums/pending gates/Chinese operations and local publication draft; validate every artifact/member/source/digest plus original preservation. Expected: no tag/version increase, no final release approval claim.
+- [x] Freeze clean Task1preparation commit; produce two source archives and two UPM archives from Git. Expected: deterministic pairs, all members exact/safe, UPM96members unchanged from qualified payload.
+- [x] Verify previous Windows ZIP and copy bytes into a fresh preview directory. Expected:1a109d04digest identical, private acceptance/config absent; no binary rebuild/download/publication claim.
+- [x] Generate accurate manifest/checksums/pending gates/Chinese operations and local publication draft; validate every artifact/member/source/digest plus original preservation. Expected: no tag/version increase, no final release approval claim.
 - [ ] Report qualification and commit documentation, one fresh final review of full increment/evidence; ledger every ruling/decline/cost and deferred minor. Expected: material issues corrected in one watched pass if any.
 - [ ] Fresh final-source/history scan, authorized push/newdraftPR/CI and verify exact-head platform checks. Expected: source findings resolved, actualCI success; present concrete PR/artifacts before asking for new integration approval.
 
