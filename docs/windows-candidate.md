@@ -2,7 +2,15 @@
 
 This packaging work targets Windows11 x64. It prepares an internal development candidate. Scoped Unity and SDK checks exist; complete rights, physical quality, clean-machine and beginner acceptance remain pending. It is not an approved public release. [Release progress](release-progress.md) records those gates.
 
-The newer [runtime-terms candidate](superpowers/reports/2026-10-11-windows-runtime-terms.md) is built from833ace3, SHA256f4e3faf0…d1270ba, with5,771members/492licensing texts. Its first-launch choice is described below. Retained older packages keep their original entry behavior; they do not acquire the terms gate by changing documentation.
+## Current internal candidate (2026-10-12)
+
+Fixed build source: `eeae4e6b822a7809a42ef0db6b5d58ee45a13e09`. Two complete ZIPs are identical: **88,530,946 bytes / 5,771 members**, SHA256 **1a109d0443e4a12b5f5746c743b2c0211933282e8b08aeeed856f52b8338b101**. The merged remote/local main `56ccbcc622864e298a56ee27cb63ce56aa2fab99` has the same Git tree; its merge-commit identity is distinct from the candidate's build identity. All492licensing texts remain exact. Existing prepared runtime/wheels were reused without local downloads.
+
+This candidate includes first-launch terms, deep JSON receipt recovery and canonical Windows checkout bytes. Actual supplied start.cmd/System32-only PATH entry passed12cases: EOF/EXIT/read-only, explicit acceptance/cache, deeply nested receipt EOF/EXIT/READ+EXIT preservation, READ+ACCEPT/cache, stale prior acceptance reprompt and tampered-summary rejection. Successful services were closed through owned jobs; exit1from explicit shutdown is not natural exit0. All recorded PIDs/ports were closed and both complete candidates remained unchanged. One independent artifact review verified the full pairs/source/preservation/evidence with0Critical/0Important/0Minor. These are existing-machine software checks, not human/legal acceptance or a second clean machine.
+
+Relative to the retained833ace3/f4e3faf0candidate, only runtime_terms.py, manifest.json and notices/README.txt changed;5,768other records and492license texts stayed identical. Content coverage inherits those exact bytes plus three fresh delta scans; it is not an independent full/nested PII or rights assessment. The prior runtime42images/nine license/readme texts were rehashed against this ZIP and both existing original archives on2026-10-12. Source correspondence is resolved for those listed assets, while full distribution conditions remain separate.
+
+The earlier [runtime-terms candidate](superpowers/reports/2026-10-11-windows-runtime-terms.md) built from833ace3, SHA256f4e3faf0…d1270ba, is retained historical evidence. It does not contain the later deep JSON recovery. Earlier packages keep their original entry behavior; documentation updates do not change them. The current source-linked artifact preparation and remaining gates are described in [release preview](release-preview.zh-TW.md).
 
 ## Retained camera-counter candidate
 

@@ -1,0 +1,13 @@
+# Non-Mac release preparation
+
+This increment follows the owner's2026-10-12request to complete release work independent of the pending Mac result. Baseline main56ccbcc contains the approved PR3–9merges; previous qualification has21renewed PR platform jobs plus3final-main jobs successful, exact reviewed/merged-tree equality, clean fast-forwarded local main, all branches retained and a fresh275commit/1529blob/1090current-file scan with0findings/0missing. These are fixed candidate/source qualifications, not a complete release.
+
+The retained Windows pair at sourceeeae4e6 is88530946bytes/5771members/SHA2561a109d0443e4a12b5f5746c743b2c0211933282e8b08aeeed856f52b8338b101. Its12actual entry cases, immutable inventory and owned-process closure remain bound to that source. One independent artifact review and actual post-review CI/merge checks are retained in the2026-10-11private completion audit. No service, camera, cloud, Mac or Unity account is invoked by this documentation preparation.
+
+Current42runtime-image/nine-text ZIP bytes and both existing source archives were independently rehashed against the prior source-provenance receipt, with0downloads. The initial basename-only archive lookup failure was a path-setup error; correcting the existing cache location verified both originals without downloading or altering them. Full runtime/rights/privacy claims remain outside this carry-forward.
+
+The existing MediaPipe issue was read across all returned pages on2026-10-12: four comments, owner question6093130792present and unchanged identity, zero comments later than it, zero outgoing messages. The current official Unity Companion License page displaysv1.4; that observation is distinct from establishing the historical3.2.2wrapper's applicable terms or accepting any agreement. Raw pre-owner licensing snapshots remain intact; project MIT rights are separately recorded as already resolved.
+
+Current public documents now distinguish main/build/preparation/report identities,3jobs per workflow from21across7renewed PR workflows, carried-forward content coverage, prior supplied snapshot fields and all original22requirements. Historical per-run six-job wording is retained only under an explicit erratum. No final-release checkbox, support/performance threshold or complete legal right is inferred from a candidate/software check.
+
+Source/UPM preview archives and a local publication draft will be produced from the clean documentation preparation commit and verified against Git/the96memberqualified UPM. Artifact results and final review/CI are appended after their actual outcomes; at this preparation stage they are not claimed complete. [Owner-facing preview contract](../../release-preview.zh-TW.md).
