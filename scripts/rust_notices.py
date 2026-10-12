@@ -67,7 +67,8 @@ def validate_rust_notices(components,receipt,payload,material,license_records,so
         payload=ordinary_path(payload);material=ordinary_path(material);path=ordinary_path(material/DATA_PATH)
         owners=[c for c in components if 'rustSourceEvidence' in c]
         if not owners and not path.exists():
-            return {'dataFile':None,'text':'','summary':{'rustSourceCrates':0,'rustLicensingTexts':0,'rustNativeBindings':0,'rustManifestOnlyCrates':0}}
+            return {'dataFile':None,'text':'','summary':{'rustSourceCrates':0,'rustLicensingTexts':0,'rustNativeBindings':0,'rustManifestOnlyCrates':0,
+                'rustSupplementedCrates':0,'rustSupplementaryLicensingTexts':0,'rustUnresolvedManifestLicenseCrates':0}}
         if len(owners)!=1:raise PackageError('Rust source evidence has no unique owning component')
         owner=owners[0]
         if owner.get('name')!='Rust source licensing evidence' or owner.get('kind')!='native-source-evidence':
@@ -180,7 +181,7 @@ def validate_rust_notices(components,receipt,payload,material,license_records,so
                 raise PackageError('Rust declared licensing file is absent')
             locations=', '.join('third_party/licenses/rust-crates/'+entry['archiveMember'] for entry in records)
             source_lines.extend([f'{identity}: declared terms {terms}',f'Source archive: {crate["sourceArchiveUrl"]}',
-                f'Source SHA256: {crate["sourceArchiveSha256"]}',f'Supplied licensing: {locations or "manifest declaration only; licensing text unresolved"}',''])
+                f'Source SHA256: {crate["sourceArchiveSha256"]}',f'Archive-supplied licensing: {locations or "manifest declaration only; no licensing text in this archive"}',''])
         if not {token.casefold() for token in tokens}<=identities:raise PackageError('Observed Rust source tokens are unrepresented')
         compiler_identities=set();root_licenses={commit:set() for commit in commits};compiler_locks=set()
         for entry in _list(data['compilerSourceFiles'],40,1):
@@ -205,6 +206,45 @@ def validate_rust_notices(components,receipt,payload,material,license_records,so
                 counts[reference].add(identity)
         if any(len(counts[name])!=count for name,count in project_locks.items()):
             raise PackageError('Rust source-lock membership count differs from declared coverage')
+        supplemented=set();supplement_texts=0
+        crates={(c['name'],c['version']):c for c in data['registryCrates']}
+        for supplement in _list(owner.get('rustLicenseSupplements',[]),16):
+            _fields(supplement,('name','version','sourceArchiveSha256','declaredLicense','repository',
+                'sourceCommit','pathInVcs','vcsDirty','licensingFiles'))
+            identity=(_string(supplement['name'],80),_string(supplement['version'],80))
+            crate=crates.get(identity)
+            if crate is None or identity in supplemented or crate['collectionStatus']!='source-manifest-only-no-supplied-license-text':
+                raise PackageError('Upstream supplement has a foreign, duplicate or non-manifest-only crate')
+            if (supplement['sourceArchiveSha256'],supplement['declaredLicense'])!=(crate['sourceArchiveSha256'],crate['declaredLicense']):
+                raise PackageError('Upstream supplement differs from the frozen crate source/terms')
+            repository=_string(supplement['repository'],160)
+            if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*',repository):
+                raise PackageError('Invalid upstream GitHub repository')
+            commit=supplement['sourceCommit'];_digest(commit,40)
+            vcs_path=safe_name(_string(supplement['pathInVcs']))
+            if type(supplement['vcsDirty']) is not bool:raise PackageError('Upstream dirty state must be explicit')
+            crate_id='-'.join(identity);members=set()
+            source_lines.extend([f'Upstream licensing supplement for {crate_id}; not an archive member.',
+                f'Source repository: https://github.com/{repository}/tree/{commit}/{vcs_path}',
+                f'vcsDirty={str(supplement["vcsDirty"]).lower()}; full archive/commit identity and linked-component approval are not inferred.'])
+            for entry in _list(supplement['licensingFiles'],16,1):
+                _fields(entry,('path','upstreamPath','url','size','sha256','gitBlob'))
+                member=safe_name(_string(entry['upstreamPath']));_digest(entry['gitBlob'],40)
+                expected=f'licenses/rust-upstream/{crate_id}/{commit}/{member}'
+                _size(entry['size'],MAX_JSON);_digest(entry['sha256'])
+                if entry['size']==0:raise PackageError('Upstream licensing text must not be empty')
+                if entry['path']!=expected or member.casefold() in members:
+                    raise PackageError('Upstream licensing path is foreign or duplicated')
+                url=_string(entry['url'],2048);parts=urlsplit(url)
+                if url!=f'https://raw.githubusercontent.com/{repository}/{commit}/{member}' or parts.query or parts.fragment:
+                    raise PackageError('Upstream licensing URL differs from its commit/path')
+                body=_read(material/expected)
+                if hashlib.sha1(b'blob '+str(len(body)).encode()+b'\0'+body).hexdigest()!=entry['gitBlob']:
+                    raise PackageError('Upstream licensing Git blob differs from supplied bytes')
+                licensing(expected,entry);members.add(member.casefold());supplement_texts+=1
+                source_lines.extend([f'Upstream original text: {url}',f'Recipient text: third_party/{expected}',
+                    f'Git blob: {entry["gitBlob"]}; SHA256: {entry["sha256"]}'])
+            supplemented.add(identity);source_lines.append('')
         if owned!=set(expected_licenses):raise PackageError('Rust source licensing references contain unrelated text')
         summary={'nativeExtensionsMatched':len(bindings),'nativeCrateVersionTokensMapped':len(tokens),'registrySourceArchivesVerified':len(identities),
             'suppliedLicensingTextsVerified':crate_texts,'sourceManifestsWithoutSuppliedLicenseText':manifest_only,
@@ -218,6 +258,8 @@ def validate_rust_notices(components,receipt,payload,material,license_records,so
             text.extend([f'Rust compiler/library source: https://github.com/rust-lang/rust/tree/{commit}',
                 'Compiler terms/copyright: '+', '.join(f'third_party/licenses/rust-standard-library/{commit}/{name}' for name in sorted(ROOT_LICENSES)),''])
         return {'dataFile':descriptor,'text':'\n'.join(text),
-            'summary':{'rustSourceCrates':len(identities),'rustLicensingTexts':len(expected_licenses),'rustNativeBindings':len(bindings),'rustManifestOnlyCrates':manifest_only}}
+            'summary':{'rustSourceCrates':len(identities),'rustLicensingTexts':len(expected_licenses),'rustNativeBindings':len(bindings),'rustManifestOnlyCrates':manifest_only,
+                'rustSupplementedCrates':len(supplemented),'rustSupplementaryLicensingTexts':supplement_texts,
+                'rustUnresolvedManifestLicenseCrates':manifest_only-len(supplemented)}}
     except (OSError,ValueError,KeyError,TypeError,RecursionError):
         raise PackageError('Rust source, native or licensing evidence is incomplete or invalid') from None

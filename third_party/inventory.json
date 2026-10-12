@@ -1239,15 +1239,139 @@
         "Unlicense/MIT",
         "Zlib"
       ],
-      "evidenceScope": "Frozen source-lock superset, not complete linked-component enumeration or redistribution approval; four manifest-only cases remain unresolved",
+      "evidenceScope": "Frozen source-lock superset, not complete linked-component enumeration or redistribution approval; four original archives omit licensing texts and now have separate exact-commit upstream supplements. Full archive/commit equivalence is not inferred, including the recorded dirty vex-sdk source.",
       "kind": "native-source-evidence",
       "name": "Rust source licensing evidence",
+      "rustLicenseSupplements": [
+        {
+          "declaredLicense": "MPL-2.0",
+          "licensingFiles": [
+            {
+              "gitBlob": "14e2f777f6c395e7e04ab4aa306bbcc4b0c1120e",
+              "path": "licenses/rust-upstream/fortanix-sgx-abi-0.6.1/adcc6cdb981bcf2101437edbd3ef6144246621d3/LICENSE",
+              "sha256": "fab3dd6bdab226f1c08630b1dd917e11fcb4ec5e1e020e2c16f83a0a13863e85",
+              "size": 16726,
+              "upstreamPath": "LICENSE",
+              "url": "https://raw.githubusercontent.com/fortanix/rust-sgx/adcc6cdb981bcf2101437edbd3ef6144246621d3/LICENSE"
+            }
+          ],
+          "name": "fortanix-sgx-abi",
+          "pathInVcs": "intel-sgx/fortanix-sgx-abi",
+          "repository": "fortanix/rust-sgx",
+          "sourceArchiveSha256": "5efc85edd5b83e8394f4371dd0da6859dff63dd387dab8568fece6af4cde6f84",
+          "sourceCommit": "adcc6cdb981bcf2101437edbd3ef6144246621d3",
+          "vcsDirty": false,
+          "version": "0.6.1"
+        },
+        {
+          "declaredLicense": "MIT",
+          "licensingFiles": [
+            {
+              "gitBlob": "2139563cb8765568e70810c9c73c6beabde49127",
+              "path": "licenses/rust-upstream/vex-sdk-0.27.1/6c0b83d35b6fc31a7607efe456e387df45476314/LICENSE.md",
+              "sha256": "7bc7d5de2a0b793d4e1adb7ffcb99387776adc1f15f055bc3b667ea449249e6a",
+              "size": 1063,
+              "upstreamPath": "LICENSE.md",
+              "url": "https://raw.githubusercontent.com/vexide/vex-sdk/6c0b83d35b6fc31a7607efe456e387df45476314/LICENSE.md"
+            }
+          ],
+          "name": "vex-sdk",
+          "pathInVcs": "packages/vex-sdk",
+          "repository": "vexide/vex-sdk",
+          "sourceArchiveSha256": "79e5fe15afde1305478b35e2cb717fff59f485428534cf49cfdbfa4723379bf6",
+          "sourceCommit": "6c0b83d35b6fc31a7607efe456e387df45476314",
+          "vcsDirty": true,
+          "version": "0.27.1"
+        },
+        {
+          "declaredLicense": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+          "licensingFiles": [
+            {
+              "gitBlob": "16fe87b06e802f094b3fbb0894b137bca2b16ef1",
+              "path": "licenses/rust-upstream/wasip1-1.0.0/e55b3b02fcda2a016f5df14573ff05c5b1e313d6/LICENSE-APACHE",
+              "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+              "size": 10847,
+              "upstreamPath": "LICENSE-APACHE",
+              "url": "https://raw.githubusercontent.com/bytecodealliance/wasi/e55b3b02fcda2a016f5df14573ff05c5b1e313d6/LICENSE-APACHE"
+            },
+            {
+              "gitBlob": "31aa79387f27e730e33d871925e152e35e428031",
+              "path": "licenses/rust-upstream/wasip1-1.0.0/e55b3b02fcda2a016f5df14573ff05c5b1e313d6/LICENSE-MIT",
+              "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+              "size": 1023,
+              "upstreamPath": "LICENSE-MIT",
+              "url": "https://raw.githubusercontent.com/bytecodealliance/wasi/e55b3b02fcda2a016f5df14573ff05c5b1e313d6/LICENSE-MIT"
+            },
+            {
+              "gitBlob": "f9d81955f4bcb8f96a025e2ecc46f39ec536d465",
+              "path": "licenses/rust-upstream/wasip1-1.0.0/e55b3b02fcda2a016f5df14573ff05c5b1e313d6/LICENSE-Apache-2.0_WITH_LLVM-exception",
+              "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
+              "size": 12243,
+              "upstreamPath": "LICENSE-Apache-2.0_WITH_LLVM-exception",
+              "url": "https://raw.githubusercontent.com/bytecodealliance/wasi/e55b3b02fcda2a016f5df14573ff05c5b1e313d6/LICENSE-Apache-2.0_WITH_LLVM-exception"
+            }
+          ],
+          "name": "wasip1",
+          "pathInVcs": "crates/wasip1",
+          "repository": "bytecodealliance/wasi",
+          "sourceArchiveSha256": "b5e26842486624357dbeb8f0381cf1fb42f022291fd787d4a816768fec8cc760",
+          "sourceCommit": "e55b3b02fcda2a016f5df14573ff05c5b1e313d6",
+          "vcsDirty": false,
+          "version": "1.0.0"
+        },
+        {
+          "declaredLicense": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+          "licensingFiles": [
+            {
+              "gitBlob": "16fe87b06e802f094b3fbb0894b137bca2b16ef1",
+              "path": "licenses/rust-upstream/wit-bindgen-rt-0.39.0/f2393e6e98fa5f9236cac580db8a3fc9de6a4b70/LICENSE-APACHE",
+              "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+              "size": 10847,
+              "upstreamPath": "LICENSE-APACHE",
+              "url": "https://raw.githubusercontent.com/bytecodealliance/wit-bindgen/f2393e6e98fa5f9236cac580db8a3fc9de6a4b70/LICENSE-APACHE"
+            },
+            {
+              "gitBlob": "31aa79387f27e730e33d871925e152e35e428031",
+              "path": "licenses/rust-upstream/wit-bindgen-rt-0.39.0/f2393e6e98fa5f9236cac580db8a3fc9de6a4b70/LICENSE-MIT",
+              "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+              "size": 1023,
+              "upstreamPath": "LICENSE-MIT",
+              "url": "https://raw.githubusercontent.com/bytecodealliance/wit-bindgen/f2393e6e98fa5f9236cac580db8a3fc9de6a4b70/LICENSE-MIT"
+            },
+            {
+              "gitBlob": "f9d81955f4bcb8f96a025e2ecc46f39ec536d465",
+              "path": "licenses/rust-upstream/wit-bindgen-rt-0.39.0/f2393e6e98fa5f9236cac580db8a3fc9de6a4b70/LICENSE-Apache-2.0_WITH_LLVM-exception",
+              "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
+              "size": 12243,
+              "upstreamPath": "LICENSE-Apache-2.0_WITH_LLVM-exception",
+              "url": "https://raw.githubusercontent.com/bytecodealliance/wit-bindgen/f2393e6e98fa5f9236cac580db8a3fc9de6a4b70/LICENSE-Apache-2.0_WITH_LLVM-exception"
+            }
+          ],
+          "name": "wit-bindgen-rt",
+          "pathInVcs": "crates/guest-rust/rt",
+          "repository": "bytecodealliance/wit-bindgen",
+          "sourceArchiveSha256": "6f42320e61fe2cfd34354ecb597f86f413484a798ba44a8ca1165c58d42da6c1",
+          "sourceCommit": "f2393e6e98fa5f9236cac580db8a3fc9de6a4b70",
+          "vcsDirty": false,
+          "version": "0.39.0"
+        }
+      ],
       "rustSourceEvidence": {
         "path": "rust-source-evidence.json",
         "sha256": "eef484cdf75f6dd80d386804337efdee0d2ccd3eab7ad12fd0f27900610ac597",
         "size": 188472
       },
       "status": "native-and-vendor-coverage-pending",
+      "supplementaryLicenses": [
+        "licenses/rust-upstream/fortanix-sgx-abi-0.6.1/adcc6cdb981bcf2101437edbd3ef6144246621d3/LICENSE",
+        "licenses/rust-upstream/vex-sdk-0.27.1/6c0b83d35b6fc31a7607efe456e387df45476314/LICENSE.md",
+        "licenses/rust-upstream/wasip1-1.0.0/e55b3b02fcda2a016f5df14573ff05c5b1e313d6/LICENSE-APACHE",
+        "licenses/rust-upstream/wasip1-1.0.0/e55b3b02fcda2a016f5df14573ff05c5b1e313d6/LICENSE-MIT",
+        "licenses/rust-upstream/wasip1-1.0.0/e55b3b02fcda2a016f5df14573ff05c5b1e313d6/LICENSE-Apache-2.0_WITH_LLVM-exception",
+        "licenses/rust-upstream/wit-bindgen-rt-0.39.0/f2393e6e98fa5f9236cac580db8a3fc9de6a4b70/LICENSE-APACHE",
+        "licenses/rust-upstream/wit-bindgen-rt-0.39.0/f2393e6e98fa5f9236cac580db8a3fc9de6a4b70/LICENSE-MIT",
+        "licenses/rust-upstream/wit-bindgen-rt-0.39.0/f2393e6e98fa5f9236cac580db8a3fc9de6a4b70/LICENSE-Apache-2.0_WITH_LLVM-exception"
+      ],
       "suppliedLicenses": [
         "licenses/rust-crates/addr2line-0.25.1/LICENSE-APACHE",
         "licenses/rust-crates/addr2line-0.25.1/LICENSE-MIT",
@@ -5977,6 +6101,78 @@
       "path": "licenses/rust-standard-library/88d9e12ae178fab0fb5cc050a94da85685d449ea/LICENSE-MIT",
       "sha256": "b71bd43a069ca0641a9ecfe585ca7b3c53b5cc1608f8b68321168698e28b5ea1",
       "size": 1068
+    },
+    {
+      "origin": {
+        "input": "https://raw.githubusercontent.com/fortanix/rust-sgx/adcc6cdb981bcf2101437edbd3ef6144246621d3/LICENSE",
+        "kind": "upstream-exact-commit-original-license"
+      },
+      "path": "licenses/rust-upstream/fortanix-sgx-abi-0.6.1/adcc6cdb981bcf2101437edbd3ef6144246621d3/LICENSE",
+      "sha256": "fab3dd6bdab226f1c08630b1dd917e11fcb4ec5e1e020e2c16f83a0a13863e85",
+      "size": 16726
+    },
+    {
+      "origin": {
+        "input": "https://raw.githubusercontent.com/vexide/vex-sdk/6c0b83d35b6fc31a7607efe456e387df45476314/LICENSE.md",
+        "kind": "upstream-exact-commit-original-license"
+      },
+      "path": "licenses/rust-upstream/vex-sdk-0.27.1/6c0b83d35b6fc31a7607efe456e387df45476314/LICENSE.md",
+      "sha256": "7bc7d5de2a0b793d4e1adb7ffcb99387776adc1f15f055bc3b667ea449249e6a",
+      "size": 1063
+    },
+    {
+      "origin": {
+        "input": "https://raw.githubusercontent.com/bytecodealliance/wasi/e55b3b02fcda2a016f5df14573ff05c5b1e313d6/LICENSE-APACHE",
+        "kind": "upstream-exact-commit-original-license"
+      },
+      "path": "licenses/rust-upstream/wasip1-1.0.0/e55b3b02fcda2a016f5df14573ff05c5b1e313d6/LICENSE-APACHE",
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "size": 10847
+    },
+    {
+      "origin": {
+        "input": "https://raw.githubusercontent.com/bytecodealliance/wasi/e55b3b02fcda2a016f5df14573ff05c5b1e313d6/LICENSE-Apache-2.0_WITH_LLVM-exception",
+        "kind": "upstream-exact-commit-original-license"
+      },
+      "path": "licenses/rust-upstream/wasip1-1.0.0/e55b3b02fcda2a016f5df14573ff05c5b1e313d6/LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
+      "size": 12243
+    },
+    {
+      "origin": {
+        "input": "https://raw.githubusercontent.com/bytecodealliance/wasi/e55b3b02fcda2a016f5df14573ff05c5b1e313d6/LICENSE-MIT",
+        "kind": "upstream-exact-commit-original-license"
+      },
+      "path": "licenses/rust-upstream/wasip1-1.0.0/e55b3b02fcda2a016f5df14573ff05c5b1e313d6/LICENSE-MIT",
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "size": 1023
+    },
+    {
+      "origin": {
+        "input": "https://raw.githubusercontent.com/bytecodealliance/wit-bindgen/f2393e6e98fa5f9236cac580db8a3fc9de6a4b70/LICENSE-APACHE",
+        "kind": "upstream-exact-commit-original-license"
+      },
+      "path": "licenses/rust-upstream/wit-bindgen-rt-0.39.0/f2393e6e98fa5f9236cac580db8a3fc9de6a4b70/LICENSE-APACHE",
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "size": 10847
+    },
+    {
+      "origin": {
+        "input": "https://raw.githubusercontent.com/bytecodealliance/wit-bindgen/f2393e6e98fa5f9236cac580db8a3fc9de6a4b70/LICENSE-Apache-2.0_WITH_LLVM-exception",
+        "kind": "upstream-exact-commit-original-license"
+      },
+      "path": "licenses/rust-upstream/wit-bindgen-rt-0.39.0/f2393e6e98fa5f9236cac580db8a3fc9de6a4b70/LICENSE-Apache-2.0_WITH_LLVM-exception",
+      "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
+      "size": 12243
+    },
+    {
+      "origin": {
+        "input": "https://raw.githubusercontent.com/bytecodealliance/wit-bindgen/f2393e6e98fa5f9236cac580db8a3fc9de6a4b70/LICENSE-MIT",
+        "kind": "upstream-exact-commit-original-license"
+      },
+      "path": "licenses/rust-upstream/wit-bindgen-rt-0.39.0/f2393e6e98fa5f9236cac580db8a3fc9de6a4b70/LICENSE-MIT",
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "size": 1023
     }
   ],
   "nativeBinaryFiles": [
@@ -6257,7 +6453,7 @@
     "Model task archive embedded-asset coverage",
     "Native/static-link/source-form conditions",
     "Candidate notices integration and actual formal release gates",
-    "Complete Rust/native linked-component assessment remains pending; supplied source-lock corpus includes build/dev/other-target entries and four manifest-only cases."
+    "Complete Rust/native linked-component assessment remains pending; supplied source-lock corpus includes build/dev/other-target entries and four original manifest-only archives with separate upstream licensing supplements; full linked coverage remains unproven."
   ],
   "schema": "emotecap-third-party-material-v1"
 }
