@@ -38,9 +38,17 @@ def build_inputs(tmp_path):
     git(repo,'add','.');git(repo,'commit','-qm','synthetic candidate source')
     prepared=tmp_path/'prepared';payload=prepared/'payload'
     for name,data in {'python/python.exe':b'synthetic exe','deps/normal.py':b'normal = True',
+        'python/LICENSE.txt':b'Owned synthetic Python license. Microsoft runtime test restrictions.\n',
         'requirements.txt':b'synthetic requirements','runtime-source.json':json.dumps(pins).encode(),
         'dependency-inventory.json':b'{"schema":"fixture"}'}.items():
         path=payload/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(data)
+    for name in ('runtime_terms.py','RUNTIME-TERMS.en.txt','RUNTIME-TERMS.zh-TW.txt'):
+        source=ROOT/'packaging/windows'/name
+        if source.exists():
+            target=repo/'packaging/windows'/name
+            target.write_bytes(source.read_bytes())
+    if git(repo,'status','--porcelain'):
+        git(repo,'add','.');git(repo,'commit','-qm','bundled entry terms source fixture')
     files.write_json(prepared/'prepared.json',{'schema':'emotecap-prepared-windows-v1','runtime':pins,
         'serverSourceHashes':{name:files.sha256_file(repo/'server'/name) for name in ('uv.lock','pyproject.toml')},
         'files':files.file_inventory(payload),'releaseGate':'pending'})
@@ -105,6 +113,19 @@ def test_project_license_absence_preserves_historical_pending_state(build_inputs
     assert not (output/'LICENSE').exists()
     assert 'No project LICENSE is adopted' in (output/'notices/README.txt').read_text()
     assert 'Owner MIT/contributor/all-four-media rights' in result['manifest']['pendingGates']
+
+
+@pytest.mark.parametrize('name', ['runtime_terms.py', 'RUNTIME-TERMS.en.txt', 'RUNTIME-TERMS.zh-TW.txt'])
+def test_runtime_terms_checkout_bytes_are_stable_across_eol_settings(build_inputs, name):
+    repo, _ = build_inputs
+    relative = 'packaging/windows/' + name
+    expected = subprocess.check_output(['git', '-C', str(repo), 'show', 'HEAD:' + relative])
+    git(repo, 'config', 'core.autocrlf', 'true')
+    (repo/relative).unlink()
+    git(repo, 'checkout-index', '--force', '--', relative)
+    assert (repo/relative).read_bytes() == expected
+    git(repo, 'config', 'core.autocrlf', 'false')
+    assert git(repo, 'status', '--porcelain') == ''
 
 
 @pytest.mark.parametrize('autocrlf',['false','true','input'])

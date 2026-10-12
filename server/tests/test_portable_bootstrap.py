@@ -62,14 +62,14 @@ def test_isolated_bootstrap_selects_private_paths_and_ignores_pythonpath(build_i
     poison=tmp_path/'poison';poison.mkdir();(poison/'emotecap_server.py').write_text('raise RuntimeError("poisoned Python path")')
     private=tmp_path/'user private'
     result=subprocess.run([sys.executable,'-I','-S','-B',str(root/'bootstrap.py'),'--no-browser'],
-        env={**os.environ,'PYTHONPATH':str(poison),'LOCALAPPDATA':str(private)},capture_output=True,timeout=10)
+        env={**os.environ,'PYTHONPATH':str(poison),'LOCALAPPDATA':str(private)},input=b'ACCEPT\n',capture_output=True,timeout=10)
     assert result.returncode==0,result.stderr.decode(errors='replace')
-    selected=json.loads(result.stdout)
+    selected=json.loads(result.stdout.splitlines()[-1])
     assert str(poison) not in selected['paths']
     assert selected['args'][selected['args'].index('--web-dir')+1]==str(root/'app/web/dist')
     assert selected['args'][selected['args'].index('--data-dir')+1]==str(private/'EmoteCap/data')
     assert selected['args'][selected['args'].index('--env-file')+1]==str(private/'EmoteCap/settings.env')
-    assert not private.exists()
+    assert (private/'EmoteCap/data/runtime-terms-acceptance.json').is_file()
 
 @pytest.mark.parametrize('flag',['--data-dir','--env-file'])
 def test_private_paths_inside_verified_package_are_rejected(build_inputs,tmp_path,flag):

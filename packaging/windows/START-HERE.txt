@@ -1,6 +1,16 @@
 EmoteCap - internal Windows development candidate
 
 Extract the complete folder, then open start.cmd. Keep the terminal running.
+First launch shows offline Windows Microsoft runtime recipient terms in English
+and Traditional Chinese. Type READ for the original python/LICENSE.txt,
+ACCEPT to agree or EXIT to stop. Empty input/EOF stops without starting Studio.
+There is no automatic acceptance flag; --no-browser does not skip this choice.
+Use start.cmd --read-runtime-terms to read and exit without creating state.
+Only ACCEPT saves runtime-terms-acceptance.json in your selected private data
+folder (default %LOCALAPPDATA%\EmoteCap\data). It contains a content fingerprint,
+affirmative choice and UTC time, with no name/device ID or upload. A matching
+receipt avoids another prompt; changed terms/runtime require a fresh choice.
+The receipt is an editable local preference, not a signature or release approval.
 Studio opens at http://127.0.0.1:8787 after the local service starts.
 If your browser does not open, open that address after the ready message.
 Ctrl+C stops the local service. This package requires no installed Node,

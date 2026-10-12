@@ -13,3 +13,6 @@
 /web/scripts/mediapipe-assets.json text eol=lf
 /packaging/python-runtime.json text eol=lf
 /packaging/windows/bootstrap.py text eol=lf
+/packaging/windows/runtime_terms.py text eol=lf
+/packaging/windows/RUNTIME-TERMS.en.txt text eol=lf
+/packaging/windows/RUNTIME-TERMS.zh-TW.txt text eol=lf
