@@ -27,3 +27,7 @@
 ## Self-review
 
 One small recovery change, no dependency or interface changes. Test through the actual isolated bootstrap so a swallowed exception cannot accidentally authorize app import. Existing full packaged artifacts remain historical evidence, not rebuilt/fixed artifact claims.
+
+## Mandatory CI correction
+
+At3c13a2c, the push CI passed all platforms but PR Windows failed the existing clean-source candidate test under core.autocrlf=false. The three newly delivered terms assets lacked canonical LF attributes; a forced CRLF checkout reproduced all three byte mismatches. Add only their LF attributes and actual checkout regressions, preserve the failed run, and rerun affected/full backend plus pushed-head CI. This is the single material correction pass; receipt policy and clean-source checks remain intact. The fresh review above preceded this correction, which is verified by RED/GREEN and the final suites without a second review.

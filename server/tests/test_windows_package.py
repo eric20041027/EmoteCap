@@ -115,6 +115,19 @@ def test_project_license_absence_preserves_historical_pending_state(build_inputs
     assert 'Owner MIT/contributor/all-four-media rights' in result['manifest']['pendingGates']
 
 
+@pytest.mark.parametrize('name', ['runtime_terms.py', 'RUNTIME-TERMS.en.txt', 'RUNTIME-TERMS.zh-TW.txt'])
+def test_runtime_terms_checkout_bytes_are_stable_across_eol_settings(build_inputs, name):
+    repo, _ = build_inputs
+    relative = 'packaging/windows/' + name
+    expected = subprocess.check_output(['git', '-C', str(repo), 'show', 'HEAD:' + relative])
+    git(repo, 'config', 'core.autocrlf', 'true')
+    (repo/relative).unlink()
+    git(repo, 'checkout-index', '--force', '--', relative)
+    assert (repo/relative).read_bytes() == expected
+    git(repo, 'config', 'core.autocrlf', 'false')
+    assert git(repo, 'status', '--porcelain') == ''
+
+
 @pytest.mark.parametrize('autocrlf',['false','true','input'])
 def test_project_license_git_checkout_preserves_approved_bytes(build_inputs,autocrlf):
     repo,_=build_inputs;commit_project_license(repo)
