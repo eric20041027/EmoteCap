@@ -20,8 +20,8 @@
 - [x] Add actual isolated-entry regression tests for array/object receipts with nesting beyond the default parser recursion limit, decline/read and explicit recovery.
 - [x] Run the new tests before the fix. Expected: RED, current entry returns1 with RecursionError instead of the requested prompt/recovery.
 - [x] Catch RecursionError with existing invalid-receipt parse errors. Expected: GREEN, without changing recursion limits or auto-consenting.
-- [ ] Run affected entry/bootstrap/package/notices tests and full fast backend. Expected: no failures; retain actual counts and skips.
-- [ ] Commit the scoped code/tests/report. Run task-done with the affected suite, then one fresh final review over the new increment from e1cc1e9; record findings/declined judgments and costs. Preserve historical artifacts; they do not contain this fix.
+- [x] Run affected entry/bootstrap/package/notices tests and full fast backend. Expected: no failures; retain actual counts and skips.
+- [x] Commit the scoped code/tests/report. Run task-done with the affected suite, then one fresh final review over the new increment from e1cc1e9; record findings/declined judgments and costs. Preserve historical artifacts; they do not contain this fix.
 - [ ] Run a fresh final-source/history scan, push the existing branch and update PR #9's description. Expected: no unresolved content findings and all new hosted CI jobs successful at the pushed head. Mac results remain pending.
 
 ## Self-review
