@@ -2,6 +2,18 @@
 
 This is a required gate for a formal release, not a claim that the rebuild has passed. Record immutable evidence/source digests and mark each item only after its actual outcome. See [release progress](release-progress.md).
 
+## Scoped preparation snapshot (2026-10-12)
+
+These completed candidate tasks do not check off a broader final-release requirement below.
+
+- [x] Owner-approved PR3–9source integration:21renewed PR platform jobs and final-main3platform jobs passed; remote/local main56ccbcc is clean and its tree equals candidate buildsourceeeae4e6. All original branches/worktrees are retained.
+- [x] Two complete fixed Windows candidates:88,530,946bytes/5,771members/SHA2561a109d04…338b101;12supplied-entry cases, immutable member/manifest checks and owned-process postflight passed. The existing machine is not a second clean-machine test.
+- [x] Fresh main56ccbcc source/history scan:275commits/1,529history blobs/1,090current files,0findings/0missing, independently verified. A later selected publication source requires its own final scan.
+- [x] Carry forward listed runtime42image/nine-text correspondence to the current candidate and exact existing original archives, without downloads. This is not whole native/runtime redistribution approval.
+- [x] Prepare and inspect fixed-source UPM/source preview archives, manifest/checksums and local publication draft. [Scope and instructions](release-preview.zh-TW.md).
+
+Mac3967B2, clean second Windows, five new users, physical quality/performance, complete rights and the exact publication decision remain mandatory. Historical raw snapshots retain their original source/date/phase.
+
 ## Fixed source and validation
 
 - [ ] Choose a reviewed, clean, fixed source commit with all required changes; preserve original history/contributors.
@@ -34,7 +46,7 @@ This is a required gate for a formal release, not a claim that the rebuild has p
 - [ ] Prepare fixed-version UPM/source-linked release files, artifact SHA256 and support/operation/privacy/known-limit documentation. Inspect final packaged contents and scan for credentials/private media/unapproved assets.
 - [ ] Verify every required gate above is green and any optional limitation is explicitly owner-accepted; no mandatory pending box is silently waived.
 - [ ] Show the exact source commit, artifacts/checksums, tag, release title/body and publication destination for owner approval.
-- [ ] Confirm authorization covers the exact final publication actions and contents. New branch pushes, draft PRs and CI are already authorized in this session; PR1/2merges were separately approved and completed. Do not infer approval for additional remote main merges, public tags or binary/GitHub releases from those earlier permissions.
+- [ ] Confirm authorization covers the exact final publication actions and contents. New branch pushes, draft PRs and CI are already authorized; PR1/2and subsequently PR3–9were separately approved and merged. New PR integration and exact public tag/binary/GitHub release approval remain separate; source integration does not authorize binary publication.
 - [ ] Publish only the approved contents and verify the resulting URLs/digests/state; attach any created PR to the task. Record publication separately from local completion.
 
 Checked rights items rely on the owner's explicit2026-10-08confirmation. Existing software/artifact qualifications retain their linked source scopes; remaining boxes are not waived. This document does not merge, tag or publish a release.
