@@ -113,6 +113,36 @@ def test_invalid_receipt_never_silently_accepts_or_is_overwritten_on_decline(ter
     assert receipt(data).read_bytes()==body
 
 
+@pytest.mark.parametrize('container', ['array', 'object'])
+@pytest.mark.parametrize('choice', [b'', b'EXIT\n', b'READ\nEXIT\n', b'READ\nACCEPT\n'])
+def test_deep_receipt_requires_explicit_choice_and_preserves_declined_bytes(terms_candidate, container, choice):
+    root, data, marker = terms_candidate
+    data.mkdir()
+    body = (b'[' * 4000 + b'0' + b']' * 4000 if container == 'array'
+        else b'{"x":' * 1300 + b'0' + b'}' * 1300)
+    assert len(body) < 8192
+    receipt(data).write_bytes(body)
+    result = run_entry(root, data, choice)
+    assert b'Traceback' not in result.stderr, result.stderr
+    assert b'READ = original text' in result.stdout
+    if choice.startswith(b'READ'):
+        assert (root/'python/LICENSE.txt').read_bytes().strip() in result.stdout
+    if choice.endswith(b'ACCEPT\n'):
+        assert result.returncode == 0 and marker.exists(), result.stderr
+        accepted = receipt(data).read_bytes()
+        assert len(accepted) < 8192 and json.loads(accepted)['accepted'] is True
+        assert accepted != body
+        marker.unlink()
+        cached = run_entry(root, data)
+        assert cached.returncode == 0 and marker.exists(), cached.stderr
+        assert receipt(data).read_bytes() == accepted
+        assert b'READ = original text' not in cached.stdout
+    else:
+        assert result.returncode == 2 and not marker.exists(), result.stderr
+        assert receipt(data).read_bytes() == body
+    assert list(data.iterdir()) == [receipt(data)]
+
+
 @pytest.mark.parametrize('name',['python/python.exe','python/LICENSE.txt','RUNTIME-TERMS.en.txt','runtime_terms.py'])
 def test_changed_relevant_content_requires_fresh_choice(terms_candidate,name):
     root,data,marker=terms_candidate

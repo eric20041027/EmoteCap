@@ -77,7 +77,7 @@ def _matches(path, fingerprint):
             return False
         parsed = datetime.fromisoformat(record['acceptedAtUTC'])
         return parsed.tzinfo is not None and parsed.utcoffset().total_seconds() == 0
-    except (ValueError, UnicodeError, TypeError):
+    except (ValueError, UnicodeError, TypeError, RecursionError):
         return False
 
 
