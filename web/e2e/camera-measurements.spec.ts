@@ -74,12 +74,14 @@ test('requires explicit SDK, camera and local actor actions; measures actual Stu
     latencyDefinition:'detection-to-render-call',metadata:{classification:'synthetic'},setup:{width:1280,height:720,poseDelegate:'GPU',handDelegate:'CPU'}});
   expect(report.summary!.renderedCount).toBeGreaterThan(0);expect(report.summary!.failureRate).toBeGreaterThan(0);
   expect(report.summary!.inputIdentityAvailable).toBe(true);
-  expect(report.summary!.renderedOutputCount).toBeGreaterThan(report.summary!.renderedCount!);
+  expect(report.inputFrameDefinition).toBe('video-frame-callback-presented-frames');
+  expect(report.summary!.inputCounterProgress).toBe('advancing');
+  expect(report.summary!.renderedOutputCount).toBe(report.summary!.renderedCount!);
   const uniqueRendered=new Set(report.attempts.filter(a=>a.status==='ok'&&a.renderedMs!==null).map(a=>a.inputFrame));
   expect(report.summary!.renderedCount).toBe(uniqueRendered.size);
   expect(report.attempts.some(a=>a.handState==='ran')).toBe(true);expect(report.attempts.some(a=>a.handState==='reused')).toBe(true);
   expect(report.interactions).toHaveLength(1);
-  for(const [key,file] of [['App','src/App.tsx'],['usePose','src/capture/usePose.ts'],['PreviewCanvas','src/preview/PreviewCanvas.tsx'],['cameraMeasurements','src/evaluation/cameraMeasurements.ts']])
+  for(const [key,file] of [['App','src/App.tsx'],['usePose','src/capture/usePose.ts'],['PreviewCanvas','src/preview/PreviewCanvas.tsx'],['cameraMeasurements','src/evaluation/cameraMeasurements.ts'],['videoFrameLoop','src/capture/videoFrameLoop.ts']])
     expect(report.metadata.sourceDigests[key]).toBe(createHash('sha256').update(readFileSync(file)).digest('hex'));
   const serialized=JSON.stringify(report);for(const value of ['"cameraKey"','"deviceId"','worldLandmarks','"r":','"h":','pairingCode'])expect(serialized).not.toContain(value);
   expect(external).toBe(0);console.log(`Camera controls qualified in ${browser.version()}, synthetic only`);
