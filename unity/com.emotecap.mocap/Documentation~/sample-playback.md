@@ -2,10 +2,14 @@
 
 Use Unity6000.5.9f1onWindows with the Built-in Render Pipeline, the actual qualified sample target. Other Editors, platforms, rendering pipelines and player builds need separate qualification. This local0.2.0package is unpublished and complete release/rights approval is pending.
 
+Normal sample installation does not require Unity Test Framework. The included developer test assemblies compile only when the project has `com.unity.test-framework`1.7.0or later. To run the development qualification, explicitly install the pinned1.7.0Test Framework and opt into package tests as described in the repository's development guide; this does not add it to the runtime package dependencies. The sample code, rigs and animation remain available without it.
+
 1. In Package Manager, add this package from disk using its `package.json`, select **EmoteCap Mocap** and import **Starter Rigs** from its samples.
 2. Before entering Play mode, choose **EmoteCap → Create Starter Scene**. Unity asks about saving modified scenes. Canceling that prompt cancels creation. The menu creates `Assets/EmoteCap/StarterRigs/StarterScene.unity`, Standard/Tall prefabs, their persisted mesh/material/Avatar assets and the original sample FBX with its sidecar.
 3. Enter **Play mode**. Both colored characters play the right-hand-raise clip. Their limb/torso proportions differ. The visible Clip Player menu controls Standard; Tall plays the same initial sample independently. Each player's Loop/Play All settings belong to that player.
 4. Leave Play mode to edit the scene. Disable a Clip Player to stop its owned graph; enabling it resumes. Non-looping clips hold their final pose. No camera, MediaPipe processing, Gemini key, recording or Live Link pairing is needed for this sample.
+
+The bundled clip demonstrates raising the anatomical right arm. It does not contain a smooth lowering segment; non-looping playback holds the raised final pose, while a loop resets to the beginning. Compare its actual start/intermediate/final poses rather than requiring an animation phase absent from the fixture.
 
 Creating the sample again rejects an existing destination before changing scenes/assets. Open the existing StarterScene instead. If intentionally starting over, first back up any work you added there and remove that generated destination yourself. The creator does not overwrite or delete user assets. Sample exports do not rebuild unrelated `EmoteCapClips` controllers.
 
