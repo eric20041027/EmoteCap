@@ -5,6 +5,17 @@ import { quatFromAxisAngle } from './math';
 import { DEG, RIGHT_ARM_BELOW_SHOULDER, rotatePoints, toMediaPipe, tpose } from './poses.testutil';
 
 describe('createPoseSolver', () => {
+  it('uses the explicit calibration sample rather than an earlier solved pose',()=>{
+    const rest=tpose(),other=rotatePoints(rest,RIGHT_ARM_BELOW_SHOULDER,rest[LM.rightShoulder],quatFromAxisAngle([0,0,1],-45*DEG));
+    const solver=createPoseSolver();solver.solve(toMediaPipe(other),0);
+    solver.calibrate(toMediaPipe(rest));const frame=solver.solve(toMediaPipe(rest),1)!;
+    expect(Math.abs(frame.r[9*4+3])).toBeCloseTo(1,5);
+  });
+  it('rejects invalid explicit calibration instead of silently claiming a reference',()=>{
+    const solver=createPoseSolver();expect(()=>solver.calibrate([])).toThrow();
+    const invalid=toMediaPipe(tpose());invalid[LM.leftWrist].x=NaN;
+    expect(()=>solver.calibrate(invalid)).toThrow();
+  });
   it('returns null without a full set of landmarks', () => {
     expect(createPoseSolver().solve(undefined, 0)).toBeNull();
     expect(createPoseSolver().solve([], 0)).toBeNull();

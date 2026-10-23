@@ -52,7 +52,9 @@ export class OneEuroFilter {
 
 /** One Euro filter per coordinate of every landmark. Returns new landmark objects. */
 export class LandmarkFilter {
-  private filters: OneEuroFilter[][] = [];
+  private filters: (OneEuroFilter[]|undefined)[] = [];
+  private accepted: PoseLandmark[] = [];
+  private times: number[] = [];
   private readonly params: OneEuroParams;
 
   constructor(params: Partial<OneEuroParams> = {}) {
@@ -60,12 +62,16 @@ export class LandmarkFilter {
   }
 
   filter(landmarks: readonly PoseLandmark[], t: number): PoseLandmark[] {
-    while (this.filters.length < landmarks.length) {
-      this.filters.push([new OneEuroFilter(this.params), new OneEuroFilter(this.params), new OneEuroFilter(this.params)]);
-    }
     return landmarks.map((lm, i) => {
-      const [fx, fy, fz] = this.filters[i];
-      return { x: fx.filter(lm.x, t), y: fy.filter(lm.y, t), z: fz.filter(lm.z, t), visibility: lm.visibility };
+      if(!Number.isFinite(t)||![lm.x,lm.y,lm.z,lm.visibility??1].every(Number.isFinite)||(lm.visibility??1)<0.5) {
+        this.filters[i]=undefined;
+        return {...(this.accepted[i]??{x:0,y:0,z:0}),visibility:0};
+      }
+      if(!this.filters[i]||t-this.times[i]>0.4||t<=this.times[i])
+        this.filters[i]=[new OneEuroFilter(this.params),new OneEuroFilter(this.params),new OneEuroFilter(this.params)];
+      const [fx,fy,fz]=this.filters[i]!;
+      const out={x:fx.filter(lm.x,t),y:fy.filter(lm.y,t),z:fz.filter(lm.z,t),visibility:lm.visibility};
+      this.times[i]=t;this.accepted[i]=out;return out;
     });
   }
 }

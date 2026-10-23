@@ -1,7 +1,7 @@
 /**
  * Public motion-core API used by the web app. Import only from here.
  */
-import type { MotionFrame, Vec3 } from './contract';
+import type { MotionFrame } from './contract';
 import { HAND_LANDMARK_COUNT, SIDES, type Side } from './hands';
 import { createJumpState, solveJumpLift } from './jump';
 import { LANDMARK_COUNT, toCanonical, type PoseLandmark } from './landmarks';
@@ -57,8 +57,6 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}, smoo
   let rotationFilters = new BoneRotationFilters(smoothing);
   let smoothingLevel = smoothing;
   let jumpState = createJumpState();
-  let lastPoints: Vec3[] | null = null;
-  let lastHands: HandPoints = {};
   let lastSolveTime: number | null = null;
   let handLastSeen: Partial<Record<Side, number>> = {};
 
@@ -95,8 +93,6 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}, smoo
       relaxMissingHands(handPoints, t);
       const rotation = solveRotations(points, visibility, rotationState, handPoints);
       rotationState = rotation.state;
-      lastPoints = points;
-      lastHands = handPoints;
       const jump = solveJumpLift(image, points, visibility, t, jumpState);
       jumpState = jump.state;
       const planted = plantFeet(rotationFilters.filter(rotation.rotations, t));
@@ -104,14 +100,21 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}, smoo
       return { t, h: [0, hipsY, 0], r: flattenRotations(planted) };
     },
     calibrate(worldLandmarks, hands) {
-      const points = lastPoints ?? (worldLandmarks.length === LANDMARK_COUNT ? worldLandmarks.map(toCanonical) : null);
+      if(worldLandmarks.length!==LANDMARK_COUNT||!worldLandmarks.every(p=>[p.x,p.y,p.z].every(Number.isFinite)))
+        throw new Error('Calibration requires finite world landmarks.');
+      const points = worldLandmarks.map(toCanonical);
       const rawHands: HandPoints = {};
       for (const side of SIDES) {
         const h = hands?.[side];
-        if (h && h.length === HAND_LANDMARK_COUNT) rawHands[side] = h.map(toCanonical);
+        if(h && (h.length!==HAND_LANDMARK_COUNT||!h.every(p=>[p.x,p.y,p.z].every(Number.isFinite))))
+          throw new Error('Calibration requires finite hand landmarks.');
+        if(h)rawHands[side]=h.map(toCanonical);
       }
-      const handPoints = { ...rawHands, ...lastHands }; // prefer the filtered hands from the last solve
-      if (points) rotationState = calibrateRest(points, rotationState, handPoints);
+      rotationState=calibrateRest(points,rotationState,rawHands);
+      filter=new LandmarkFilter(filterParams);
+      handFilters={Left:new LandmarkFilter(filterParams),Right:new LandmarkFilter(filterParams)};
+      rotationFilters=new BoneRotationFilters(smoothingLevel);
+      jumpState=createJumpState();lastSolveTime=null;handLastSeen={};
     },
     setSmoothing(level) {
       smoothingLevel = level;
@@ -119,7 +122,6 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}, smoo
     },
     relaxFingers() {
       rotationState = relaxFingers(rotationState);
-      lastHands = {};
     },
     reset() {
       filter = new LandmarkFilter(filterParams);
@@ -127,8 +129,6 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}, smoo
       rotationState = createSolverState();
       rotationFilters = new BoneRotationFilters(smoothingLevel);
       jumpState = createJumpState();
-      lastPoints = null;
-      lastHands = {};
       lastSolveTime = null;
       handLastSeen = {};
     },
