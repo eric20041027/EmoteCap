@@ -1,7 +1,10 @@
 /**
  * Public motion-core API used by the web app. Import only from here.
  */
-import type { MotionFrame } from './contract';
+import {H0,type MotionFrame} from './contract';
+import {INACTIVE_UPPER_BODY,upperBodyLandmarks,type CaptureRegion} from './captureProfile';
+import {TrackingContinuity} from './trackingContinuity';
+import {IDENTITY} from './math';
 import { HAND_LANDMARK_COUNT, SIDES, type Side } from './hands';
 import { createJumpState, solveJumpLift } from './jump';
 import { LANDMARK_COUNT, toCanonical, type PoseLandmark } from './landmarks';
@@ -21,6 +24,7 @@ import {
 } from './solver';
 
 export * from './contract';
+export {activeDrivenBones,type CaptureRegion} from './captureProfile';
 export { makeClip, type ClipOptions } from './clip';
 export { fallbackSegments, motionEnergy, refineSegments } from './segments';
 export type { PoseLandmark } from './landmarks';
@@ -50,7 +54,7 @@ export interface PoseSolver {
 /**
  * Stateful wrapper: landmark filter -> rotation solver -> rotation filter -> foot planting -> grounding + jump lift.
  */
-export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}, smoothing: SmoothingLevel = 'medium'): PoseSolver {
+export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}, smoothing: SmoothingLevel = 'medium',region:CaptureRegion='full-body'): PoseSolver {
   let filter = new LandmarkFilter(filterParams);
   const createHandFilters=()=>({Left:new LandmarkFilter(filterParams,'coordinates'),Right:new LandmarkFilter(filterParams,'coordinates')});
   let handFilters = createHandFilters();
@@ -60,6 +64,7 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}, smoo
   let jumpState = createJumpState();
   let lastSolveTime: number | null = null;
   let handLastSeen: Partial<Record<Side, number>> = {};
+  let continuity=new TrackingContinuity();
 
   /** A hand that stays out of view stops freezing its last finger pose and eases into a resting hand. */
   const relaxMissingHands = (handPoints: HandPoints, t: number) => {
@@ -88,20 +93,28 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}, smoo
   return {
     solve(worldLandmarks, t, hands = {}, image) {
       if (!Number.isFinite(t)||t<0||!worldLandmarks || worldLandmarks.length !== LANDMARK_COUNT) return null;
-      const filtered = filter.filter(worldLandmarks, t);
+      const admitted=filter.filter(worldLandmarks,t);
+      const filtered = region==='upper-body'?upperBodyLandmarks(admitted):admitted;
       const points = filtered.map(toCanonical);
       const visibility = filtered.map((lm) => lm.visibility ?? 1);
       const handPoints = toHandPoints(hands, t);
       relaxMissingHands(handPoints, t);
       const rotation = solveRotations(points, visibility, rotationState, handPoints);
-      rotationState = rotation.state;
+      const continuous=continuity.apply(rotation.rotations,rotation.tracked,t);
+      rotationState = {...rotation.state,previous:continuous};
+      if(region==='upper-body') {
+        const rotations=rotationFilters.filter(continuous,t);
+        for(const bone of INACTIVE_UPPER_BODY)rotations[bone]=[...IDENTITY];
+        return {t,h:[0,H0,0],r:flattenRotations(rotations)};
+      }
       const jump = solveJumpLift(image, points, visibility, t, jumpState);
       jumpState = jump.state;
-      const planted = plantFeet(rotationFilters.filter(rotation.rotations, t));
+      const planted = plantFeet(rotationFilters.filter(continuous, t));
       const hipsY = groundedHipsHeight(planted) + jump.lift;
       return { t, h: [0, hipsY, 0], r: flattenRotations(planted) };
     },
     calibrate(worldLandmarks, hands) {
+      if(region==='upper-body'&&worldLandmarks.length===LANDMARK_COUNT)worldLandmarks=upperBodyLandmarks(worldLandmarks);
       if(worldLandmarks.length!==LANDMARK_COUNT||!worldLandmarks.every(p=>[p.x,p.y,p.z].every(Number.isFinite)))
         throw new Error('Calibration requires finite world landmarks.');
       const points = worldLandmarks.map(toCanonical);
@@ -117,6 +130,7 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}, smoo
       handFilters=createHandFilters();
       rotationFilters=new BoneRotationFilters(smoothingLevel);
       jumpState=createJumpState();lastSolveTime=null;handLastSeen={};
+      continuity=new TrackingContinuity();
     },
     setSmoothing(level) {
       smoothingLevel = level;
@@ -133,6 +147,7 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}, smoo
       jumpState = createJumpState();
       lastSolveTime = null;
       handLastSeen = {};
+      continuity=new TrackingContinuity();
     },
   };
 }

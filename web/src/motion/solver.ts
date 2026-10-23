@@ -280,7 +280,7 @@ export function solveRotations(
   visibility: readonly number[],
   state: SolverState,
   hands: HandPoints = {},
-): { rotations: Rotations; state: SolverState } {
+): { rotations: Rotations; state: SolverState; tracked:Partial<Record<DrivenBone,boolean>> } {
   const { frames, normals } = computeWorldFrames(points, state.normals);
   const isVisible = (indices: readonly number[]) => indices.every((i) => (visibility[i] ?? 0) >= MIN_VISIBILITY);
   const previousOf = (bone: DrivenBone): Quat => state.previous?.[bone] ?? IDENTITY;
@@ -351,7 +351,11 @@ export function solveRotations(
   for (const spec of LIMBS) {
     if (isVisible([spec.root, spec.joint, spec.end])) nextNormals[spec.limb] = normals[spec.limb];
   }
-  return { rotations, state: { ...state, previous: rotations, normals: nextNormals, fingerRelative } };
+  const tracked:Partial<Record<DrivenBone,boolean>>={};
+  for(const [bone,indices] of Object.entries(REQUIRED))tracked[bone as DrivenBone]=!!frames[bone as DrivenBone]&&isVisible(indices);
+  tracked.Spine=!!tracked.Hips&&!!tracked.Chest;tracked.Neck=!!tracked.Chest&&!!tracked.Head;
+  for(const side of SIDES)if(hands[side]&&palmFrame(hands[side]!)&&state.palmRest[side])tracked[`${side}Hand`]=true;
+  return { rotations, state: { ...state, previous: rotations, normals: nextNormals, fingerRelative },tracked };
 }
 
 /** Flatten rotations into the wire format (BONE_COUNT x 4 floats in DRIVEN_BONES order). */
