@@ -151,11 +151,11 @@ export async function collectVideoMeasurements(options:CollectionOptions):Promis
       throw new Error('Invalid source dimensions or duration');
     Object.assign(metadata,{width,height,durationS:duration});stage='model-setup-failed';
     const initializationStartedMs=clock();
-    models=await createLandmarkers('accurate',authorize,{reportDelegate:true});authorize();
+    const trackHands=metadataOptions.skeleton==='full';
+    models=await createLandmarkers('accurate',authorize,{trackHands,reportDelegate:true});authorize();
     Object.assign(metadata,{poseDelegate:models.poseDelegate??null,handDelegate:models.handDelegate??null,
       modelInitializationMs:clock()-initializationStartedMs,
       handModelAvailable:models.hands!==undefined});
-    const trackHands=metadataOptions.skeleton==='full';
     handPolicy=trackHands&&models.hands?'every-frame':'off';
     metadata.handPolicy=handPolicy;
     const detect=createFrameDetector(models,trackHands,authorize,true);

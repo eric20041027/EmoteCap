@@ -260,7 +260,7 @@ export function usePose(
         else {try {authorize();stream=value;}catch(error){stopStream(value);throw error;}}
         return value;
       });
-      const modelTask=createLandmarkers(quality,authorize,diagnostics?{reportDelegate:true}:undefined).then(value=>{
+      const modelTask=createLandmarkers(quality,authorize,{trackHands,reportDelegate:!!diagnostics}).then(value=>{
         if(disposed)closeLandmarkers(value);
         else {try {authorize();landmarkers=value;}catch(error){closeLandmarkers(value);throw error;}}
         return value;
@@ -289,7 +289,7 @@ export function usePose(
       disposed = true;
       release();
     };
-  }, [videoRef, attempt, quality, deviceId, enabled,processingConsent,diagnostics]);
+  }, [videoRef, attempt, quality, deviceId, enabled,processingConsent,diagnostics,trackHands]);
 
   return { ...status, fps, frameAspect: frame.aspect, cropped: frame.cropped, retry };
 }

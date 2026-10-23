@@ -100,10 +100,10 @@ export function useVideoImport(options: VideoImportOptions): VideoImport {
       const duration = await openVideoFile(file, video, signal);
       authorize();
       setAspect(video.videoWidth / video.videoHeight);
-      const landmarkers = await createLandmarkers('accurate',authorize);
+      const { trackHands, smoothing } = optionsRef.current;
+      const landmarkers = await createLandmarkers('accurate',authorize,{trackHands});
       try {
         authorize();
-        const { trackHands, smoothing } = optionsRef.current;
         const detect = createFrameDetector(landmarkers, trackHands,authorize);
         const frameSize = { width: video.videoWidth, height: video.videoHeight };
         const startedAt = performance.now();

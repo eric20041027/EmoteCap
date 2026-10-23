@@ -1,6 +1,6 @@
 # EmoteCap：獨立 3D 遊戲動作製作的核心設計提案
 
-日期：2026-10-23（America/New_York）。狀態：**供 owner 審閱的設計，尚未批准實作**。本文件承接原 M1–M5，不把待完成的實機／人員／權利門檻移除。
+日期：2026-10-23（America/New_York）。狀態：**owner 已批准進入分段計畫與實作**。本文件承接原 M1–M5，不把待完成的實機／人員／權利門檻移除。
 
 ## 使用者已明示的方向
 
@@ -83,4 +83,6 @@ R1–R4 由獲准設計衍生的 implementation plans 執行，先寫相應行�
 
 完整 [獨立審查](../reports/2026-10-23-independent-core-review.zh-TW.md) 及 [權利核對](../../redistribution-assessment-2026-10-23.zh-TW.md) 已具體列出證據。提案保留原架構、以四 presets 開始、上身先固定 pelvis／原地 root、Unity先override mask；這些是可修正的建議，不是冒稱 owner 已逐項批准。
 
-目前仍在詢問 owner 最想製作的遊戲動作與痛點。若尚未回答，先以通用 humanoid 動作製作為提案假設，不預先最佳化成某一款遊戲的 FPS 上身／近戰／跑跳專用產品。2026-10-23 的 fresh builder check 結果為「nothing important left」；這表示設計足供制定計畫，不代表 owner 已批准。交 owner 審閱完整方向後，再進 implementation plan。
+Owner 已指定揮手、比讚、開門為主要動作；目前困擾是捕捉精度低及不能只擷取上半身。2026-10-23 的 fresh builder check 結果為「nothing important left」；owner 隨後明確同意此設計並授權進入分段計畫與實作。優先建立上半身／手指及校正的可靠語意，不把通用即時直播或全引擎整合列為本輪核心。
+
+本輪沿用已選定 Native 執行方式；先以可獨立驗證的 capture foundation increment 落實 recorder buffer 與 detector opt-out，再接續 calibration／confidence、profiles／provenance、Unity mask 及 stage profiling。這是分段次序，不是刪除已批准的後續能力。
