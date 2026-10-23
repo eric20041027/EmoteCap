@@ -2,7 +2,7 @@ import {BODY_BONE_COUNT,DRIVEN_BONES,SKELETON,type DrivenBone,type Quat} from '.
 import {IDENTITY,quatConjugate,quatMultiply,quatSlerp} from './math';
 import type {Rotations} from './solver';
 const byName=new Map(SKELETON.map(b=>[b.name,b]));
-const parents=Object.fromEntries(DRIVEN_BONES.map(bone=>{
+export const DRIVEN_PARENTS=Object.fromEntries(DRIVEN_BONES.map(bone=>{
   let parent=byName.get(bone)?.parent??null;
   while(parent&&!DRIVEN_BONES.includes(parent as DrivenBone))parent=byName.get(parent)?.parent??null;
   return [bone,parent];
@@ -15,7 +15,7 @@ export class TrackingContinuity {
   apply(raw:Rotations,tracked:Partial<Record<DrivenBone,boolean>>,t:number):Rotations {
     const out={...raw},dt=this.time===null?0:Math.max(0,t-this.time);this.time=t;
     for(const bone of DRIVEN_BONES.slice(0,BODY_BONE_COUNT)) {
-      const parent=parents[bone],parentDelta=parent?out[parent]:IDENTITY;
+      const parent=DRIVEN_PARENTS[bone],parentDelta=parent?out[parent]:IDENTITY;
       if(tracked[bone])this.seen[bone]=t;
       else {
         const missing=t-(this.seen[bone]??Number.NEGATIVE_INFINITY);

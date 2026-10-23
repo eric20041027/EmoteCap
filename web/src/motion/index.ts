@@ -103,13 +103,13 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}, smoo
       const continuous=continuity.apply(rotation.rotations,rotation.tracked,t);
       rotationState = {...rotation.state,previous:continuous};
       if(region==='upper-body') {
-        const rotations=rotationFilters.filter(continuous,t);
+        const rotations=rotationFilters.filter(continuous,t,rotation.tracked);
         for(const bone of INACTIVE_UPPER_BODY)rotations[bone]=[...IDENTITY];
         return {t,h:[0,H0,0],r:flattenRotations(rotations)};
       }
       const jump = solveJumpLift(image, points, visibility, t, jumpState);
       jumpState = jump.state;
-      const planted = plantFeet(rotationFilters.filter(continuous, t));
+      const planted = plantFeet(rotationFilters.filter(continuous, t,rotation.tracked));
       const hipsY = groundedHipsHeight(planted) + jump.lift;
       return { t, h: [0, hipsY, 0], r: flattenRotations(planted) };
     },

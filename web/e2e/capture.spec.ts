@@ -71,6 +71,19 @@ test('upper-body preset calibrates and records without legs, locks settings and 
   await expect(page.getByText(/Capture: Upper body/)).toBeVisible();
 });
 
+test('recording countdown blocks camera calibration and keeps its original reference',async({page})=>{
+  await syntheticCapture(page);await page.goto('/');
+  await page.getByRole('checkbox',{name:'Allow MediaPipe performance and usage metrics'}).check();
+  await page.getByRole('button',{name:'Start camera',exact:true}).click();
+  const shortcut=page.locator('.camera__calibrate');await expect(shortcut).toBeVisible();
+  await page.getByRole('button',{name:'Record',exact:true}).click();
+  expect(await shortcut.isVisible()).toBe(false);
+  await expect(page.getByRole('button',{name:'Stop',exact:true})).toBeVisible();
+  await expect(page.getByText(/\d+ frames captured/)).toBeVisible();
+  await page.getByRole('button',{name:'Stop',exact:true}).click();await saved(page);
+  expect((await storedProject(page)).takes[0].provenance.calibration.state).toBe('not-captured');
+});
+
 test('upper-body video import preserves calibration and actual missing hand model metadata',async({page})=>{
   await syntheticCapture(page);await page.addInitScript(()=>{Reflect.set(window,'emoteHideLegs',true);});
   await page.route('**/src/import/videoSource.ts',route=>route.fulfill({contentType:'text/javascript',body:`

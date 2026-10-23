@@ -228,7 +228,8 @@ export default function App({cameraDiagnostics}:{cameraDiagnostics?:CameraDiagno
               cropped={pose.cropped}
               calibrated={calibration.isCalibrated}
               calibrationSecondsLeft={calibration.remaining}
-              onCalibrate={calibration.start}
+              calibrationDisabled={locked}
+              onCalibrate={()=>{if(!locked)calibration.start();}}
             />
           </div>
           {importState.phase !== 'idle' && (

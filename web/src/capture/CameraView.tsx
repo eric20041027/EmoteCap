@@ -25,6 +25,7 @@ interface CameraViewProps {
   /** Seconds left in the calibration countdown, or null when not calibrating. */
   calibrationSecondsLeft: number | null;
   onCalibrate: () => void;
+  calibrationDisabled?: boolean;
 }
 
 const CALIBRATE_TITLE =
@@ -34,7 +35,7 @@ const CALIBRATE_TITLE =
 export function CameraView(props: CameraViewProps) {
   const { videoRef, overlayRef, status, message, onRetry, showStepBackHint, recordingSeconds, aspect, cropped } = props;
   const calibrationSecondsLeft = props.calibrationSecondsLeft;
-  const showCalibrate = status === 'ready' && recordingSeconds === null && calibrationSecondsLeft === null;
+  const showCalibrate = !props.calibrationDisabled && status === 'ready' && recordingSeconds === null && calibrationSecondsLeft === null;
   const shape = { aspectRatio: String(aspect), '--aspect': aspect } as CSSProperties;
 
   return (
