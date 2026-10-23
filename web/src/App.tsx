@@ -26,7 +26,6 @@ import { useExportJobs } from './jobs/useExportJobs';
 import { JobPanel } from './jobs/JobPanel';
 import { useCloudSlice } from './cloud/useCloudSlice';
 import { CloudPanel } from './cloud/CloudPanel';
-import { takeDuration } from './record/take';
 import { useRecorder } from './record/useRecorder';
 import { useTakeVideo } from './take/useTakeVideo';
 import { ImportProgress } from './import/ImportProgress';
@@ -155,7 +154,7 @@ export default function App({cameraDiagnostics}:{cameraDiagnostics?:CameraDiagno
   useEffect(() => {
     if (pose.status === 'ready') void refreshCameras(); // device labels appear once permission is granted
   }, [pose.status, refreshCameras]);
-  const recordingSeconds = state.phase === 'recording' ? takeDuration(state.frames) : null;
+  const recordingSeconds = state.phase === 'recording' ? state.durationSeconds : null;
   const startCamera=()=>{if(locked||!processingConsent.allowed) return;setCameraGeneration(n=>n+1);setCameraEnabled(true);pose.retry();};
   const chooseProcessing=(allowed:boolean)=>{
     processingConsent.setAllowed(allowed);

@@ -6,6 +6,7 @@ import { addTake } from '../project/model';
 import { openProjectStore } from '../project/store';
 import { StudioSession } from './session';
 import { CaptureCheckpoint } from './checkpoint';
+import { RecorderSession } from '../record/recorderSession';
 
 const sessions:StudioSession[]=[],captures:CaptureCheckpoint[]=[];
 afterEach(()=>{captures.splice(0).forEach(c=>c.dispose());sessions.splice(0).forEach(s=>s.dispose());vi.useRealTimers();});
@@ -53,4 +54,14 @@ it('a failed capture finalizes its valid prefix as interrupted rather than compl
   const {studio}=await setup(),frames=[tposeFrame(0),tposeFrame(0.5)];
   const capture=new CaptureCheckpoint(studio,provenance(),()=>frames);captures.push(capture);capture.finish(frames,true);await studio.flush();
   expect(studio.getSnapshot().project.takes[0]).toMatchObject({status:'interrupted',frames});
+});
+it('reads unpublished recorder frames at checkpoints and includes the last frame on immediate stop',async()=>{
+  const {studio,db}=await setup(),recorder=new RecorderSession();recorder.arm();recorder.begin();
+  const capture=new CaptureCheckpoint(studio,provenance(),recorder.snapshotFrames);captures.push(capture);capture.start();
+  recorder.push(tposeFrame(100));recorder.push(tposeFrame(101));capture.checkpoint();await studio.flush();
+  expect(recorder.getSnapshot()).toMatchObject({phase:'recording',frameCount:0});
+  const prefix=(await db.load(studio.getSnapshot().project.id))!.takes[0].frames;expect(prefix).toHaveLength(2);
+  recorder.push(tposeFrame(102));recorder.stop();capture.finish(recorder.snapshotFrames());await studio.flush();
+  const frames=(await db.load(studio.getSnapshot().project.id))!.takes[0].frames;
+  expect(frames.map(f=>f.t)).toEqual([0,1,2]);expect(frames.slice(0,2)).toEqual(prefix);
 });

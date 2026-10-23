@@ -1,7 +1,6 @@
 import type { CalibrationMessage } from '../capture/useCalibration';
 import { ImportButton } from '../import/ImportButton';
 import { formatClock } from '../ui/format';
-import { takeDuration } from './take';
 import type { RecorderState } from './useRecorder';
 
 interface CaptureControlsProps {
@@ -33,8 +32,8 @@ export function CaptureControls(props: CaptureControlsProps) {
         </button>
         <div className="capture__live">
           <span className="rec-dot" aria-hidden />
-          <span className="capture__clock">{formatClock(takeDuration(state.frames))}</span>
-          <span className="dock__meta">{state.frames.length} frames captured</span>
+          <span className="capture__clock">{formatClock(state.durationSeconds)}</span>
+          <span className="dock__meta">{state.frameCount} frames captured</span>
         </div>
       </div>
     );
