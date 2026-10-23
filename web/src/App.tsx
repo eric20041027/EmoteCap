@@ -8,6 +8,7 @@ import { drawPoseOverlay } from './capture/drawPoseOverlay';
 import { ImportView } from './import/ImportView';
 import { useVideoImport } from './import/useVideoImport';
 import { useCalibration } from './capture/useCalibration';
+import { CalibrationWindow } from './capture/calibrationWindow';
 import { useCameraDevices } from './capture/useCameraDevices';
 import { SkeletonSelect } from './settings/SkeletonSelect';
 import { SmoothingSelect } from './settings/SmoothingSelect';
@@ -17,7 +18,7 @@ import { usePose, type CaptureQuality, type PoseResult } from './capture/usePose
 import { ChipToggle, LiveLinkToggle } from './live/LiveLinkToggle';
 import { useLiveLink } from './live/useLiveLink';
 import { LiveLinkPanel } from './live/LiveLinkPanel';
-import { createPoseSolver, tposeFrame, type MotionFrame, type PoseLandmark } from './motion/index';
+import { createPoseSolver, tposeFrame, type MotionFrame } from './motion/index';
 import { PreviewCanvas } from './preview/PreviewCanvas';
 import { CaptureControls } from './record/CaptureControls';
 import { ExportedFiles } from './record/ExportedFiles';
@@ -54,7 +55,6 @@ export default function App({cameraDiagnostics}:{cameraDiagnostics?:CameraDiagno
   const videoRef = useRef<HTMLVideoElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef<MotionFrame | null>(tposeFrame());
-  const latestWorldRef = useRef<PoseLandmark[] | null>(null);
   const studio = useStudioSession();
   const cloud=useCloudSlice(studio.session);
   const cameras = useCameraDevices();
@@ -72,9 +72,10 @@ export default function App({cameraDiagnostics}:{cameraDiagnostics?:CameraDiagno
   const [archiveBusy,setArchiveBusy]=useState(false);
   const skeleton = useSkeleton();
   const smoothing = useSmoothing();
-  const cameraKey=`${cameras.deviceId}:${quality}:${cameraGeneration}`;
+  const cameraKey=`${cameras.deviceId}:${quality}:${cameraGeneration}:${skeleton}:${crop}`;
   const solver=useMemo(()=>createPoseSolver(),[cameraKey]);
-  const calibration=useCalibration(solver,latestWorldRef,cameraKey);
+  const calibrationWindow=useMemo(()=>new CalibrationWindow(),[cameraKey]);
+  const calibration=useCalibration(solver,calibrationWindow,cameraKey);
   const existingFrames=studio.state.project.takes.filter(t=>t.status!=='recording').reduce((sum,t)=>sum+t.frames.length,0);
   const capacity=Math.max(0,Math.min(MAX_TAKE_FRAMES,MAX_PROJECT_FRAMES-existingFrames));
   const recorder=useRecorder(capacity);
@@ -128,7 +129,7 @@ export default function App({cameraDiagnostics}:{cameraDiagnostics?:CameraDiagno
   const handlePose = ({ landmarks, worldLandmarks, hands, frameSize, timestampMs }: PoseResult) => {
     if(!processingConsent.allowed)return;
     drawPoseOverlay(overlayRef.current, frameSize, landmarks, hands.image);
-    latestWorldRef.current = worldLandmarks ?? null;
+    calibrationWindow.observe({world:worldLandmarks,image:landmarks,hands:hands.world,aspect:frameSize.width/frameSize.height,arrivedMs:performance.now()});
     setHasPose(worldLandmarks !== undefined);
     setStepBack(needsStepBack(landmarks));
     const frame = solver.solve(worldLandmarks, timestampMs / 1000, hands.world, landmarks);
@@ -149,7 +150,7 @@ export default function App({cameraDiagnostics}:{cameraDiagnostics?:CameraDiagno
     calibrated:calibration.isCalibrated,liveLink:liveLink.enabled,mirrored:mirrorPreview,status:pose.status,
     allowed:processingAllowed&&cameraEnabled})),[cameraDiagnostics,cameraKey,quality,crop,skeleton,smoothing,isImporting,isReviewing,
       calibration.remaining,calibration.isCalibrated,state.phase,liveLink.enabled,mirrorPreview,pose.status,processingAllowed,cameraEnabled]);
-  useEffect(()=>{if(pose.status==='off') {latestWorldRef.current=null;setHasPose(false);}},[pose.status]);
+  useEffect(()=>{if(pose.status==='off') {calibrationWindow.reset();setHasPose(false);}},[pose.status,calibrationWindow]);
   const { refresh: refreshCameras } = cameras;
   useEffect(() => {
     if (pose.status === 'ready') void refreshCameras(); // device labels appear once permission is granted
@@ -164,7 +165,7 @@ export default function App({cameraDiagnostics}:{cameraDiagnostics?:CameraDiagno
       setCameraEnabled(false);calibration.cancel();importer.cancel();
       if(state.phase==='recording')recorder.stop();
       else if(state.phase==='countdown')recorder.discard();
-      latestWorldRef.current=null;setHasPose(false);
+      calibrationWindow.reset();setHasPose(false);
     }
   };
   const newTake=()=>{

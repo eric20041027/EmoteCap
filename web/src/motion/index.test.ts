@@ -5,6 +5,10 @@ import { quatFromAxisAngle } from './math';
 import { DEG, RIGHT_ARM_BELOW_SHOULDER, rotatePoints, toMediaPipe, tpose } from './poses.testutil';
 
 describe('createPoseSolver', () => {
+  it.each([NaN,Infinity,-1])('rejects invalid solver time %s without poisoning later valid frames',t=>{
+    const solver=createPoseSolver(),world=toMediaPipe(tpose());solver.solve(world,0);
+    expect(solver.solve(world,t)).toBeNull();expect(solver.solve(world,1)!.r.every(Number.isFinite)).toBe(true);
+  });
   it('uses the explicit calibration sample rather than an earlier solved pose',()=>{
     const rest=tpose(),other=rotatePoints(rest,RIGHT_ARM_BELOW_SHOULDER,rest[LM.rightShoulder],quatFromAxisAngle([0,0,1],-45*DEG));
     const solver=createPoseSolver();solver.solve(toMediaPipe(other),0);

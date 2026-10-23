@@ -2,7 +2,7 @@
  * Finding a T-pose in an imported video, from the 2D image landmarks: MediaPipe's 2D positions are reliable
  * where its 3D depth is not, and a T-pose is easy to judge head-on.
  */
-import type { NormalizedLandmark } from '@mediapipe/tasks-vision';
+import type { PoseLandmark } from '../motion/landmarks';
 
 type Point2 = [number, number];
 
@@ -31,7 +31,7 @@ function armOut(shoulder: Point2, elbow: Point2, wrist: Point2, outward: number,
  * Both arms straight out to the sides. `aspect` (frame width / height) turns normalized coordinates into
  * real proportions. Works on mirrored and un-mirrored videos alike.
  */
-export function isTPose(image: readonly NormalizedLandmark[] | undefined, aspect: number): boolean {
+export function isTPose(image: readonly PoseLandmark[] | undefined, aspect: number): boolean {
   if (!image || image.length <= POSE.rightHip) return false;
   const points = Object.values(POSE).map((index): Point2 | null => {
     const lm = image[index];

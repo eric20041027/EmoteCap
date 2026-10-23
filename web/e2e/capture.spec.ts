@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { tpose, toMediaPipe } from '../src/motion/poses.testutil';
+import { ARMS_DOWN_IMAGE } from '../src/import/testPoses';
 import { mediaRows, sample, saved, storedProject } from './helpers';
 const world=toMediaPipe(tpose());
 const image=world.map(p=>({x:0.5+p.x/2,y:0.95+p.y/2,z:0,visibility:1}));
@@ -39,8 +40,8 @@ async function syntheticCapture(page:import('@playwright/test').Page) {
   });
   await page.route('**/src/capture/landmarkers.ts',route=>route.fulfill({contentType:'text/javascript',body:`
     export class CaptureError extends Error {}
-    const world=${JSON.stringify(world)},image=${JSON.stringify(image)};
-    export async function createLandmarkers(){return {pose:{detectForVideo(){return {worldLandmarks:[world],landmarks:[image]}},close(){}},hands:undefined};}
+    const world=${JSON.stringify(world)},image=${JSON.stringify(image)},down=${JSON.stringify(ARMS_DOWN_IMAGE)};
+    export async function createLandmarkers(){return {pose:{detectForVideo(){return {worldLandmarks:[world],landmarks:[window.emoteArmsDown?down:image]}},close(){}},hands:undefined};}
     export function closeLandmarkers(value){value?.pose.close();value?.hands?.close();}
   `}));
   await page.route('**/api/health',route=>route.fulfill({json:{ok:true,blender:false}}));
@@ -73,6 +74,22 @@ test('hand intent restarts owned models and cleans late results after switching 
   await expect.poll(()=>page.evaluate(()=>Reflect.get(window,'captureModelsClosed'))).toBe(2);
   await permission.check();await expect(page.getByRole('button',{name:'Start camera',exact:true})).toBeVisible();
   expect(await page.evaluate(()=>Reflect.get(window,'captureModelIntents'))).toEqual([false,true]);
+});
+
+test('calibration requires a fresh stable T-pose and is invalidated by a new capture configuration',async({page})=>{
+  await syntheticCapture(page);await page.goto('/');
+  const permission=page.getByRole('checkbox',{name:'Allow MediaPipe performance and usage metrics'});
+  await permission.check();await page.getByRole('button',{name:'Start camera',exact:true}).click();
+  const calibrate=page.getByRole('button',{name:'Calibrate T-pose',exact:true});await expect(calibrate).toBeEnabled();
+  await calibrate.click();await expect(page.getByText('T-pose calibrated.',{exact:true})).toBeVisible({timeout:8000});
+  await page.getByLabel('Skeleton',{exact:true}).selectOption('body');await expect(calibrate).toBeEnabled();
+  await page.evaluate(()=>Reflect.set(window,'emoteArmsDown',true));await calibrate.click();
+  await expect(page.getByText('Face the camera with both arms straight out in a T-pose.',{exact:true})).toBeVisible({timeout:8000});
+  await page.evaluate(()=>{Reflect.set(window,'emoteArmsDown',false);document.querySelector('video')!.pause();});
+  await calibrate.click();await expect(page.getByText(/The pose is stale/)).toBeVisible({timeout:8000});
+  await calibrate.click();await permission.uncheck();
+  await expect(page.getByText('T-pose calibrated.',{exact:true})).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'Start camera',exact:true})).toBeVisible();
 });
 
 test('synthetic camera checkpoints and stop preserve earlier originals and bind video to the captured take',async({page})=>{

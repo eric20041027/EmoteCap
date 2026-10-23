@@ -85,7 +85,7 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}, smoo
 
   return {
     solve(worldLandmarks, t, hands = {}, image) {
-      if (!worldLandmarks || worldLandmarks.length !== LANDMARK_COUNT) return null;
+      if (!Number.isFinite(t)||t<0||!worldLandmarks || worldLandmarks.length !== LANDMARK_COUNT) return null;
       const filtered = filter.filter(worldLandmarks, t);
       const points = filtered.map(toCanonical);
       const visibility = filtered.map((lm) => lm.visibility ?? 1);
