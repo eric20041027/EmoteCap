@@ -5,13 +5,14 @@
 import type { Landmark, NormalizedLandmark } from '@mediapipe/tasks-vision';
 import type { TrackedHands } from '../capture/hands';
 import type { MotionFrame, PoseSolver } from '../motion/index';
+import type {CaptureRegion} from '../motion/captureProfile';
 import { holdFromStart, sampleTimes } from './frameTimes';
 import { firstHeldRun, isTPose } from './tpose';
 
 /** Error whose message is already user-facing. */
 export class ImportError extends Error {}
 
-export const NO_PERSON_MESSAGE = 'No person found in this video. Use a clip where one whole body is visible.';
+export const NO_PERSON_MESSAGE = 'No person found in this video. Keep the selected capture region clearly visible.';
 /** A frame the landmarkers fail on counts as empty; this many failures in a row means they are broken for good. */
 export const MAX_FAILED_FRAMES_IN_A_ROW = 10;
 /** A T-pose must last this many frames (about a quarter second) to count as the calibration pose. */
@@ -49,6 +50,7 @@ export interface ConvertProgress {
 }
 
 export interface ConvertSteps {
+  region?:CaptureRegion;
   /** Show the video frame at time t (seconds); resolves once it can be read. */
   seek: (t: number) => Promise<void>;
   /** Run the landmarkers on the frame currently shown; timestamps grow with every call. */
@@ -153,7 +155,7 @@ export async function convertVideo(duration: number, steps: ConvertSteps): Promi
     analysed.push({ t, detection });
     let frame:MotionFrame|null;
     try {
-      const isT = isTPose(detection.image, aspect);
+      const isT = isTPose(detection.image, aspect,steps.region);
       tposeFlags.push(isT);
       tposeRun = isT ? tposeRun + 1 : 0;
       if (!previewCalibrated && tposeRun === T_POSE_HOLD_FRAMES) {

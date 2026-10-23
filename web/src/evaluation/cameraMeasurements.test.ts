@@ -19,6 +19,12 @@ function ok(probe:CameraMeasurements,input:number,start:number,end:number,render
   if(render!==null)probe.rendered(frame,render);return frame;
 }
 describe('camera measurement receipts',()=>{
+  it('upper-body capture cannot qualify as the original full-body laptop candidate',()=>{
+    const {probe,setTime}=ready();probe.configure({...context,region:'upper-body'});
+    const input=metadata();input.classification='observed';probe.start(input);
+    ok(probe,0,1000,1010,1020,1);ok(probe,.1,1100,1110,1120,2);setTime(2000);probe.stop();
+    expect(probe.getSnapshot().result?.fast720pLaptopCandidate).toBe(false);
+  });
   it('requires the frame-loop digest and binds the new input identity definition',()=>{
     const missing=metadata();delete missing.sourceDigests.videoFrameLoop;
     expect(validCameraMetadata(missing)).toBe(false);

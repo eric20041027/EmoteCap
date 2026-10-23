@@ -26,6 +26,7 @@ export interface MeasurementEnvironment {
   kind:'desktop'|'laptop';os:string;cpu:string;gpu:string;browser:string;
 }
 export interface CollectionOptions {
+  region?:import('../motion/index').CaptureRegion;
   file:File;video:HTMLVideoElement;sourceCommit:string;environment:MeasurementEnvironment;
   classification:'synthetic'|'observed';skeleton:'full'|'body';smoothing:SmoothingLevel;
   warmupMs:number;localProcessingAuthorized:boolean;processingConsent:ProcessingConsent;signal?:AbortSignal;
@@ -56,10 +57,12 @@ function descriptor(value:unknown):value is string {
   return typeof value==='string'&&value.length>0&&value.length<=160&&!/[\x00-\x1f\/\\]/.test(value)
     &&!/(?<![A-Za-z])[A-Za-z]:/.test(value);
 }
-export function validCollectionMetadata(value:Pick<CollectionOptions,'sourceCommit'|'environment'|'classification'|'skeleton'|'smoothing'|'warmupMs'|'implementation'|'originalBuildId'>):boolean {
+export function validCollectionMetadata(value:Pick<CollectionOptions,'sourceCommit'|'environment'|'classification'|'skeleton'|'smoothing'|'warmupMs'|'implementation'|'originalBuildId'|'region'>):boolean {
   const environment=value.environment;
   const environmentKeys=['kind','os','cpu','gpu','browser'];
   return typeof value.sourceCommit==='string'&&/^[0-9a-f]{40}$/.test(value.sourceCommit)
+    &&(value.region===undefined||['full-body','upper-body'].includes(value.region))
+    &&(value.implementation!=='original'||(value.region??'full-body')==='full-body')
     &&(value.implementation===undefined||value.implementation==='current'||value.implementation==='original')
     &&(value.implementation==='original'?value.sourceCommit===ORIGINAL_COMMIT&&typeof value.originalBuildId==='string'&&/^[0-9a-f]{64}$/.test(value.originalBuildId):value.originalBuildId===undefined)
     &&['synthetic','observed'].includes(value.classification)&&['full','body'].includes(value.skeleton)
@@ -95,7 +98,7 @@ export async function collectVideoMeasurements(options:CollectionOptions):Promis
   const lease=processingConsent.lease();lease();signal?.throwIfAborted();
   const metadataOptions=structuredClone({sourceCommit:options.sourceCommit,environment:options.environment,
     classification:options.classification,skeleton:options.skeleton,smoothing:options.smoothing,warmupMs:options.warmupMs,
-    implementation:options.implementation??'current',originalBuildId:options.originalBuildId});
+    implementation:options.implementation??'current',originalBuildId:options.originalBuildId,region:options.region??'full-body'});
   if(!validCollectionMetadata(metadataOptions))throw new Error('The selected implementation metadata is invalid.');
   const runId=crypto.randomUUID();collectorActive=true;
   const controller=new AbortController();
@@ -164,7 +167,8 @@ export async function collectVideoMeasurements(options:CollectionOptions):Promis
       const conversionSteps:ConvertSteps={
         seek:async t=>{authorize();await seekTo(video,t,controller.signal);authorize();},
         detect:t=>{authorize();return detect(video,t);},
-        createSolver:()=>original?original.createPoseSolver({},metadataOptions.smoothing):createPoseSolver({},metadataOptions.smoothing),aspect:width/height,
+        region:metadataOptions.region,
+        createSolver:()=>original?original.createPoseSolver({},metadataOptions.smoothing):createPoseSolver({},metadataOptions.smoothing,metadataOptions.region),aspect:width/height,
         signal:controller.signal,now:clock,onAttempt:observe,
       };
       const result=original?await convertOriginalVideo(original,duration,conversionSteps):await convertVideo(duration,conversionSteps);
@@ -199,6 +203,7 @@ export async function collectVideoMeasurements(options:CollectionOptions):Promis
     if(attempts.some(event=>event.seekStartedMs<startedMs||event.finishedMs>finishedMs)){
       outcome='incomplete';reason='invalid-observation';
     }
+    else if(metadataOptions.region!=='full-body')reason='capture-region-not-qualified';
     else if(models?.poseDelegate!=='CPU'&&models?.poseDelegate!=='GPU')reason='delegate-unavailable';
     else if(attempts.some(event=>event.handTracking==='failed'))reason='hand-policy-changed';
     else if(handPolicy==='every-frame'&&models.handDelegate!=='CPU'&&models.handDelegate!=='GPU')reason='hand-delegate-unavailable';

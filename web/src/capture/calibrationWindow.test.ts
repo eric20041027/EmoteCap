@@ -7,6 +7,14 @@ function stable(window=new CalibrationWindow(),start=0) {
   for(let n=0;n<12;n++)window.observe(sample(start+n*40));return window;
 }
 describe('CalibrationWindow',()=>{
+  it('qualifies upper-body reference without hips or legs while full-body still rejects them',()=>{
+    const upper=new CalibrationWindow('upper-body'),full=new CalibrationWindow();
+    for(let n=0;n<12;n++) {
+      const input=sample(n*40);for(let i=23;i<33;i++){input.world[i]={x:NaN,y:NaN,z:NaN,visibility:0};input.image=input.image.map((p,j)=>j===i?{...p,visibility:0}:p);}
+      upper.observe(input);full.observe(input);
+    }
+    expect(upper.read(450).ok).toBe(true);expect(full.read(450).ok).toBe(false);
+  });
   it('qualifies a fresh stable T-pose and owns the chosen sample',()=>{
     const window=stable(),result=window.read(450);expect(result.ok).toBe(true);
     if(result.ok)expect(result.sample.world).toHaveLength(33);

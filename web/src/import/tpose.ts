@@ -3,6 +3,7 @@
  * where its 3D depth is not, and a T-pose is easy to judge head-on.
  */
 import type { PoseLandmark } from '../motion/landmarks';
+import type {CaptureRegion} from '../motion/captureProfile';
 
 type Point2 = [number, number];
 
@@ -31,9 +32,9 @@ function armOut(shoulder: Point2, elbow: Point2, wrist: Point2, outward: number,
  * Both arms straight out to the sides. `aspect` (frame width / height) turns normalized coordinates into
  * real proportions. Works on mirrored and un-mirrored videos alike.
  */
-export function isTPose(image: readonly PoseLandmark[] | undefined, aspect: number): boolean {
-  if (!image || image.length <= POSE.rightHip) return false;
-  const points = Object.values(POSE).map((index): Point2 | null => {
+export function isTPose(image: readonly PoseLandmark[] | undefined, aspect: number,region:CaptureRegion='full-body'): boolean {
+  if (!image || image.length <= (region==='upper-body'?POSE.rightWrist:POSE.rightHip)) return false;
+  const points = Object.values(POSE).filter(i=>region==='full-body'||i<POSE.leftHip).map((index): Point2 | null => {
     const lm = image[index];
     return (lm.visibility ?? 1) >= MIN_VISIBILITY ? [lm.x * aspect, lm.y] : null;
   });

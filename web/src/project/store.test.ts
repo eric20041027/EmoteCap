@@ -106,7 +106,7 @@ it('protects originals and rejects invalid input before replacing stored data',a
   const store=await open(), project=readyProject();await store.save(project,null);
   const bad=structuredClone(project);Object.assign(bad,{revision:project.revision+1});bad.takes[0].frames[0].h[1]=1.1;
   await expect(store.save(bad,project.revision)).rejects.toThrow(/original/i);
-  const raw=rawProject();Object.assign(raw,{schemaVersion:2});
+  const raw=rawProject();Object.assign(raw,{schemaVersion:3});
   await expect(store.save(raw,project.revision)).rejects.toBeInstanceOf(ProjectDataError);
   expect(await store.load(project.id)).toEqual(project);
 });

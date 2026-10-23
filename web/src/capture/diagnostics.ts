@@ -1,8 +1,9 @@
-import type {MotionFrame,SmoothingLevel} from '../motion/index';
+import type {MotionFrame,SmoothingLevel,CaptureRegion} from '../motion/index';
 import type {CaptureQuality} from './landmarkers';
 import type {CropMode} from './cropFrame';
 
 export interface CameraContext {
+  region?:CaptureRegion;
   cameraKey:string;quality:CaptureQuality;crop:CropMode;skeleton:'full'|'body';smoothing:SmoothingLevel;
   workflow:'live-preview'|'recording'|'paused';calibrated:boolean;liveLink:boolean;mirrored:boolean;
   status:'off'|'loading'|'ready'|'error';allowed:boolean;

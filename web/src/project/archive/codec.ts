@@ -51,7 +51,10 @@ export function decodeProject(blob:Blob,options:Options={}):Promise<{project:Pro
   return archiveOperation(options.signal,async signal=>{
     const limits=archiveLimits(options.limits),entries=await readZip(blob,limits,signal);
     const header=parseManifest(await parseArchiveJSON(entries.get('manifest.json')!,limits.manifestBytes,signal));
-    const original=parseProject(await parseArchiveJSON(entries.get(header.project)!,limits.jsonBytes,signal));
+    const raw=await parseArchiveJSON(entries.get(header.project)!,limits.jsonBytes,signal);
+    if(raw===null||typeof raw!=='object'||!('schemaVersion'in raw)||raw.schemaVersion!==header.projectSchema)
+      throw new ProjectArchiveError('invalid','Archive header and project schema do not match.');
+    const original=parseProject(raw);
     const sources=new Map<string,ArchiveMediaSource>(),referenced=new Set<string>();
     for(const row of header.media) {
       signal.throwIfAborted();const take=original.takes.find(t=>t.id===row.takeId), data=entries.get(row.path);

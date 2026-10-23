@@ -30,6 +30,12 @@ function bundle(){return{poseDelegate:'CPU',handDelegate:'CPU',
   hands:{detectForVideo:vi.fn(()=>({landmarks:[],worldLandmarks:[],handedness:[]}))}};}
 
 describe('owned video measurement collection',()=>{
+  it('retains upper-body observations without misclassifying them as a legacy comparable packet',async()=>{
+    const output=await collectVideoMeasurements({...options(),region:'upper-body'});
+    expect(output.finalFrames.length).toBeGreaterThan(0);expect(output.packet).toBeNull();
+    expect(output.reason).toBe('capture-region-not-qualified');expect(output.metadata.region).toBe('upper-body');
+    expect(deps.solver).toHaveBeenCalledWith({},'medium','upper-body');
+  });
   beforeEach(()=>{
     vi.restoreAllMocks();vi.resetAllMocks();deps.open.mockResolvedValue(.1);
     deps.seek.mockImplementation(async()=>{await new Promise(resolve=>setTimeout(resolve,2));});

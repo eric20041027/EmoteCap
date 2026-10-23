@@ -13,7 +13,7 @@ import { useCameraDevices } from './capture/useCameraDevices';
 import { SkeletonSelect } from './settings/SkeletonSelect';
 import { SmoothingSelect } from './settings/SmoothingSelect';
 import { setSmoothing, useSmoothing } from './settings/smoothing';
-import { setSkeleton, useSkeleton, type SkeletonMode } from './settings/skeleton';
+import { setCaptureProfile, useCaptureProfile } from './settings/skeleton';
 import { usePose, type CaptureQuality, type PoseResult } from './capture/usePose';
 import { ChipToggle, LiveLinkToggle } from './live/LiveLinkToggle';
 import { useLiveLink } from './live/useLiveLink';
@@ -70,11 +70,11 @@ export default function App({cameraDiagnostics}:{cameraDiagnostics?:CameraDiagno
   const [processingAllowed,setProcessingAllowed]=useState(false);
   const [cameraGeneration,setCameraGeneration]=useState(0);
   const [archiveBusy,setArchiveBusy]=useState(false);
-  const skeleton = useSkeleton();
+  const profile=useCaptureProfile(),{skeleton,region}=profile;
   const smoothing = useSmoothing();
-  const cameraKey=`${cameras.deviceId}:${quality}:${cameraGeneration}:${skeleton}:${crop}`;
-  const solver=useMemo(()=>createPoseSolver(),[cameraKey]);
-  const calibrationWindow=useMemo(()=>new CalibrationWindow(),[cameraKey]);
+  const cameraKey=`${cameras.deviceId}:${quality}:${cameraGeneration}:${skeleton}:${crop}:${region}`;
+  const solver=useMemo(()=>createPoseSolver({},smoothing,region),[cameraKey]);
+  const calibrationWindow=useMemo(()=>new CalibrationWindow(region),[cameraKey]);
   const calibration=useCalibration(solver,calibrationWindow,cameraKey);
   const existingFrames=studio.state.project.takes.filter(t=>t.status!=='recording').reduce((sum,t)=>sum+t.frames.length,0);
   const capacity=Math.max(0,Math.min(MAX_TAKE_FRAMES,MAX_PROJECT_FRAMES-existingFrames));
@@ -82,10 +82,6 @@ export default function App({cameraDiagnostics}:{cameraDiagnostics?:CameraDiagno
   const cameraVideo=useTakeVideo(videoRef,recorder.state.phase);
   useEffect(() => solver.setSmoothing(smoothing), [solver, smoothing]);
   useEffect(()=>{if(skeleton==='body') solver.relaxFingers();},[solver,skeleton]);
-  const chooseSkeleton = (mode: SkeletonMode) => {
-    setSkeleton(mode);
-    if (mode === 'body') solver.relaxFingers();
-  };
   const [hasPose, setHasPose] = useState(false);
   const [stepBack, setStepBack] = useState(true);
   const { state } = recorder;
@@ -97,13 +93,14 @@ export default function App({cameraDiagnostics}:{cameraDiagnostics?:CameraDiagno
     overlayRef: importOverlayRef,
     trackHands: skeleton === 'full',
     smoothing,
+    region,
     onFrame: (frame) => {
       frameRef.current = frame;
       if (liveLink.enabled) liveLink.send(frame);
     },
-    onDone: (frames,file,note)=>{
+    onDone: (frames,file,note,handsAvailable)=>{
       try {
-        const provenance=captureProvenance({quality:'accurate',skeleton,smoothing,calibrated:note.tone==='ok',note:note.text});
+        const provenance=captureProvenance({quality:'accurate',skeleton,region,handsAvailable,smoothing,calibrated:note.tone==='ok',note:note.text});
         studio.session.update(p=>addTake(p,{name:file.name.slice(0,120)||'Imported video',source:'video',provenance,frames}));
         studio.session.attachSource(studio.session.getSnapshot().project.activeTakeId!,{name:file.name.slice(0,120)||'source.video',blob:file});
         void studio.session.flush().catch(error=>studio.session.reportError(error));
@@ -114,9 +111,7 @@ export default function App({cameraDiagnostics}:{cameraDiagnostics?:CameraDiagno
   const isImporting = importState.phase !== 'idle';
   const activeTake=studio.state.project.takes.find(t=>t.id===studio.state.project.activeTakeId);
   const isReviewing=!!activeTake && activeTake.status!=='recording' && state.phase!=='recording' && state.phase!=='countdown' && !isImporting;
-  const capture=useCaptureProject(recorder,studio.session,captureProvenance({quality,skeleton,smoothing,calibrated:cameraEnabled&&calibration.isCalibrated}),cameraVideo);
   const capturing=state.phase==='recording'||state.phase==='countdown';
-  const locked=capturing||isImporting||capture.sourcePending||archiveBusy||studio.state.busy||studio.state.storage==='loading'||calibration.remaining!==null;
   const atCapacity=capacity===0||studio.state.project.takes.length>=MAX_TAKES;
   useEffect(()=>{
     const warn=(event:BeforeUnloadEvent)=>{
@@ -131,7 +126,7 @@ export default function App({cameraDiagnostics}:{cameraDiagnostics?:CameraDiagno
     drawPoseOverlay(overlayRef.current, frameSize, landmarks, hands.image);
     calibrationWindow.observe({world:worldLandmarks,image:landmarks,hands:hands.world,aspect:frameSize.width/frameSize.height,arrivedMs:performance.now()});
     setHasPose(worldLandmarks !== undefined);
-    setStepBack(needsStepBack(landmarks));
+    setStepBack(needsStepBack(landmarks,region));
     const frame = solver.solve(worldLandmarks, timestampMs / 1000, hands.world, landmarks);
     if (!frame) return;
     if (liveLink.enabled) liveLink.send(frame);
@@ -145,10 +140,12 @@ export default function App({cameraDiagnostics}:{cameraDiagnostics?:CameraDiagno
   // Importing pauses camera tracking (its models stay loaded) so the GPU works on the video alone and the two never
   // fight over the preview.
   const pose = usePose(videoRef, handlePose, quality, cameras.deviceId, skeleton === 'full', crop, isImporting||isReviewing, cameraEnabled&&processingAllowed,processingConsent,cameraDiagnostics);
-  useLayoutEffect(()=>observeCamera(cameraDiagnostics,sink=>sink.configure({cameraKey,quality,crop,skeleton,smoothing,
+  const capture=useCaptureProject(recorder,studio.session,captureProvenance({quality,skeleton,region,handsAvailable:pose.handsAvailable,smoothing,calibrated:cameraEnabled&&calibration.isCalibrated}),cameraVideo);
+  const locked=capturing||isImporting||capture.sourcePending||archiveBusy||studio.state.busy||studio.state.storage==='loading'||calibration.remaining!==null;
+  useLayoutEffect(()=>observeCamera(cameraDiagnostics,sink=>sink.configure({cameraKey,quality,crop,skeleton,region,smoothing,
     workflow:isImporting||isReviewing||calibration.remaining!==null||state.phase==='countdown'?'paused':state.phase==='recording'?'recording':'live-preview',
     calibrated:calibration.isCalibrated,liveLink:liveLink.enabled,mirrored:mirrorPreview,status:pose.status,
-    allowed:processingAllowed&&cameraEnabled})),[cameraDiagnostics,cameraKey,quality,crop,skeleton,smoothing,isImporting,isReviewing,
+    allowed:processingAllowed&&cameraEnabled})),[cameraDiagnostics,cameraKey,quality,crop,skeleton,region,smoothing,isImporting,isReviewing,
       calibration.remaining,calibration.isCalibrated,state.phase,liveLink.enabled,mirrorPreview,pose.status,processingAllowed,cameraEnabled]);
   useEffect(()=>{if(pose.status==='off') {calibrationWindow.reset();setHasPose(false);}},[pose.status,calibrationWindow]);
   const { refresh: refreshCameras } = cameras;
@@ -183,7 +180,7 @@ export default function App({cameraDiagnostics}:{cameraDiagnostics?:CameraDiagno
       <AppHeader>
         <StatusBar cameraStatus={pose.status} fps={pose.fps} hasPose={hasPose} server={server} />
         <fieldset disabled={locked} className="studio-settings" aria-label="Capture settings">
-        <SkeletonSelect value={skeleton} onChange={chooseSkeleton} />
+        <SkeletonSelect value={profile} onChange={setCaptureProfile} />
         <SmoothingSelect value={smoothing} onChange={setSmoothing} />
         <ChipToggle
           label={quality === 'accurate' ? 'Accurate' : 'Fast'}
@@ -218,6 +215,7 @@ export default function App({cameraDiagnostics}:{cameraDiagnostics?:CameraDiagno
           {/* Hidden, not unmounted, while importing: the camera stream stays attached to its <video>. */}
           <div hidden={isImporting}>
             <CameraView
+              region={region}
               videoRef={videoRef}
               overlayRef={overlayRef}
               status={pose.status}
@@ -270,6 +268,7 @@ export default function App({cameraDiagnostics}:{cameraDiagnostics?:CameraDiagno
         frameRef={frameRef} server={server} exporter={exporter} locked={locked} />:<section className="dock" aria-label="Recording">
         {isImporting?<ImportProgress state={importState} onCancel={importer.cancel} />:<fieldset className="studio-capture-controls" disabled={(atCapacity&&!capturing)||archiveBusy||studio.state.busy||studio.state.storage==='loading'}>
           <CaptureControls state={state.phase==='recorded'?{phase:'idle',notice:'Choose New take to capture another performance.'}:state}
+            region={region}
             canImport={processingAllowed} canRecord={processingAllowed&&cameraEnabled&&pose.status==='ready'&&state.phase==='idle'&&!atCapacity}
             isCalibrating={calibration.remaining!==null} calibrationMessage={calibration.message} onRecord={recorder.start} onStop={recorder.stop}
             onCancel={recorder.discard} onCalibrate={calibration.start} onImport={importer.start} importError={importState.error} />

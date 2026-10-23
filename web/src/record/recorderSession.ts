@@ -2,7 +2,7 @@ import type {MotionFrame} from '../motion/index';
 import {MAX_TAKE_FRAMES,MAX_TAKE_SECONDS} from '../project/types';
 import {parseFrames} from '../project/validation';
 
-export const EMPTY_TAKE_NOTICE='Nothing was captured. Make sure your whole body is in frame, then record again.';
+export const EMPTY_TAKE_NOTICE='Nothing was captured. Keep the selected capture region clearly visible, then record again.';
 export interface TakeNote {tone:'ok'|'warn';text:string}
 export type RecorderState=
   | {phase:'idle';notice?:string}

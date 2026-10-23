@@ -26,6 +26,7 @@ export interface PoseResult {
 export type PoseStatus = 'off' | 'loading' | 'ready' | 'error';
 
 export interface PoseTracker {
+  handsAvailable:boolean;
   status: PoseStatus;
   message: string;
   /** Detection rate, smoothed (EMA). */
@@ -98,6 +99,7 @@ export function usePose(
     message: enabled?LOADING_MESSAGE:'Camera is off.',
   });
   const [fps, setFps] = useState(0);
+  const [handsAvailable,setHandsAvailable]=useState(false);
   const [frame, setFrame] = useState({ aspect: 16 / 9, cropped: false });
   const [attempt, setAttempt] = useState(0);
   const onResultRef = useRef(onResult);
@@ -115,7 +117,7 @@ export function usePose(
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
   useEffect(() => {
-    if(!enabled) {setStatus({status:'off',message:'Camera is off.'});setFps(0);return;}
+    if(!enabled) {setStatus({status:'off',message:'Camera is off.'});setFps(0);setHandsAvailable(false);return;}
     const video = videoRef.current;
     if (!video) return;
     let disposed = false;
@@ -141,6 +143,7 @@ export function usePose(
       const message = error instanceof CaptureError ? error.message : `Pose tracking stopped: ${String(error)}`;
       console.error('Pose capture error:', error);
       setStatus({ status: 'error', message });
+      setHandsAvailable(false);
     };
 
     const runLoop = (active: Landmarkers) => {
@@ -217,6 +220,7 @@ export function usePose(
             handTracker.close();
             handTracker = undefined;
             active.hands=undefined;
+            setHandsAvailable(false);
             handState='unavailable';handFailed=true;
           }
         }
@@ -254,6 +258,7 @@ export function usePose(
 
     const start = async () => {
       setStatus({ status: 'loading', message: LOADING_MESSAGE });
+      setHandsAvailable(false);
       authorize=processingConsent.lease();authorize();
       const cameraTask=openCamera(deviceId,authorize).then(value=>{
         if(disposed)stopStream(value);
@@ -280,6 +285,7 @@ export function usePose(
       if (disposed || !landmarkers) return;
       authorize();
       setStatus({ status: 'ready', message: '' });
+      setHandsAvailable(!!landmarkers.hands);
       runLoop(landmarkers);
     };
 
@@ -291,5 +297,5 @@ export function usePose(
     };
   }, [videoRef, attempt, quality, deviceId, enabled,processingConsent,diagnostics,trackHands]);
 
-  return { ...status, fps, frameAspect: frame.aspect, cropped: frame.cropped, retry };
+  return { ...status, fps,handsAvailable, frameAspect: frame.aspect, cropped: frame.cropped, retry };
 }

@@ -1,6 +1,7 @@
 import type {HandLandmarks,PoseLandmark} from '../motion/index';
 import {LANDMARK_COUNT,LM} from '../motion/landmarks';
 import {isTPose} from '../import/tpose';
+import {upperBodyLandmarks,type CaptureRegion} from '../motion/captureProfile';
 
 interface Observation {world?:PoseLandmark[];image?:readonly PoseLandmark[];hands?:HandLandmarks;aspect:number;arrivedMs:number}
 interface Sample {world:PoseLandmark[];hands:HandLandmarks;arrivedMs:number}
@@ -11,6 +12,7 @@ const copy=(points:PoseLandmark[])=>points.map(p=>({...p}));
 
 /** Bounded consecutive observations; timestamps are host arrival time, not reusable video time. */
 export class CalibrationWindow {
+  constructor(private readonly region:CaptureRegion='full-body'){}
   private samples:Sample[]=[];
   private lastArrival:number|null=null;
   private reason='No fresh pose detected. Step into frame and try again.';
@@ -18,21 +20,23 @@ export class CalibrationWindow {
   reset(){this.samples=[];this.lastArrival=null;this.reason='No fresh pose detected. Step into frame and try again.';}
   private reject(reason:string){this.samples=[];this.reason=reason;}
   observe(input:Observation) {
-    const {world,image,arrivedMs,aspect}=input;
+    const {image,arrivedMs,aspect}=input;
+    const world=input.world?.length===LANDMARK_COUNT&&this.region==='upper-body'?upperBodyLandmarks(input.world):input.world;
+    const required=REQUIRED.filter(i=>this.region==='full-body'||i<LM.leftHip);
     if(!Number.isFinite(arrivedMs)||(this.lastArrival!==null&&arrivedMs<=this.lastArrival)) {
       this.reject('Hold the T-pose while fresh camera frames arrive.');return;
     }
     if(this.lastArrival!==null&&arrivedMs-this.lastArrival>150)this.samples=[];
     this.lastArrival=arrivedMs;
-    if(!world||world.length!==LANDMARK_COUNT||!world.every(finite)||REQUIRED.some(i=>(world[i].visibility??1)<0.5)) {
+    if(!world||world.length!==LANDMARK_COUNT||!world.every(finite)||required.some(i=>(world[i].visibility??1)<0.5)) {
       this.reject('Keep the required joints clearly visible; calibration confidence is too low.');return;
     }
-    if(!Number.isFinite(aspect)||aspect<=0||!image||!image.every(finite)||!isTPose(image,aspect)) {
+    if(!Number.isFinite(aspect)||aspect<=0||!image||!image.filter((_,i)=>this.region==='full-body'||i<LM.leftHip).every(finite)||!isTPose(image,aspect,this.region)) {
       this.reject('Face the camera with both arms straight out in a T-pose.');return;
     }
     this.reason='Hold the T-pose steadily for a moment, then try again.';
     const first=this.samples[0];
-    if(first&&REQUIRED.some(i=>Math.hypot(world[i].x-first.world[i].x,world[i].y-first.world[i].y,world[i].z-first.world[i].z)>0.035)) {
+    if(first&&required.some(i=>Math.hypot(world[i].x-first.world[i].x,world[i].y-first.world[i].y,world[i].z-first.world[i].z)>0.035)) {
       this.samples=[];this.reason='Hold still: the calibration pose was moving.';
     }
     const hands:HandLandmarks={};

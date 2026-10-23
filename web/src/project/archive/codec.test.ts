@@ -10,7 +10,7 @@ import { archiveLimits, HARD_LIMITS } from './limits';
 
 afterEach(()=>{vi.useRealTimers();vi.unstubAllGlobals();});
 const json=(value:unknown)=>new Blob([JSON.stringify(value)],{type:'application/json'});
-const manifest=()=>({format:'emotecap-archive',version:1,project:'project.json',projectSchema:1,contractVersion:2,media:[]});
+const manifest=()=>({format:'emotecap-archive',version:1,project:'project.json',projectSchema:2,contractVersion:2,media:[]});
 async function zipped(entries:readonly [string,Blob][],level=0,zip64=false,password?:string) {
   const writer=new ZipWriter(new BlobWriter(),{useWebWorkers:false,useCompressionStream:true,zip64});
   for(const [name,data] of entries) await writer.add(name,new BlobReader(data),{
@@ -21,6 +21,12 @@ async function zipped(entries:readonly [string,Blob][],level=0,zip64=false,passw
 async function ordinary(project:unknown=readyProject(),header:unknown=manifest(),extra:readonly [string,Blob][]=[]){
   return zipped([['manifest.json',json(header)],['project.json',json(project)],...extra]);
 }
+it('rejects mismatched schema declarations and migrates a matching legacy archive',async()=>{
+  const legacy={...readyProject(),schemaVersion:1};
+  await expect(decodeProject(await ordinary(legacy))).rejects.toMatchObject({kind:'invalid'});
+  const restored=await decodeProject(await ordinary(legacy,{...manifest(),projectSchema:1}));
+  expect(restored.project.schemaVersion).toBe(2);expect(restored.project.takes).toEqual(legacy.takes);
+});
 function central(bytes:Uint8Array,name:string) {
   const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength),decoder=new TextDecoder();
   for(let i=0;i+46<=bytes.length;i++) if(view.getUint32(i,true)===0x02014b50) {
@@ -90,7 +96,7 @@ it('recovers a recording checkpoint in a new namespace with exact original motio
 });
 
 const badManifests:[string,(header:ReturnType<typeof manifest>)=>void][]=[
-  ['unsupported version',h=>{h.version=2;}],['unsupported schema',h=>{h.projectSchema=2;}],
+  ['unsupported version',h=>{h.version=2;}],['unsupported schema',h=>{h.projectSchema=3;}],
   ['unsupported contract',h=>{h.contractVersion=1;}],['unknown credentials',h=>{Object.assign(h,{apiKey:'not-accepted'});}],
   ['wrong project path',h=>{h.project='../project.json';}],
 ];

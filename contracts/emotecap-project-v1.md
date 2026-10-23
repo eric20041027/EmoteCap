@@ -1,4 +1,4 @@
-# EmoteCap portable project format v1
+# EmoteCap portable project container v1 (project schemas1/2)
 
 File extension: `.emotecap`; MIME: `application/x-emotecap`. A project file is a standard ZIP, independent of the browser's IndexedDB recovery cache. The current motion contract remains [v2](motion-v1.md).
 
@@ -11,7 +11,7 @@ Exactly `manifest.json`, `project.json`, and zero to twenty `media/<take UUID>.s
   "format": "emotecap-archive",
   "version": 1,
   "project": "project.json",
-  "projectSchema": 1,
+  "projectSchema": 2,
   "contractVersion": 2,
   "media": []
 }
@@ -19,7 +19,13 @@ Exactly `manifest.json`, `project.json`, and zero to twenty `media/<take UUID>.s
 
 With media, each manifest item is exactly `{"takeId":"<UUID>","path":"media/<UUID>.source"}`. It must match a project take's media descriptor and an actual ZIP entry. Descriptors carry source name, video MIME type and exact byte size; filenames in the archive use UUIDs. Every included payload is referenced exactly once. JSON is strict UTF-8, validated as data, with unsupported versions/fields rejected. API keys and arbitrary credential fields are not project data.
 
-`project.json` contains the schema1 ProjectDocument defined in `web/src/project/types.ts`: project identity/revision/name/times/selection; identifiable takes; immutable motion frames and capture provenance; clip ranges/names/loops/descriptions; clip-edit revision and bounded undo history; optional media descriptors. It preserves finite numeric values, including signed zero encoded as `-0.0`.
+`project.json` contains the schema2 ProjectDocument defined in `web/src/project/types.ts`: project identity/revision/name/times/selection; identifiable takes; immutable motion frames and capture provenance; clip ranges/names/loops/descriptions; clip-edit revision and bounded undo history; optional media descriptors. It preserves finite numeric values, including signed zero encoded as `-0.0`.
+
+Readers accept matching archive/project schema1 or2; header/document mismatch is rejected before migration. Schema1 migrates only the document schema to2 in memory, preserving old take frames and provenance without injecting metadata. New backups write schema2; old readers reject them explicitly. Motion wire remains contract2 with192rotation values and valid52/22-bone Humanoid rigs.
+
+New takes record optional provenance `processing`: `{version:"indie-mocap-v1",region:"full-body"|"upper-body",root:"grounded-in-place"|"fixed-pelvis",hands:"off"|"available"|"unavailable"}`. Region/root must agree. Body skeleton requires hands off and no hand-model entry; full skeleton requires available/unavailable matching initial hand-model setup and its model list. These are model setup states, not a claim that hands were visible on every frame. Absence means legacy full-body semantics with the original skeleton/finger mapping. Schema1 cannot carry new processing metadata. Completed-take provenance remains immutable.
+
+Upper-body frames keep pelvis `[0,H0,0]`, suppress leg/jump/grounding observations and use the shoulder line plus canonical upright reference. This cannot reliably recover forward torso lean. Active driven channels are derived from the fixed bone list (upper41with fingers/11without; full48/18); export hierarchy remains52/22. Import/export does not shrink frame arrays or delete rig legs.
 
 ## Limits
 
@@ -49,7 +55,7 @@ Cancellation, timeout, malformed files, missing sources and size failures return
 
 ## Synthetic fixture and regeneration
 
-`fixtures/sample-project.emotecap` contains the shared synthetic right-arm motion, fixed take/clip identities and synthetic provenance, with no camera recording or source video. It is suitable for later no-camera onboarding and format acceptance; it is not evidence of physical tracking quality.
+`fixtures/sample-project.emotecap` is the preserved schema1 fixture containing shared synthetic right-arm motion, fixed take/clip identities and synthetic provenance, with no camera recording or source video. Opening it exercises migration; its bytes stay unchanged. It is not evidence of physical tracking quality. Explicit regeneration now writes a separate `sample-project-v2.emotecap`; the original onboarding fixture remains available.
 
 From `web/`, after installing the committed dev dependencies, regenerate using the existing Vitest/Vite resolver. PowerShell:
 

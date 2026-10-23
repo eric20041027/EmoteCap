@@ -5,6 +5,22 @@ import { provenance, rawProject, readyProject, type Mutable } from './testData';
 import { MAX_PROJECT_FRAMES, MAX_TAKE_FRAMES } from './types';
 import { assertOriginalTransition, parseProject, ProjectDataError } from './validation';
 
+it('migrates legacy schema1 without rewriting original take provenance or frames',()=>{
+  const legacy={...rawProject(),schemaVersion:1},before=JSON.stringify(legacy.takes);
+  const project=parseProject(legacy);expect(project.schemaVersion).toBe(2);
+  expect(JSON.stringify(project.takes)).toBe(before);expect(project.takes[0].provenance).not.toHaveProperty('processing');
+});
+it('accepts validated schema2 processing provenance and rejects inconsistent root/finger metadata',()=>{
+  const raw={...rawProject(),schemaVersion:2};
+  Object.assign(raw.takes[0].provenance,{processing:{version:'indie-mocap-v1',region:'upper-body',root:'fixed-pelvis',hands:'unavailable'}});
+  expect(parseProject(raw).takes[0].provenance.processing?.region).toBe('upper-body');
+  const badRoot=structuredClone(raw);Object.assign(badRoot.takes[0].provenance,{processing:{version:'indie-mocap-v1',region:'upper-body',root:'grounded-in-place',hands:'available'}});
+  expect(()=>parseProject(badRoot)).toThrow(/root|processing/i);
+  const badHand=structuredClone(raw);badHand.takes[0].provenance.skeleton='body';
+  expect(()=>parseProject(badHand)).toThrow(/hand|processing/i);
+  expect(()=>parseProject({...raw,schemaVersion:1})).toThrow(/schema/i);
+});
+
 it('roundtrips all provenance and draft edits with owned frozen data', () => {
   const raw=rawProject();
   raw.takes[0].clips[0].name='';
@@ -19,7 +35,7 @@ it('roundtrips all provenance and draft edits with owned frozen data', () => {
 });
 
 const badInputs: [string, (raw:ReturnType<typeof rawProject>)=>void][] = [
-  ['future schema',r=>Object.assign(r,{schemaVersion:2})],
+  ['future schema',r=>Object.assign(r,{schemaVersion:3})],
   ['old contract',r=>r.contractVersion=1],
   ['secret project field',r=>Object.assign(r,{apiKey:'private'})],
   ['secret provenance field',r=>Object.assign(r.takes[0].provenance,{geminiApiKey:'private'})],

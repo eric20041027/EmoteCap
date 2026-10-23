@@ -204,7 +204,7 @@ export class CameraMeasurements implements CameraDiagnostics {
       interactionSamplesCapped:run.interactionSamplesCapped,summary,
       fast720pLaptopCandidate:!!summary&&summary.inputIdentityAvailable&&run.metadata.classification==='observed'&&run.metadata.environment.kind==='laptop'
         &&summary.inputCounterProgress==='advancing'&&summary.renderedOutputCount>0
-        &&context.quality==='fast'&&context.crop==='none'&&run.setup.width===1280&&run.setup.height===720
+        &&(context.region??'full-body')==='full-body'&&context.quality==='fast'&&context.crop==='none'&&run.setup.width===1280&&run.setup.height===720
         &&run.setup.poseDelegate!==null&&(context.skeleton==='body'||(run.setup.handModelAvailable&&run.setup.handDelegate!==null))};
     this.run=null;this.pending=null;this.awaitingRender=null;this.publish(receipt);
   }

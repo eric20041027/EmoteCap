@@ -8,7 +8,7 @@ import { MAX_MEDIA_BYTES, MAX_TAKES } from './types';
 
 it('creates a versioned Unicode project with a stable identity', () => {
   const project = createProject('我的動畫', 1000);
-  expect(project).toMatchObject({format:'emotecap-project', schemaVersion:1,
+  expect(project).toMatchObject({format:'emotecap-project', schemaVersion:2,
     contractVersion:2, name:'我的動畫', revision:0, createdAt:1000,
     updatedAt:1000, activeTakeId:null, takes:[]});
   expect(project.id).toMatch(/^[0-9a-f-]{36}$/);

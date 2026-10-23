@@ -1,6 +1,6 @@
 import type { MotionFrame } from '../motion/contract';
 
-export const PROJECT_SCHEMA = 1;
+export const PROJECT_SCHEMA = 2;
 export const MAX_TAKES = 20;
 export const MAX_TAKE_FRAMES = 21601;
 export const MAX_PROJECT_FRAMES = 43202;
@@ -12,6 +12,10 @@ export const MAX_PROJECT_MEDIA_BYTES = 200 * 1024 * 1024;
 export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export interface TakeProvenance {
+  readonly processing?: {
+    readonly version:'indie-mocap-v1';readonly region:'full-body'|'upper-body';
+    readonly root:'fixed-pelvis'|'grounded-in-place';readonly hands:'off'|'available'|'unavailable';
+  };
   readonly appVersion: string;
   readonly contractVersion: number;
   readonly trackerVersion: string;

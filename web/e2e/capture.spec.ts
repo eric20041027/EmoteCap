@@ -41,11 +41,52 @@ async function syntheticCapture(page:import('@playwright/test').Page) {
   await page.route('**/src/capture/landmarkers.ts',route=>route.fulfill({contentType:'text/javascript',body:`
     export class CaptureError extends Error {}
     const world=${JSON.stringify(world)},image=${JSON.stringify(image)},down=${JSON.stringify(ARMS_DOWN_IMAGE)};
-    export async function createLandmarkers(){return {pose:{detectForVideo(){return {worldLandmarks:[world],landmarks:[window.emoteArmsDown?down:image]}},close(){}},hands:undefined};}
+    export async function createLandmarkers(){return {pose:{detectForVideo(){
+      const hide=points=>points.map((p,i)=>window.emoteHideLegs&&i>=23?{...p,x:NaN,y:NaN,z:NaN,visibility:0}:p);
+      return {worldLandmarks:[hide(world)],landmarks:[hide(window.emoteArmsDown?down:image)]};
+    },close(){}},hands:undefined};}
     export function closeLandmarkers(value){value?.pose.close();value?.hands?.close();}
   `}));
   await page.route('**/api/health',route=>route.fulfill({json:{ok:true,blender:false}}));
+  await page.route('**/api/export-jobs',route=>route.fulfill({json:{jobs:[]}}));
 }
+
+test('upper-body preset calibrates and records without legs, locks settings and restores its original profile',async({page})=>{
+  await syntheticCapture(page);await page.addInitScript(()=>{Reflect.set(window,'emoteHideLegs',true);});
+  await page.goto('/');const preset=page.getByLabel('Skeleton',{exact:true});
+  await expect(preset.locator('option')).toHaveCount(4);await preset.selectOption('upper-body');
+  await page.getByRole('checkbox',{name:'Allow MediaPipe performance and usage metrics'}).check();
+  await page.getByRole('button',{name:'Start camera',exact:true}).click();
+  const calibrate=page.getByRole('button',{name:'Calibrate T-pose',exact:true});await expect(calibrate).toBeEnabled();
+  await expect(page.getByText('Step back so your whole body is in frame',{exact:true})).toHaveCount(0);
+  await calibrate.click();await expect(preset).toBeDisabled();
+  await expect(page.getByText('T-pose calibrated.',{exact:true})).toBeVisible({timeout:8000});
+  await page.getByRole('button',{name:'Record',exact:true}).click();await expect(preset).toBeDisabled();
+  await expect(page.getByRole('button',{name:'Stop',exact:true})).toBeVisible();
+  await expect.poll(async()=>(await storedProject(page)).takes[0]?.frames.length??0,{timeout:10000}).toBeGreaterThan(5);
+  await expect(preset).toBeDisabled();await page.getByRole('button',{name:'Stop',exact:true}).click();await saved(page);
+  const original=(await storedProject(page)).takes[0];expect(original.provenance).toMatchObject({skeleton:'body',processing:{region:'upper-body',root:'fixed-pelvis',hands:'off'}});
+  expect(original.frames.every(f=>f.h[1]===0.95&&f.r[3]===1&&f.r.slice(0,3).every(v=>v===0))).toBe(true);
+  await page.reload();await saved(page);expect((await storedProject(page)).takes[0]).toEqual(original);
+  await expect(page.getByText(/Capture: Upper body/)).toBeVisible();
+});
+
+test('upper-body video import preserves calibration and actual missing hand model metadata',async({page})=>{
+  await syntheticCapture(page);await page.addInitScript(()=>{Reflect.set(window,'emoteHideLegs',true);});
+  await page.route('**/src/import/videoSource.ts',route=>route.fulfill({contentType:'text/javascript',body:`
+    export async function openVideoFile(file,video,signal){signal.throwIfAborted();Object.defineProperty(video,'videoWidth',{value:640});Object.defineProperty(video,'videoHeight',{value:480});return 1;}
+    export async function seekTo(video,t,signal){signal.throwIfAborted();}
+    export function closeVideoFile(){}
+  `}));
+  await page.goto('/');await page.getByLabel('Skeleton',{exact:true}).selectOption('upper-full');
+  await page.getByRole('checkbox',{name:'Allow MediaPipe performance and usage metrics'}).check();
+  await page.getByLabel('Video file to import').setInputFiles({name:'upper-owned.webm',mimeType:'video/webm',buffer:Buffer.from('synthetic source fixture')});
+  await expect(page.getByLabel('Take name')).toHaveValue('upper-owned.webm');await saved(page);
+  const take=(await storedProject(page)).takes[0];
+  expect(take.provenance).toMatchObject({skeleton:'full',processing:{region:'upper-body',root:'fixed-pelvis',hands:'unavailable'},calibration:{state:'captured'}});
+  expect(take.provenance.models.map(m=>m.file)).toEqual(['pose_landmarker_heavy.task']);
+  expect(take.frames.every(f=>f.r.length===192&&f.h[1]===0.95&&f.r[3]===1)).toBe(true);
+});
 
 test('hand intent restarts owned models and cleans late results after switching and withdrawal',async({page})=>{
   await syntheticCapture(page);
