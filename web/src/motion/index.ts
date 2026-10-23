@@ -52,7 +52,8 @@ export interface PoseSolver {
  */
 export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}, smoothing: SmoothingLevel = 'medium'): PoseSolver {
   let filter = new LandmarkFilter(filterParams);
-  let handFilters = { Left: new LandmarkFilter(filterParams), Right: new LandmarkFilter(filterParams) };
+  const createHandFilters=()=>({Left:new LandmarkFilter(filterParams,'coordinates'),Right:new LandmarkFilter(filterParams,'coordinates')});
+  let handFilters = createHandFilters();
   let rotationState = createSolverState();
   let rotationFilters = new BoneRotationFilters(smoothing);
   let smoothingLevel = smoothing;
@@ -78,7 +79,8 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}, smoo
     const out: HandPoints = {};
     for (const side of SIDES) {
       const h = hands[side];
-      if (h && h.length === HAND_LANDMARK_COUNT) out[side] = handFilters[side].filter(h, t).map(toCanonical);
+      if (h && h.length === HAND_LANDMARK_COUNT && h.every(p=>[p.x,p.y,p.z].every(Number.isFinite)))
+        out[side] = handFilters[side].filter(h, t).map(toCanonical);
     }
     return out;
   };
@@ -112,7 +114,7 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}, smoo
       }
       rotationState=calibrateRest(points,rotationState,rawHands);
       filter=new LandmarkFilter(filterParams);
-      handFilters={Left:new LandmarkFilter(filterParams),Right:new LandmarkFilter(filterParams)};
+      handFilters=createHandFilters();
       rotationFilters=new BoneRotationFilters(smoothingLevel);
       jumpState=createJumpState();lastSolveTime=null;handLastSeen={};
     },
@@ -125,7 +127,7 @@ export function createPoseSolver(filterParams: Partial<OneEuroParams> = {}, smoo
     },
     reset() {
       filter = new LandmarkFilter(filterParams);
-      handFilters = { Left: new LandmarkFilter(filterParams), Right: new LandmarkFilter(filterParams) };
+      handFilters = createHandFilters();
       rotationState = createSolverState();
       rotationFilters = new BoneRotationFilters(smoothingLevel);
       jumpState = createJumpState();

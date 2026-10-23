@@ -57,13 +57,15 @@ export class LandmarkFilter {
   private times: number[] = [];
   private readonly params: OneEuroParams;
 
-  constructor(params: Partial<OneEuroParams> = {}) {
+  constructor(params: Partial<OneEuroParams> = {},private readonly admission:'visibility'|'coordinates'='visibility') {
     this.params = { ...DEFAULT_ONE_EURO, ...params };
   }
 
   filter(landmarks: readonly PoseLandmark[], t: number): PoseLandmark[] {
     return landmarks.map((lm, i) => {
-      if(!Number.isFinite(t)||![lm.x,lm.y,lm.z,lm.visibility??1].every(Number.isFinite)||(lm.visibility??1)<0.5) {
+      // Hand XYZ outputs carry a placeholder visibility0, unlike pose confidence scores.
+      const visible=this.admission==='coordinates'||Number.isFinite(lm.visibility??1)&&(lm.visibility??1)>=0.5;
+      if(!Number.isFinite(t)||![lm.x,lm.y,lm.z].every(Number.isFinite)||!visible) {
         this.filters[i]=undefined;
         return {...(this.accepted[i]??{x:0,y:0,z:0}),visibility:0};
       }

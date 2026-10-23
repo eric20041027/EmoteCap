@@ -92,6 +92,35 @@ test('calibration requires a fresh stable T-pose and is invalidated by a new cap
   await expect(page.getByRole('button',{name:'Start camera',exact:true})).toBeVisible();
 });
 
+test('camera recording preserves SDK-shaped visibility-zero finger curls',async({page})=>{
+  await syntheticCapture(page);
+  await page.route('**/src/capture/landmarkers.ts',route=>route.fulfill({contentType:'text/javascript',body:`
+    import {tposeHandCanonical} from '/src/motion/hands.ts';
+    import {normalize,sub,quatFromAxisAngle} from '/src/motion/math.ts';
+    import {rotatePoints,toMediaPipe} from '/src/motion/poses.testutil.ts';
+    const hand=tposeHandCanonical('Left'),curl=quatFromAxisAngle(normalize(sub(hand[5],hand[17])),-Math.PI/3);
+    const handWorld=toMediaPipe(rotatePoints(hand,[6,7,8],hand[5],curl)).map(p=>({...p,visibility:0}));
+    const image=${JSON.stringify(image)};
+    const handImage=handWorld.map(()=>({x:image[15].x,y:image[15].y,z:0,visibility:0}));
+    handImage[5].y-=0.05;handImage[17].y+=0.05;
+    export class CaptureError extends Error{}
+    export async function createLandmarkers(){return {
+      pose:{detectForVideo(){return {worldLandmarks:[${JSON.stringify(world)}],landmarks:[image]}},close(){}},
+      hands:{detectForVideo(){return {worldLandmarks:[handWorld],landmarks:[handImage],handedness:[[{categoryName:'Left',score:1}]]}},close(){}}
+    };}
+    export function closeLandmarkers(value){value?.pose.close();value?.hands?.close();}
+  `}));
+  await page.goto('/');await page.getByRole('checkbox',{name:'Allow MediaPipe performance and usage metrics'}).check();
+  await page.getByRole('button',{name:'Start camera',exact:true}).click();
+  const record=page.getByRole('button',{name:'Record',exact:true});await expect(record).toBeEnabled();await record.click();
+  await expect(page.getByText(/\d+ frames captured/)).toBeVisible();
+  await expect.poll(()=>page.getByText(/\d+ frames captured/).textContent()).not.toMatch(/^0 frames/);
+  await page.getByRole('button',{name:'Stop',exact:true}).click();await saved(page);
+  const frames=(await storedProject(page)).takes[0].frames;
+  const offset=await page.evaluate(async()=>{const url='/src/motion/contract.ts';return (await import(url)).BONE_INDEX.LeftIndexProximal*4;});
+  expect(frames.length).toBeGreaterThan(0);expect(Math.abs(frames.at(-1)!.r[offset+3])).toBeCloseTo(Math.cos(Math.PI/6),2);
+});
+
 test('synthetic camera checkpoints and stop preserve earlier originals and bind video to the captured take',async({page})=>{
   await syntheticCapture(page);const original=await sample(page);
   await page.getByRole('button',{name:'New take',exact:true}).click();await page.getByRole('checkbox',{name:'Allow MediaPipe performance and usage metrics'}).check();await page.getByRole('button',{name:'Start camera',exact:true}).click();
