@@ -46,6 +46,35 @@ async function syntheticCapture(page:import('@playwright/test').Page) {
   await page.route('**/api/health',route=>route.fulfill({json:{ok:true,blender:false}}));
 }
 
+test('hand intent restarts owned models and cleans late results after switching and withdrawal',async({page})=>{
+  await syntheticCapture(page);
+  await page.addInitScript(()=>{
+    localStorage.setItem('emotecap.skeleton','body');
+    Reflect.set(window,'captureModelIntents',[]);Reflect.set(window,'captureModelsClosed',0);
+    Reflect.set(window,'captureModelResolvers',[]);
+  });
+  await page.route('**/src/capture/landmarkers.ts',route=>route.fulfill({contentType:'text/javascript',body:`
+    export class CaptureError extends Error {}
+    export function createLandmarkers(quality,authorize,options){
+      authorize();window.captureModelIntents.push(options.trackHands);
+      return new Promise(resolve=>window.captureModelResolvers.push(()=>resolve({pose:{close(){window.captureModelsClosed++}},hands:undefined})));
+    }
+    export function closeLandmarkers(value){value?.pose.close();value?.hands?.close();}
+  `}));
+  await page.goto('/');const permission=page.getByRole('checkbox',{name:'Allow MediaPipe performance and usage metrics'});
+  await permission.check();await page.getByRole('button',{name:'Start camera',exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>Reflect.get(window,'captureModelIntents'))).toEqual([false]);
+  await page.getByLabel('Skeleton',{exact:true}).selectOption('full');
+  await expect.poll(()=>page.evaluate(()=>Reflect.get(window,'captureModelIntents'))).toEqual([false,true]);
+  await page.evaluate(()=>(Reflect.get(window,'captureModelResolvers') as (()=>void)[])[0]());
+  await expect.poll(()=>page.evaluate(()=>Reflect.get(window,'captureModelsClosed'))).toBe(1);
+  await permission.uncheck();
+  await page.evaluate(()=>(Reflect.get(window,'captureModelResolvers') as (()=>void)[])[1]());
+  await expect.poll(()=>page.evaluate(()=>Reflect.get(window,'captureModelsClosed'))).toBe(2);
+  await permission.check();await expect(page.getByRole('button',{name:'Start camera',exact:true})).toBeVisible();
+  expect(await page.evaluate(()=>Reflect.get(window,'captureModelIntents'))).toEqual([false,true]);
+});
+
 test('synthetic camera checkpoints and stop preserve earlier originals and bind video to the captured take',async({page})=>{
   await syntheticCapture(page);const original=await sample(page);
   await page.getByRole('button',{name:'New take',exact:true}).click();await page.getByRole('checkbox',{name:'Allow MediaPipe performance and usage metrics'}).check();await page.getByRole('button',{name:'Start camera',exact:true}).click();
