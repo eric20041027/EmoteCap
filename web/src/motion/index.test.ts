@@ -1,10 +1,35 @@
 import { describe, expect, it } from 'vitest';
-import { BODY_BONE_COUNT, createPoseSolver, DRIVEN_BONES } from './index';
+import { BONE_INDEX, BODY_BONE_COUNT, createPoseSolver, DRIVEN_BONES } from './index';
+import {HAND_LM,tposeHandCanonical} from './hands';
 import { LM } from './landmarks';
-import { quatFromAxisAngle } from './math';
+import { normalize,sub,quatFromAxisAngle } from './math';
 import { DEG, RIGHT_ARM_BELOW_SHOULDER, rotatePoints, toMediaPipe, tpose } from './poses.testutil';
 
 describe('createPoseSolver', () => {
+  it('tracks SDK-shaped hand coordinates whose per-point visibility is zero',()=>{
+    const hand=tposeHandCanonical('Left');
+    const curl=quatFromAxisAngle(normalize(sub(hand[HAND_LM.indexMcp],hand[HAND_LM.pinkyMcp])),-60*DEG);
+    const points=toMediaPipe(rotatePoints(hand,[6,7,8],hand[5],curl));
+    const solve=(visibility:number)=>createPoseSolver().solve(toMediaPipe(tpose()),0,{Left:points.map(p=>({...p,visibility}))})!;
+    const actual=solve(0),reference=solve(1),offset=BONE_INDEX.LeftIndexProximal*4;
+    expect(actual.r.slice(offset,offset+4)).toEqual(reference.r.slice(offset,offset+4));
+    expect(Math.abs(actual.r[offset+3])).toBeCloseTo(Math.cos(Math.PI/6),3);
+  });
+  it.each([NaN,Infinity,-1])('rejects invalid solver time %s without poisoning later valid frames',t=>{
+    const solver=createPoseSolver(),world=toMediaPipe(tpose());solver.solve(world,0);
+    expect(solver.solve(world,t)).toBeNull();expect(solver.solve(world,1)!.r.every(Number.isFinite)).toBe(true);
+  });
+  it('uses the explicit calibration sample rather than an earlier solved pose',()=>{
+    const rest=tpose(),other=rotatePoints(rest,RIGHT_ARM_BELOW_SHOULDER,rest[LM.rightShoulder],quatFromAxisAngle([0,0,1],-45*DEG));
+    const solver=createPoseSolver();solver.solve(toMediaPipe(other),0);
+    solver.calibrate(toMediaPipe(rest));const frame=solver.solve(toMediaPipe(rest),1)!;
+    expect(Math.abs(frame.r[9*4+3])).toBeCloseTo(1,5);
+  });
+  it('rejects invalid explicit calibration instead of silently claiming a reference',()=>{
+    const solver=createPoseSolver();expect(()=>solver.calibrate([])).toThrow();
+    const invalid=toMediaPipe(tpose());invalid[LM.leftWrist].x=NaN;
+    expect(()=>solver.calibrate(invalid)).toThrow();
+  });
   it('returns null without a full set of landmarks', () => {
     expect(createPoseSolver().solve(undefined, 0)).toBeNull();
     expect(createPoseSolver().solve([], 0)).toBeNull();

@@ -27,7 +27,7 @@ export interface Landmarkers {
 
 /** Pose (GPU, falling back to CPU) and hand landmarkers in VIDEO mode, shared by the camera and video import. */
 export async function createLandmarkers(quality: CaptureQuality, authorize: SdkAuthorization,
-  options: {reportDelegate?:boolean} = {}): Promise<Landmarkers> {
+  options: {trackHands?:boolean;reportDelegate?:boolean} = {}): Promise<Landmarkers> {
   let pose: PoseLandmarker | undefined;
   let hands: HandLandmarker | undefined;
   let poseDelegate: 'GPU' | 'CPU' = 'GPU';
@@ -51,7 +51,7 @@ export async function createLandmarkers(quality: CaptureQuality, authorize: SdkA
       poseDelegate = 'CPU';
     }
     authorize();
-    try {
+    if(options.trackHands!==false) try {
       hands = await createHandLandmarker(fileset,authorize,
         options.reportDelegate ? delegate=>{handDelegate=delegate;} : undefined);
     } catch (handError) {

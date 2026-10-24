@@ -45,3 +45,5 @@ For Avatar/controller, expiry and source troubleshooting and actual test command
 ## License
 
 Project-owned package code, documentation and original samples are MIT licensed; see [LICENSE.md](LICENSE.md). [Dependency material](ThirdParty~/notice-inventory.json) retains the upstream terms and does not establish complete binary redistribution approval.
+
+For wave, thumbs-up and door gestures over an existing locomotion controller, see the independent [upper-body override-mask example](Documentation~/upper-body-layering.md). Its masks are created as new assets; the original whole-body Starter Rigs playback remains separate.

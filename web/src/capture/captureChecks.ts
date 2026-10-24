@@ -1,3 +1,4 @@
+import type {CaptureRegion} from '../motion/captureProfile';
 const LEFT_ANKLE = 27;
 const RIGHT_ANKLE = 28;
 const MIN_VISIBILITY = 0.5;
@@ -24,7 +25,8 @@ function errorText(error: unknown): string {
 }
 
 /** True when there is no pose, or both ankles are hidden: the actor should step back. */
-export function needsStepBack(landmarks: readonly { visibility?: number }[] | undefined): boolean {
+export function needsStepBack(landmarks: readonly { visibility?: number }[] | undefined,region:CaptureRegion='full-body'): boolean {
+  if(region==='upper-body')return !landmarks||[0,7,8,11,12,13,14,15,16].some(i=>(landmarks[i]?.visibility??0)<MIN_VISIBILITY);
   if (!landmarks || landmarks.length <= RIGHT_ANKLE) return true;
   const left = landmarks[LEFT_ANKLE].visibility ?? 0;
   const right = landmarks[RIGHT_ANKLE].visibility ?? 0;

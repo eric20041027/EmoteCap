@@ -68,6 +68,20 @@ describe('SDK setup admission and late owned cleanup',()=>{
 
 describe('opt-in actual pose delegate metadata',()=>{
   beforeEach(()=>{vi.resetAllMocks();sdk.fileset.mockResolvedValue({});sdk.pose.mockResolvedValue(model());sdk.hand.mockResolvedValue(model());});
+  it('body-only intent never initializes a hand model and reports no hand delegate',async()=>{
+    const result=await createLandmarkers('fast',admitted,{trackHands:false,reportDelegate:true});
+    expect(sdk.hand).not.toHaveBeenCalled();
+    expect(result.hands).toBeUndefined();expect(result.handDelegate).toBeNull();
+  });
+  it('body-only initialization still rejects withdrawal and closes its pose',async()=>{
+    const pending=deferred<ReturnType<typeof model>>(),pose=model(),p=permission();
+    sdk.pose.mockReturnValue(pending.promise);
+    const creation=createLandmarkers('fast',p.guard,{trackHands:false});
+    const failure=expect(creation).rejects.toBeInstanceOf(ProcessingConsentError);
+    await vi.waitFor(()=>expect(sdk.pose).toHaveBeenCalledTimes(1));
+    p.withdraw();pending.resolve(pose);await failure;
+    expect(pose.close).toHaveBeenCalledTimes(1);expect(sdk.hand).not.toHaveBeenCalled();
+  });
   it('reports successful GPU only when requested',async()=>{
     expect((await createLandmarkers('accurate',admitted,{reportDelegate:true})).poseDelegate).toBe('GPU');
     expect(await createLandmarkers('accurate',admitted)).not.toHaveProperty('poseDelegate');

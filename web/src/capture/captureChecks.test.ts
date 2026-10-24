@@ -6,6 +6,10 @@ function landmarksWithAnkles(left: number, right: number): { visibility: number 
 }
 
 describe('needsStepBack', () => {
+  it('upper-body framing needs no ankles but still asks for visible arms',()=>{
+    const points=landmarksWithAnkles(0,0);expect(needsStepBack(points,'upper-body')).toBe(false);
+    points[15].visibility=0;expect(needsStepBack(points,'upper-body')).toBe(true);
+  });
   it('asks to step back when there is no pose', () => {
     expect(needsStepBack(undefined)).toBe(true);
     expect(needsStepBack([])).toBe(true);

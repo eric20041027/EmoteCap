@@ -26,6 +26,7 @@ export function ProjectReview({take,session,frameRef,server,exporter,locked}:Pro
     <button type="button" className="btn btn--secondary" disabled={!take.frames.length} onClick={playback.playOriginal}>Play original take</button>
     {take.status==='interrupted' && <p className="studio-warning" role="status">Interrupted recording: this is the last saved prefix. Frames after that checkpoint were not recovered.</p>}
     <p className="studio-help">{take.provenance.calibration.note}</p>
+    <p className="studio-help">Capture: {take.provenance.processing?.region==='upper-body'?'Upper body · fixed pelvis':'Full body'} · {take.provenance.skeleton==='full'?'52-bone rig with fingers':'22-bone rig without fingers'}{take.provenance.processing?.hands==='unavailable'?' · Hand model unavailable; fingers were not tracked.':''}{!take.provenance.processing?' · Legacy capture settings.':''}</p>
     {take.frames.length===0 && <p className="studio-help">This checkpoint has no captured frames. Keep the project or start a new take.</p>}
     <fieldset disabled={locked}>
       <div className="studio-actions">

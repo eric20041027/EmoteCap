@@ -1,10 +1,11 @@
 import type { CalibrationMessage } from '../capture/useCalibration';
 import { ImportButton } from '../import/ImportButton';
 import { formatClock } from '../ui/format';
-import { takeDuration } from './take';
 import type { RecorderState } from './useRecorder';
+import type {CaptureRegion} from '../motion/captureProfile';
 
 interface CaptureControlsProps {
+  region?:CaptureRegion;
   state: Exclude<RecorderState, { phase: 'recorded' }>;
   canRecord: boolean;
   canImport?: boolean;
@@ -33,8 +34,8 @@ export function CaptureControls(props: CaptureControlsProps) {
         </button>
         <div className="capture__live">
           <span className="rec-dot" aria-hidden />
-          <span className="capture__clock">{formatClock(takeDuration(state.frames))}</span>
-          <span className="dock__meta">{state.frames.length} frames captured</span>
+          <span className="capture__clock">{formatClock(state.durationSeconds)}</span>
+          <span className="dock__meta">{state.frameCount} frames captured</span>
         </div>
       </div>
     );
@@ -74,7 +75,7 @@ export function CaptureControls(props: CaptureControlsProps) {
       <ImportButton disabled={isCalibrating||!props.canImport} onFile={props.onImport} />
       <div className="capture__text">
         <p className="capture__tip">
-          Stand 2–3 m back so your whole body is visible. Recording starts after a 3-second countdown.
+          {props.region==='upper-body'?'Keep your head, shoulders and both arms visible; legs can stay outside the frame. The pelvis stays fixed. Shoulder-only capture cannot reliably measure forward torso lean.':'Stand 2–3 m back so your whole body is visible.'} Recording starts after a 3-second countdown.
         </p>
         {calibrationMessage && (
           <p className={`capture__note capture__note--${calibrationMessage.tone}`}>{calibrationMessage.text}</p>

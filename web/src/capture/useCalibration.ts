@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState, type RefObject } from 'react';
-import type { PoseLandmark, PoseSolver } from '../motion/index';
+import { useCallback, useEffect, useState } from 'react';
+import type { PoseSolver } from '../motion/index';
+import type { CalibrationWindow } from './calibrationWindow';
 import { useCountdown } from '../ui/useCountdown';
 
 /** Long enough to walk back from the laptop and line up with the on-screen outline. */
@@ -21,16 +22,17 @@ export interface Calibration {
   cancel: () => void;
 }
 
-/** "Calibrate T-pose": 5-second countdown (with an outline to stand in), then hand the latest world landmarks to the solver. */
+/** Five-second setup countdown followed by a fresh stable, visible T-pose decision. */
 export function useCalibration(
   solver: PoseSolver,
-  latestWorldRef: RefObject<PoseLandmark[] | null>,
+  calibrationWindow: CalibrationWindow,
   /** The camera in use: MediaPipe's 3D bias depends on the camera angle, so each camera needs its own T-pose. */
   cameraKey = '',
 ): Calibration {
   const { remaining, start: startCountdown, cancel } = useCountdown();
   const [message, setMessage] = useState<CalibrationMessage | null>(null);
-  const [calibratedFor, setCalibratedFor] = useState<string | null>(null);
+  const [calibratedSolver, setCalibratedSolver] = useState<PoseSolver | null>(null);
+  useEffect(()=>()=>cancel(),[solver,calibrationWindow,cameraKey,cancel]);
 
   useEffect(() => {
     if (!message) return;
@@ -41,21 +43,21 @@ export function useCalibration(
   const start = useCallback(() => {
     setMessage(null);
     startCountdown(CALIBRATION_SECONDS, () => {
-      const landmarks = latestWorldRef.current;
-      if (!landmarks) {
-        setMessage({ tone: 'warn', text: 'No pose detected, calibration skipped. Step into frame and try again.' });
+      const decision=calibrationWindow.read(performance.now());
+      if (!decision.ok) {
+        setMessage({ tone: 'warn', text: decision.reason });
         return;
       }
       try {
-        solver.calibrate(landmarks);
-        setCalibratedFor(cameraKey);
+        solver.calibrate(decision.sample.world,decision.sample.hands);
+        setCalibratedSolver(solver);
         setMessage({ tone: 'ok', text: 'T-pose calibrated.' });
       } catch (error) {
         console.error('T-pose calibration failed:', error);
         setMessage({ tone: 'warn', text: 'Calibration failed. Hold a clear T-pose facing the camera and try again.' });
       }
     });
-  }, [cameraKey, latestWorldRef, solver, startCountdown]);
+  }, [calibrationWindow, solver, startCountdown]);
 
-  return { remaining, message, isCalibrated: calibratedFor === cameraKey, start, cancel };
+  return { remaining, message, isCalibrated: calibratedSolver === solver, start, cancel };
 }

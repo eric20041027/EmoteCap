@@ -13,7 +13,7 @@ export function useCaptureProject(recorder:Recorder,session:StudioSession,proven
     try {
       if(phase==='recording' && !capture.current) {
         const next=new CaptureCheckpoint(session,latest.current.provenance,()=>{
-          const state=latest.current.recorder.state;return state.phase==='recording'||state.phase==='recorded'?state.frames:[];
+          return latest.current.recorder.snapshotFrames();
         });capture.current=next;setTakeId(next.takeId);setSettled(false);attached.current=null;next.start();
       } else if(capture.current && phase!=='recording') {
         const state=latest.current.recorder.state,frames=state.phase==='recorded'?state.frames:[];

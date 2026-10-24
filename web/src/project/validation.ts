@@ -69,7 +69,7 @@ export function parseFrames(value: unknown, previousTime = -1): readonly MotionF
 }
 
 export function parseProvenance(value: unknown): TakeProvenance {
-  const p = fields(value, ['appVersion','contractVersion','trackerVersion','quality','skeleton','smoothing','calibration','models'], 'Capture provenance');
+  const p = fields(value, ['appVersion','contractVersion','trackerVersion','quality','skeleton','smoothing','calibration','models','processing'], 'Capture provenance');
   requireValue(p.contractVersion === CONTRACT_VERSION, 'Capture motion contract is unsupported.');
   const calibration = fields(p.calibration, ['state','note'], 'Calibration');
   const models = array(p.models, 3, 'Capture models').map(raw => {
@@ -80,7 +80,19 @@ export function parseProvenance(value: unknown): TakeProvenance {
     requireValue(/^[a-f0-9]{64}$/i.test(sha256), 'Model SHA256 is invalid.');
     return Object.freeze({ file, sha256 });
   });
-  return Object.freeze({ appVersion: text(p.appVersion, 40, 'App version'), contractVersion: CONTRACT_VERSION,
+  let processing:TakeProvenance['processing'];
+  if(Object.hasOwn(p,'processing')) {
+    const raw=fields(p.processing,['version','region','root','hands'],'Capture processing');
+    requireValue(raw.version==='indie-mocap-v1','Capture processing version is unsupported.');
+    const region=choice(raw.region,['full-body','upper-body'],'Capture region');
+    const root=choice(raw.root,['fixed-pelvis','grounded-in-place'],'Capture root');
+    const hands=choice(raw.hands,['off','available','unavailable'],'Hand model setup');
+    requireValue(root===(region==='upper-body'?'fixed-pelvis':'grounded-in-place'),'Capture processing root is inconsistent.');
+    const handModel=models.some(m=>m.file==='hand_landmarker.task');
+    requireValue(p.skeleton==='body'?hands==='off'&&!handModel:hands!=='off'&&handModel===(hands==='available'),'Capture processing hands/model/skeleton are inconsistent.');
+    processing=Object.freeze({version:'indie-mocap-v1',region,root,hands});
+  }
+  return Object.freeze({ ...(processing?{processing}:{}),appVersion: text(p.appVersion, 40, 'App version'), contractVersion: CONTRACT_VERSION,
     trackerVersion: text(p.trackerVersion, 40, 'Tracker version'),
     quality: choice(p.quality, ['fast','accurate','fixture'], 'Capture quality'),
     skeleton: choice(p.skeleton, ['full','body'], 'Skeleton'),
@@ -130,7 +142,7 @@ export function checkProjectLimits(takes: readonly ProjectTake[], projectId: str
 export function parseProject(value: unknown): ProjectDocument {
   const p = fields(value, ['format','schemaVersion','contractVersion','id','revision','name','createdAt','updatedAt','activeTakeId','takes'], 'Project');
   requireValue(p.format === 'emotecap-project', 'This is not an EmoteCap project.');
-  requireValue(p.schemaVersion === PROJECT_SCHEMA, 'Project schema is unsupported; this version supports schema 1.');
+  requireValue(p.schemaVersion === 1||p.schemaVersion === PROJECT_SCHEMA, 'Project schema is unsupported; this version reads schemas 1 and 2.');
   requireValue(p.contractVersion === CONTRACT_VERSION, 'Project motion contract is unsupported; this version supports contract v2.');
   const id = identity(p.id,'Project ID');
   const rawTakes = array(p.takes,MAX_TAKES,'Takes');
@@ -147,9 +159,11 @@ export function parseProject(value: unknown): ProjectDocument {
     const undo = array(t.undo,MAX_UNDO,'Undo history').map(list => parseClips(list,duration));
     const clipRevision = integer(t.clipRevision,'Clip revision');
     requireValue(clipRevision >= undo.length, 'Clip revision cannot precede undo history.');
+    const provenance=parseProvenance(t.provenance);
+    requireValue(p.schemaVersion!==1||!provenance.processing,'Processing provenance requires project schema 2.');
     return Object.freeze({id:identity(t.id,'Take ID'), name:text(t.name,120,'Take name'),
       source:choice(t.source,['camera','video','sample'],'Take source'),status,
-      createdAt:integer(t.createdAt,'Take created time'),provenance:parseProvenance(t.provenance),frames,
+      createdAt:integer(t.createdAt,'Take created time'),provenance,frames,
       clips:parseClips(t.clips,duration),clipRevision,undo:Object.freeze(undo),media:parseMedia(t.media)});
   });
   checkProjectLimits(takes,id);

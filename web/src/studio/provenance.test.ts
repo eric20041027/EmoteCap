@@ -2,6 +2,11 @@ import { expect, it } from 'vitest';
 import assets from '../../scripts/mediapipe-assets.json';
 import lock from '../../package-lock.json';
 import { captureProvenance, TRACKER_VERSION } from './provenance';
+it('records region, fixed root and actual unavailable hand model without changing the export skeleton',()=>{
+  const p=captureProvenance({quality:'fast',skeleton:'full',smoothing:'low',calibrated:false,region:'upper-body',handsAvailable:false});
+  expect(p.processing).toEqual({version:'indie-mocap-v1',region:'upper-body',root:'fixed-pelvis',hands:'unavailable'});
+  expect(p.skeleton).toBe('full');expect(p.models.map(m=>m.file)).toEqual(['pose_landmarker_full.task']);
+});
 it('records selected pinned model hashes and the actual known calibration state',()=>{
   const p=captureProvenance({quality:'fast',skeleton:'full',smoothing:'low',calibrated:false});
   expect(p.models.map(m=>m.file)).toEqual(['pose_landmarker_full.task','hand_landmarker.task']);

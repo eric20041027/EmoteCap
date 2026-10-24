@@ -32,8 +32,8 @@
     "@vitejs/plugin-react": "^6.1.1",
     "fake-indexeddb": "6.2.5",
     "typescript": "^7.0.2",
-    "vite": "^8.3.1",
-    "vitest": "^5.0.2"
+    "vite": "8.3.3",
+    "vitest": "5.0.3"
   },
   "engines": {
     "node": ">=24.19.0 <25",

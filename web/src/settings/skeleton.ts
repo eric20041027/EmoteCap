@@ -1,38 +1,26 @@
-import { useSyncExternalStore } from 'react';
-
-/** full: body + fingers (52 exported bones, hand tracking on). body: body only (22 bones, no hand model). */
-export type SkeletonMode = 'full' | 'body';
-
-const STORAGE_KEY = 'emotecap.skeleton';
-const listeners = new Set<() => void>();
-
-function readSaved(): SkeletonMode {
+import {useSyncExternalStore} from 'react';
+import type {CaptureRegion} from '../motion/captureProfile';
+export type SkeletonMode='full'|'body';
+export interface CaptureProfile {region:CaptureRegion;skeleton:SkeletonMode}
+const listeners=new Set<()=>void>();
+function readSaved():CaptureProfile {
   try {
-    return window.localStorage.getItem(STORAGE_KEY) === 'body' ? 'body' : 'full';
-  } catch {
-    return 'full';
+    const saved=JSON.parse(window.localStorage.getItem('emotecap.capture-profile')??'null') as Partial<CaptureProfile>|null;
+    if(saved&&['full-body','upper-body'].includes(saved.region??'')&&['full','body'].includes(saved.skeleton??''))return {region:saved.region!,skeleton:saved.skeleton!};
+    return {region:'full-body',skeleton:window.localStorage.getItem('emotecap.skeleton')==='body'?'body':'full'};
   }
+  catch{return {region:'full-body',skeleton:'full'};}
 }
-
-let current: SkeletonMode = readSaved();
-
-export const currentSkeleton = (): SkeletonMode => current;
-
-export function setSkeleton(mode: SkeletonMode): void {
-  current = mode;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, mode);
-  } catch {
-    // Storage blocked: the choice lasts for this page only.
-  }
-  listeners.forEach((listener) => listener());
+let current=readSaved();
+export const currentProfile=():CaptureProfile=>current;
+export const currentSkeleton=():SkeletonMode=>current.skeleton;
+export function setCaptureProfile(profile:CaptureProfile):void {
+  current={...profile};
+  try {window.localStorage.setItem('emotecap.capture-profile',JSON.stringify(current));}
+  catch {/* Storage blocked: this page retains the choice. */}
+  listeners.forEach(listener=>listener());
 }
-
-function subscribe(listener: () => void): () => void {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-
-export function useSkeleton(): SkeletonMode {
-  return useSyncExternalStore(subscribe, currentSkeleton);
-}
+export function setSkeleton(skeleton:SkeletonMode):void {setCaptureProfile({...current,skeleton});}
+function subscribe(listener:()=>void){listeners.add(listener);return ()=>{listeners.delete(listener);};}
+export function useSkeleton():SkeletonMode{return useSyncExternalStore(subscribe,currentSkeleton);}
+export function useCaptureProfile():CaptureProfile{return useSyncExternalStore(subscribe,currentProfile);}

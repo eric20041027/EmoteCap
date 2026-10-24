@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { tpose, toMediaPipe } from '../src/motion/poses.testutil';
+import { ARMS_DOWN_IMAGE } from '../src/import/testPoses';
 import { mediaRows, sample, saved, storedProject } from './helpers';
 const world=toMediaPipe(tpose());
 const image=world.map(p=>({x:0.5+p.x/2,y:0.95+p.y/2,z:0,visibility:1}));
@@ -39,12 +40,140 @@ async function syntheticCapture(page:import('@playwright/test').Page) {
   });
   await page.route('**/src/capture/landmarkers.ts',route=>route.fulfill({contentType:'text/javascript',body:`
     export class CaptureError extends Error {}
-    const world=${JSON.stringify(world)},image=${JSON.stringify(image)};
-    export async function createLandmarkers(){return {pose:{detectForVideo(){return {worldLandmarks:[world],landmarks:[image]}},close(){}},hands:undefined};}
+    const world=${JSON.stringify(world)},image=${JSON.stringify(image)},down=${JSON.stringify(ARMS_DOWN_IMAGE)};
+    export async function createLandmarkers(){return {pose:{detectForVideo(){
+      const hide=points=>points.map((p,i)=>window.emoteHideLegs&&i>=23?{...p,x:NaN,y:NaN,z:NaN,visibility:0}:p);
+      return {worldLandmarks:[hide(world)],landmarks:[hide(window.emoteArmsDown?down:image)]};
+    },close(){}},hands:undefined};}
     export function closeLandmarkers(value){value?.pose.close();value?.hands?.close();}
   `}));
   await page.route('**/api/health',route=>route.fulfill({json:{ok:true,blender:false}}));
+  await page.route('**/api/export-jobs',route=>route.fulfill({json:{jobs:[]}}));
 }
+
+test('upper-body preset calibrates and records without legs, locks settings and restores its original profile',async({page})=>{
+  await syntheticCapture(page);await page.addInitScript(()=>{Reflect.set(window,'emoteHideLegs',true);});
+  await page.goto('/');const preset=page.getByLabel('Skeleton',{exact:true});
+  await expect(preset.locator('option')).toHaveCount(4);await preset.selectOption('upper-body');
+  await page.getByRole('checkbox',{name:'Allow MediaPipe performance and usage metrics'}).check();
+  await page.getByRole('button',{name:'Start camera',exact:true}).click();
+  const calibrate=page.getByRole('button',{name:'Calibrate T-pose',exact:true});await expect(calibrate).toBeEnabled();
+  await expect(page.getByText('Step back so your whole body is in frame',{exact:true})).toHaveCount(0);
+  await calibrate.click();await expect(preset).toBeDisabled();
+  await expect(page.getByText('T-pose calibrated.',{exact:true})).toBeVisible({timeout:8000});
+  await page.getByRole('button',{name:'Record',exact:true}).click();await expect(preset).toBeDisabled();
+  await expect(page.getByRole('button',{name:'Stop',exact:true})).toBeVisible();
+  await expect.poll(async()=>(await storedProject(page)).takes[0]?.frames.length??0,{timeout:10000}).toBeGreaterThan(5);
+  await expect(preset).toBeDisabled();await page.getByRole('button',{name:'Stop',exact:true}).click();await saved(page);
+  const original=(await storedProject(page)).takes[0];expect(original.provenance).toMatchObject({skeleton:'body',processing:{region:'upper-body',root:'fixed-pelvis',hands:'off'}});
+  expect(original.frames.every(f=>f.h[1]===0.95&&f.r[3]===1&&f.r.slice(0,3).every(v=>v===0))).toBe(true);
+  await page.reload();await saved(page);expect((await storedProject(page)).takes[0]).toEqual(original);
+  await expect(page.getByText(/Capture: Upper body/)).toBeVisible();
+});
+
+test('recording countdown blocks camera calibration and keeps its original reference',async({page})=>{
+  await syntheticCapture(page);await page.goto('/');
+  await page.getByRole('checkbox',{name:'Allow MediaPipe performance and usage metrics'}).check();
+  await page.getByRole('button',{name:'Start camera',exact:true}).click();
+  const shortcut=page.locator('.camera__calibrate');await expect(shortcut).toBeVisible();
+  await page.getByRole('button',{name:'Record',exact:true}).click();
+  expect(await shortcut.isVisible()).toBe(false);
+  await expect(page.getByRole('button',{name:'Stop',exact:true})).toBeVisible();
+  await expect(page.getByText(/\d+ frames captured/)).toBeVisible();
+  await page.getByRole('button',{name:'Stop',exact:true}).click();await saved(page);
+  expect((await storedProject(page)).takes[0].provenance.calibration.state).toBe('not-captured');
+});
+
+test('upper-body video import preserves calibration and actual missing hand model metadata',async({page})=>{
+  await syntheticCapture(page);await page.addInitScript(()=>{Reflect.set(window,'emoteHideLegs',true);});
+  await page.route('**/src/import/videoSource.ts',route=>route.fulfill({contentType:'text/javascript',body:`
+    export async function openVideoFile(file,video,signal){signal.throwIfAborted();Object.defineProperty(video,'videoWidth',{value:640});Object.defineProperty(video,'videoHeight',{value:480});return 1;}
+    export async function seekTo(video,t,signal){signal.throwIfAborted();}
+    export function closeVideoFile(){}
+  `}));
+  await page.goto('/');await page.getByLabel('Skeleton',{exact:true}).selectOption('upper-full');
+  await page.getByRole('checkbox',{name:'Allow MediaPipe performance and usage metrics'}).check();
+  await page.getByLabel('Video file to import').setInputFiles({name:'upper-owned.webm',mimeType:'video/webm',buffer:Buffer.from('synthetic source fixture')});
+  await expect(page.getByLabel('Take name')).toHaveValue('upper-owned.webm');await saved(page);
+  const take=(await storedProject(page)).takes[0];
+  expect(take.provenance).toMatchObject({skeleton:'full',processing:{region:'upper-body',root:'fixed-pelvis',hands:'unavailable'},calibration:{state:'captured'}});
+  expect(take.provenance.models.map(m=>m.file)).toEqual(['pose_landmarker_heavy.task']);
+  expect(take.frames.every(f=>f.r.length===192&&f.h[1]===0.95&&f.r[3]===1)).toBe(true);
+});
+
+test('hand intent restarts owned models and cleans late results after switching and withdrawal',async({page})=>{
+  await syntheticCapture(page);
+  await page.addInitScript(()=>{
+    localStorage.setItem('emotecap.skeleton','body');
+    Reflect.set(window,'captureModelIntents',[]);Reflect.set(window,'captureModelsClosed',0);
+    Reflect.set(window,'captureModelResolvers',[]);
+  });
+  await page.route('**/src/capture/landmarkers.ts',route=>route.fulfill({contentType:'text/javascript',body:`
+    export class CaptureError extends Error {}
+    export function createLandmarkers(quality,authorize,options){
+      authorize();window.captureModelIntents.push(options.trackHands);
+      return new Promise(resolve=>window.captureModelResolvers.push(()=>resolve({pose:{close(){window.captureModelsClosed++}},hands:undefined})));
+    }
+    export function closeLandmarkers(value){value?.pose.close();value?.hands?.close();}
+  `}));
+  await page.goto('/');const permission=page.getByRole('checkbox',{name:'Allow MediaPipe performance and usage metrics'});
+  await permission.check();await page.getByRole('button',{name:'Start camera',exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>Reflect.get(window,'captureModelIntents'))).toEqual([false]);
+  await page.getByLabel('Skeleton',{exact:true}).selectOption('full');
+  await expect.poll(()=>page.evaluate(()=>Reflect.get(window,'captureModelIntents'))).toEqual([false,true]);
+  await page.evaluate(()=>(Reflect.get(window,'captureModelResolvers') as (()=>void)[])[0]());
+  await expect.poll(()=>page.evaluate(()=>Reflect.get(window,'captureModelsClosed'))).toBe(1);
+  await permission.uncheck();
+  await page.evaluate(()=>(Reflect.get(window,'captureModelResolvers') as (()=>void)[])[1]());
+  await expect.poll(()=>page.evaluate(()=>Reflect.get(window,'captureModelsClosed'))).toBe(2);
+  await permission.check();await expect(page.getByRole('button',{name:'Start camera',exact:true})).toBeVisible();
+  expect(await page.evaluate(()=>Reflect.get(window,'captureModelIntents'))).toEqual([false,true]);
+});
+
+test('calibration requires a fresh stable T-pose and is invalidated by a new capture configuration',async({page})=>{
+  await syntheticCapture(page);await page.goto('/');
+  const permission=page.getByRole('checkbox',{name:'Allow MediaPipe performance and usage metrics'});
+  await permission.check();await page.getByRole('button',{name:'Start camera',exact:true}).click();
+  const calibrate=page.getByRole('button',{name:'Calibrate T-pose',exact:true});await expect(calibrate).toBeEnabled();
+  await calibrate.click();await expect(page.getByText('T-pose calibrated.',{exact:true})).toBeVisible({timeout:8000});
+  await page.getByLabel('Skeleton',{exact:true}).selectOption('body');await expect(calibrate).toBeEnabled();
+  await page.evaluate(()=>Reflect.set(window,'emoteArmsDown',true));await calibrate.click();
+  await expect(page.getByText('Face the camera with both arms straight out in a T-pose.',{exact:true})).toBeVisible({timeout:8000});
+  await page.evaluate(()=>{Reflect.set(window,'emoteArmsDown',false);document.querySelector('video')!.pause();});
+  await calibrate.click();await expect(page.getByText(/The pose is stale/)).toBeVisible({timeout:8000});
+  await calibrate.click();await permission.uncheck();
+  await expect(page.getByText('T-pose calibrated.',{exact:true})).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'Start camera',exact:true})).toBeVisible();
+});
+
+test('camera recording preserves SDK-shaped visibility-zero finger curls',async({page})=>{
+  await syntheticCapture(page);
+  await page.route('**/src/capture/landmarkers.ts',route=>route.fulfill({contentType:'text/javascript',body:`
+    import {tposeHandCanonical} from '/src/motion/hands.ts';
+    import {normalize,sub,quatFromAxisAngle} from '/src/motion/math.ts';
+    import {rotatePoints,toMediaPipe} from '/src/motion/poses.testutil.ts';
+    const hand=tposeHandCanonical('Left'),curl=quatFromAxisAngle(normalize(sub(hand[5],hand[17])),-Math.PI/3);
+    const handWorld=toMediaPipe(rotatePoints(hand,[6,7,8],hand[5],curl)).map(p=>({...p,visibility:0}));
+    const image=${JSON.stringify(image)};
+    const handImage=handWorld.map(()=>({x:image[15].x,y:image[15].y,z:0,visibility:0}));
+    handImage[5].y-=0.05;handImage[17].y+=0.05;
+    export class CaptureError extends Error{}
+    export async function createLandmarkers(){return {
+      pose:{detectForVideo(){return {worldLandmarks:[${JSON.stringify(world)}],landmarks:[image]}},close(){}},
+      hands:{detectForVideo(){return {worldLandmarks:[handWorld],landmarks:[handImage],handedness:[[{categoryName:'Left',score:1}]]}},close(){}}
+    };}
+    export function closeLandmarkers(value){value?.pose.close();value?.hands?.close();}
+  `}));
+  await page.goto('/');await page.getByRole('checkbox',{name:'Allow MediaPipe performance and usage metrics'}).check();
+  await page.getByRole('button',{name:'Start camera',exact:true}).click();
+  const record=page.getByRole('button',{name:'Record',exact:true});await expect(record).toBeEnabled();await record.click();
+  await expect(page.getByText(/\d+ frames captured/)).toBeVisible();
+  await expect.poll(()=>page.getByText(/\d+ frames captured/).textContent()).not.toMatch(/^0 frames/);
+  await page.getByRole('button',{name:'Stop',exact:true}).click();await saved(page);
+  const frames=(await storedProject(page)).takes[0].frames;
+  const offset=await page.evaluate(async()=>{const url='/src/motion/contract.ts';return (await import(url)).BONE_INDEX.LeftIndexProximal*4;});
+  expect(frames.length).toBeGreaterThan(0);expect(Math.abs(frames.at(-1)!.r[offset+3])).toBeCloseTo(Math.cos(Math.PI/6),2);
+});
 
 test('synthetic camera checkpoints and stop preserve earlier originals and bind video to the captured take',async({page})=>{
   await syntheticCapture(page);const original=await sample(page);

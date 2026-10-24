@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { drawPoseOverlay } from '../capture/drawPoseOverlay';
 import { CaptureError, closeLandmarkers, createLandmarkers } from '../capture/landmarkers';
-import { createPoseSolver, type MotionFrame, type SmoothingLevel } from '../motion/index';
+import { createPoseSolver, type MotionFrame, type SmoothingLevel,type CaptureRegion } from '../motion/index';
 import type { TakeNote } from '../record/useRecorder';
 import { ImportError, convertVideo, type ConvertedVideo } from './convertVideo';
 import { createFrameDetector } from './detectFrame';
@@ -28,10 +28,11 @@ export interface VideoImportOptions {
   overlayRef: RefObject<HTMLCanvasElement | null>;
   trackHands: boolean;
   smoothing: SmoothingLevel;
+  region?:CaptureRegion;
   /** Every solved frame as soon as it is solved (3D preview, Live Link). */
   onFrame: (frame: MotionFrame) => void;
   /** The finished take (frames timed in video seconds), its source file, and how it was calibrated. */
-  onDone: (frames: MotionFrame[], video: File, note: TakeNote) => void;
+  onDone: (frames: MotionFrame[], video: File, note: TakeNote,handsAvailable:boolean) => void;
 }
 
 const IDLE: ImportState = { phase: 'idle' };
@@ -95,23 +96,24 @@ export function useVideoImport(options: VideoImportOptions): VideoImport {
       picked.authorize();
     };
 
-    const run = async (): Promise<ConvertedVideo> => {
+    const run = async (): Promise<ConvertedVideo&{handsAvailable:boolean}> => {
       authorize();
       const duration = await openVideoFile(file, video, signal);
       authorize();
       setAspect(video.videoWidth / video.videoHeight);
-      const landmarkers = await createLandmarkers('accurate',authorize);
+      const { trackHands, smoothing,region } = optionsRef.current;
+      const landmarkers = await createLandmarkers('accurate',authorize,{trackHands});
       try {
         authorize();
-        const { trackHands, smoothing } = optionsRef.current;
         const detect = createFrameDetector(landmarkers, trackHands,authorize);
         const frameSize = { width: video.videoWidth, height: video.videoHeight };
         const startedAt = performance.now();
         let publishedAt = 0;
-        return await convertVideo(duration, {
+        const converted=await convertVideo(duration, {
+          region,
           seek: async(t) => {authorize();await seekTo(video,t,signal);authorize();},
           detect: (timestampMs) => detect(video, timestampMs),
-          createSolver: () => createPoseSolver({}, smoothing),
+          createSolver: () => createPoseSolver({}, smoothing,region),
           aspect: frameSize.width / frameSize.height,
           signal,
           onProgress: ({ done, total, frame, detection }) => {
@@ -124,18 +126,19 @@ export function useVideoImport(options: VideoImportOptions): VideoImport {
             setState({ phase: 'converting', fileName: file.name, done, total, startedAt });
           },
         });
+        return {...converted,handsAvailable:!!landmarkers.hands};
       } finally {
         closeLandmarkers(landmarkers);
       }
     };
 
     void run().then(
-      ({ frames, calibratedAt }) => {
+      ({ frames, calibratedAt,handsAvailable }) => {
         if (!active()) return;
         authorize();
         setPicked(null);
         setState(IDLE);
-        optionsRef.current.onDone(frames, file, calibrationNote(calibratedAt));
+        optionsRef.current.onDone(frames, file, calibrationNote(calibratedAt),handsAvailable);
       },
     ).catch((error: unknown) => {
         if (!active()) return;

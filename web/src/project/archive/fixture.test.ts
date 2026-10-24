@@ -13,7 +13,7 @@ it('opens the committed synthetic sample with the shared right-arm motion',async
   const bytes=Uint8Array.from(await readFile(fixtureURL));
   const sample=await decodeProject(new Blob([bytes]));
   const motion=JSON.parse(await readFile(motionURL,'utf8')) as {frames:unknown[]};
-  expect(sample.project).toMatchObject({schemaVersion:1,contractVersion:2,name:'EmoteCap sample'});
+  expect(sample.project).toMatchObject({schemaVersion:2,contractVersion:2,name:'EmoteCap sample'});
   expect(sample.project.takes[0]).toMatchObject({id:'10000000-0000-4000-8000-000000000002',source:'sample',
     status:'complete',provenance:{quality:'fixture',models:[],calibration:{state:'synthetic'}},media:null});
   expect(sample.project.takes[0].frames).toEqual(motion.frames);

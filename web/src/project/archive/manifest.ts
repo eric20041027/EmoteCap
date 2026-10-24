@@ -5,7 +5,7 @@ import { ProjectArchiveError } from './limits';
 
 export interface ArchiveManifest {
   readonly format:'emotecap-archive';readonly version:1;readonly project:'project.json';
-  readonly projectSchema:typeof PROJECT_SCHEMA;readonly contractVersion:number;
+  readonly projectSchema:1|typeof PROJECT_SCHEMA;readonly contractVersion:number;
   readonly media:readonly {readonly takeId:string;readonly path:string}[];
 }
 export function mediaPath(id:string):string {return `media/${identity(id,'Media take ID')}.source`;}
@@ -17,7 +17,7 @@ export function allowedPath(name:string):boolean {
 export function parseManifest(value:unknown):ArchiveManifest {
   const m=fields(value,['format','version','project','projectSchema','contractVersion','media'],'Archive manifest');
   if(m.format!=='emotecap-archive' || m.version!==1 || m.project!=='project.json'
-    || m.projectSchema!==PROJECT_SCHEMA || m.contractVersion!==CONTRACT_VERSION) {
+    || (m.projectSchema!==1&&m.projectSchema!==PROJECT_SCHEMA) || m.contractVersion!==CONTRACT_VERSION) {
     throw new ProjectArchiveError('invalid','Unsupported project archive format, version, or motion contract.');
   }
   if(!Array.isArray(m.media) || m.media.length>MAX_TAKES || Object.keys(m.media).length!==m.media.length) {
@@ -33,6 +33,6 @@ export function parseManifest(value:unknown):ArchiveManifest {
     ids.add(takeId.toLowerCase());paths.add(row.path.toLowerCase());
     return Object.freeze({takeId,path:row.path});
   });
-  return Object.freeze({format:'emotecap-archive',version:1,project:'project.json',projectSchema:PROJECT_SCHEMA,
+  return Object.freeze({format:'emotecap-archive',version:1,project:'project.json',projectSchema:m.projectSchema,
     contractVersion:CONTRACT_VERSION,media:Object.freeze(media)});
 }

@@ -3,8 +3,10 @@ import './CameraView.css';
 import { formatClock } from '../ui/format';
 import { CalibrationGuide } from './CalibrationGuide';
 import type { PoseStatus } from './usePose';
+import type {CaptureRegion} from '../motion/captureProfile';
 
 interface CameraViewProps {
+  region?:CaptureRegion;
   videoRef: RefObject<HTMLVideoElement | null>;
   overlayRef: RefObject<HTMLCanvasElement | null>;
   status: PoseStatus;
@@ -23,16 +25,17 @@ interface CameraViewProps {
   /** Seconds left in the calibration countdown, or null when not calibrating. */
   calibrationSecondsLeft: number | null;
   onCalibrate: () => void;
+  calibrationDisabled?: boolean;
 }
 
 const CALIBRATE_TITLE =
-  "Hold a T-pose for 3 seconds so the character's head and posture match yours. Redo it after moving the camera.";
+  "Hold a clear, stable T-pose through the five-second countdown. Redo it after moving the camera.";
 
 /** Mirrored webcam feed with the pose overlay, loading/error covers, REC badge, calibration prompt and framing hint. */
 export function CameraView(props: CameraViewProps) {
   const { videoRef, overlayRef, status, message, onRetry, showStepBackHint, recordingSeconds, aspect, cropped } = props;
   const calibrationSecondsLeft = props.calibrationSecondsLeft;
-  const showCalibrate = status === 'ready' && recordingSeconds === null && calibrationSecondsLeft === null;
+  const showCalibrate = !props.calibrationDisabled && status === 'ready' && recordingSeconds === null && calibrationSecondsLeft === null;
   const shape = { aspectRatio: String(aspect), '--aspect': aspect } as CSSProperties;
 
   return (
@@ -49,7 +52,7 @@ export function CameraView(props: CameraViewProps) {
         </div>
       )}
 
-      {calibrationSecondsLeft !== null && <CalibrationGuide secondsLeft={calibrationSecondsLeft} />}
+      {calibrationSecondsLeft !== null && <CalibrationGuide secondsLeft={calibrationSecondsLeft} region={props.region} />}
 
       {showCalibrate && (
         <button
@@ -64,7 +67,7 @@ export function CameraView(props: CameraViewProps) {
 
       {status === 'ready' && showStepBackHint && calibrationSecondsLeft === null && (
         <div className="camera__hint" role="status">
-          Step back so your whole body is in frame
+          {props.region==='upper-body'?'Keep your head, shoulders and arms in frame':'Step back so your whole body is in frame'}
         </div>
       )}
 

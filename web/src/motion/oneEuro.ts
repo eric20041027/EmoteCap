@@ -52,20 +52,28 @@ export class OneEuroFilter {
 
 /** One Euro filter per coordinate of every landmark. Returns new landmark objects. */
 export class LandmarkFilter {
-  private filters: OneEuroFilter[][] = [];
+  private filters: (OneEuroFilter[]|undefined)[] = [];
+  private accepted: PoseLandmark[] = [];
+  private times: number[] = [];
   private readonly params: OneEuroParams;
 
-  constructor(params: Partial<OneEuroParams> = {}) {
+  constructor(params: Partial<OneEuroParams> = {},private readonly admission:'visibility'|'coordinates'='visibility') {
     this.params = { ...DEFAULT_ONE_EURO, ...params };
   }
 
   filter(landmarks: readonly PoseLandmark[], t: number): PoseLandmark[] {
-    while (this.filters.length < landmarks.length) {
-      this.filters.push([new OneEuroFilter(this.params), new OneEuroFilter(this.params), new OneEuroFilter(this.params)]);
-    }
     return landmarks.map((lm, i) => {
-      const [fx, fy, fz] = this.filters[i];
-      return { x: fx.filter(lm.x, t), y: fy.filter(lm.y, t), z: fz.filter(lm.z, t), visibility: lm.visibility };
+      // Hand XYZ outputs carry a placeholder visibility0, unlike pose confidence scores.
+      const visible=this.admission==='coordinates'||Number.isFinite(lm.visibility??1)&&(lm.visibility??1)>=0.5;
+      if(!Number.isFinite(t)||![lm.x,lm.y,lm.z].every(Number.isFinite)||!visible) {
+        this.filters[i]=undefined;
+        return {...(this.accepted[i]??{x:0,y:0,z:0}),visibility:0};
+      }
+      if(!this.filters[i]||t-this.times[i]>0.4||t<=this.times[i])
+        this.filters[i]=[new OneEuroFilter(this.params),new OneEuroFilter(this.params),new OneEuroFilter(this.params)];
+      const [fx,fy,fz]=this.filters[i]!;
+      const out={x:fx.filter(lm.x,t),y:fy.filter(lm.y,t),z:fz.filter(lm.z,t),visibility:lm.visibility};
+      this.times[i]=t;this.accepted[i]=out;return out;
     });
   }
 }

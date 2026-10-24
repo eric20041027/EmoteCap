@@ -1,9 +1,11 @@
+import type {CaptureRegion} from '../motion/captureProfile';
 interface CalibrationGuideProps {
+  region?:CaptureRegion;
   secondsLeft: number;
 }
 
 /** One T-pose figure (viewBox 100 x 100, arm span ≈ height), drawn once as a faint fill and once as an outline. */
-function TPoseFigure() {
+function TPoseFigure({upper}:{upper:boolean}) {
   return (
     <>
       <circle cx="50" cy="11.5" r="6.3" />
@@ -11,8 +13,8 @@ function TPoseFigure() {
       <path d="M38.5 21.5 H61.5 Q63 21.5 63 23 L60.5 44 L61.5 53 H38.5 L39.5 44 L37 23 Q37 21.5 38.5 21.5 Z" />
       <line x1="40" y1="24.5" x2="6" y2="24.5" strokeWidth="5.2" />
       <line x1="60" y1="24.5" x2="94" y2="24.5" strokeWidth="5.2" />
-      <line x1="44.5" y1="51" x2="44" y2="94.5" strokeWidth="7" />
-      <line x1="55.5" y1="51" x2="56" y2="94.5" strokeWidth="7" />
+      {!upper&&<><line x1="44.5" y1="51" x2="44" y2="94.5" strokeWidth="7" />
+      <line x1="55.5" y1="51" x2="56" y2="94.5" strokeWidth="7" /></>}
     </>
   );
 }
@@ -21,10 +23,11 @@ function TPoseFigure() {
  * Shown on the camera view during the calibration countdown: a T-pose outline to stand inside (it fits the
  * frame like a person filling it head to toe), a caption, and the seconds left in large type.
  */
-export function CalibrationGuide({ secondsLeft }: CalibrationGuideProps) {
+export function CalibrationGuide({ secondsLeft,region }: CalibrationGuideProps) {
+  const upper=region==='upper-body';
   return (
     <>
-      <svg className="camera__guide" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden>
+      <svg className="camera__guide" viewBox={upper?'0 0 100 60':'0 0 100 100'} preserveAspectRatio="xMidYMid meet" aria-hidden>
         <defs>
           {/* Outline of the whole figure: grow its shape a little and keep only the rim. */}
           <filter id="tpose-outline" x="-5%" y="-5%" width="110%" height="110%">
@@ -35,14 +38,14 @@ export function CalibrationGuide({ secondsLeft }: CalibrationGuideProps) {
           </filter>
         </defs>
         <g className="camera__guide-fill" fill="#fff" stroke="#fff" strokeLinecap="round">
-          <TPoseFigure />
+          <TPoseFigure upper={upper} />
         </g>
         <g filter="url(#tpose-outline)" fill="#fff" stroke="#fff" strokeLinecap="round">
-          <TPoseFigure />
+          <TPoseFigure upper={upper} />
         </g>
       </svg>
       <div className="camera__guide-caption" role="status">
-        Stand inside the outline and hold a T-pose
+        {upper?'Keep your head and arms inside the outline; legs can stay out of frame.':'Stand inside the outline and hold a T-pose'}
       </div>
       <span key={secondsLeft} className="camera__guide-count" role="timer" aria-live="assertive">
         {secondsLeft}

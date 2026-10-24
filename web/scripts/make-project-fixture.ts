@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import type { MotionFrame } from '../src/motion/contract';
-import type { ProjectDocument } from '../src/project/types';
+import {PROJECT_SCHEMA,type ProjectDocument} from '../src/project/types';
 import { encodeProject } from '../src/project/archive/codec';
 
 const TAKE_ID='10000000-0000-4000-8000-000000000002';
@@ -8,7 +8,7 @@ export const sampleFixtureURL=new URL('../../contracts/fixtures/sample-project.e
 export async function generateSampleArchive():Promise<Uint8Array<ArrayBuffer>> {
   const source=JSON.parse(await readFile(new URL('../../contracts/fixtures/raise-right-arm.clip.json',import.meta.url),'utf8')) as {frames:MotionFrame[]};
   const timestamp=1767225600000;
-  const project:ProjectDocument={format:'emotecap-project',schemaVersion:1,contractVersion:2,
+  const project:ProjectDocument={format:'emotecap-project',schemaVersion:PROJECT_SCHEMA,contractVersion:2,
     id:'10000000-0000-4000-8000-000000000001',revision:0,name:'EmoteCap sample',
     createdAt:timestamp,updatedAt:timestamp,activeTakeId:TAKE_ID,takes:[{
       id:TAKE_ID,name:'Synthetic right-arm raise',source:'sample',status:'complete',createdAt:timestamp,
@@ -20,4 +20,5 @@ export async function generateSampleArchive():Promise<Uint8Array<ArrayBuffer>> {
     }]};
   return new Uint8Array(await (await encodeProject(project)).arrayBuffer());
 }
-export async function writeSampleArchive():Promise<void> {await writeFile(sampleFixtureURL,await generateSampleArchive());}
+/** Preserve the committed legacy fixture used to prove migration. */
+export async function writeSampleArchive():Promise<void> {await writeFile(new URL('../../contracts/fixtures/sample-project-v2.emotecap',import.meta.url),await generateSampleArchive());}

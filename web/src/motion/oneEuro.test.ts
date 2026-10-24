@@ -39,6 +39,20 @@ describe('OneEuroFilter', () => {
 });
 
 describe('LandmarkFilter', () => {
+  it.each([100,NaN,Infinity])('rejects an untrusted coordinate %s without poisoning reacquisition',x=>{
+    const filter=new LandmarkFilter();filter.filter([{x:1,y:2,z:3,visibility:1}],0);
+    const hidden=filter.filter([{x,y:100,z:100,visibility:0.1}],0.1)[0];
+    expect(hidden).toEqual({x:1,y:2,z:3,visibility:0});
+    expect(filter.filter([{x:2,y:2,z:3,visibility:1}],0.2)[0].x).toBe(2);
+  });
+  it('rejects nonfinite coordinates even when visibility claims confidence',()=>{
+    const filter=new LandmarkFilter(),out=filter.filter([{x:NaN,y:Infinity,z:0,visibility:1}],0)[0];
+    expect([out.x,out.y,out.z].every(Number.isFinite)).toBe(true);expect(out.visibility).toBe(0);
+  });
+  it('reacquires directly after a long gap',()=>{
+    const filter=new LandmarkFilter();filter.filter([{x:0,y:0,z:0}],0);
+    expect(filter.filter([{x:1,y:0,z:0}],1)[0].x).toBe(1);
+  });
   it('filters every coordinate of every landmark and keeps visibility', () => {
     const filter = new LandmarkFilter();
     const frame = [{ x: 1, y: 2, z: 3, visibility: 0.9 }];
